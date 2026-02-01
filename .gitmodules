@@ -7,3 +7,7 @@
 [submodule "Hyper-Agents-Box"]
 	path = Hyper-Agents-Box
 	url = https://github.com/welshDog/hyper-agents-box.git
+[submodule "broski-terminal"]
+        path = BROski Business Agents/broski-terminal
+        url = https://github.com/welshDog/broski-terminal.git
+        branch = main
