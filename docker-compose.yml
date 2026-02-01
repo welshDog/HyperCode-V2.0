@@ -1,0 +1,154 @@
+version: "3.9"
+
+services:
+  hypercode-core:
+    build:
+      context: ./THE HYPERCODE/hypercode-core
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks: [hypernet]
+    volumes:
+      - ./THE HYPERCODE/hypercode-core:/app
+    environment:
+      HYPERCODE_DB_URL: postgresql://hyper:hyper@postgres:5432/hypercode
+      HYPERCODE_REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  broski-terminal:
+    build:
+      context: ./BROski Business Agents/broski-terminal
+    ports:
+      - "3000:3000"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    environment:
+      NEXT_PUBLIC_CORE_URL: http://hypercode-core:8000
+      NEXT_PUBLIC_AGENTS_URL: http://hyper-agents-box:5000
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks: [hypernet]
+    volumes:
+      - ./BROski Business Agents/broski-terminal:/app
+
+  hyperflow-editor:
+    build:
+      context: ./THE HYPERCODE/hyperflow-editor
+    ports:
+      - "5173:5173"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    networks: [hypernet]
+    volumes:
+      - ./THE HYPERCODE/hyperflow-editor:/app
+
+  hyper-agents-box:
+    build:
+      context: ./hyper-agents-box/hyper-agents-box
+      dockerfile: ./docker/Dockerfile
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/agents/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks: [hypernet]
+    volumes:
+      - ./hyper-agents-box/hyper-agents-box:/app
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: hypercode
+      POSTGRES_USER: hyper
+      POSTGRES_PASSWORD: hyper
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hyper -d hypercode"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks: [hypernet]
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks: [hypernet]
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.44.0
+    environment:
+      - REDIS_ADDR=redis:6379
+    ports:
+      - "9121:9121"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks: [hypernet]
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks: [hypernet]
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:latest
+    ports:
+      - "9115:9115"
+    networks: [hypernet]
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+      broski-terminal:
+        condition: service_healthy
+
+  celery-worker:
+    build:
+      context: ./THE HYPERCODE/hypercode-core
+    command: ["sh", "-lc", "celery -A hypercode.worker worker -l info || sleep 3600"]
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f celery >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks: [hypernet]
+
+networks:
+  hypernet:
+    driver: bridge
+
+volumes:
+  pgdata:
