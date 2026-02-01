@@ -1,0 +1,9 @@
+[submodule "HyperFlow-Editor"]
+	path = HyperFlow-Editor
+	url = https://github.com/welshDog/hyperflow-editor.git
+[submodule "THE HYPERCODE"]
+	path = THE HYPERCODE
+	url = https://github.com/welshDog/THE-HYPERCODE.git
+[submodule "Hyper-Agents-Box"]
+	path = Hyper-Agents-Box
+	url = https://github.com/welshDog/hyper-agents-box.git
