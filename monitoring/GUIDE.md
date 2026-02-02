@@ -1,7 +1,7 @@
 # 🧠 HyperCode Prometheus Mastery Guide
 
 > **Objective**: Turn the development team into Observability Warlords.
-> **Stack**: Prometheus, Grafana, AlertManager, NodeExporter, cAdvisor.
+> **Stack**: Prometheus, Grafana, AlertManager, NodeExporter, cAdvisor, RedisExporter.
 
 ---
 
@@ -22,6 +22,7 @@ We are running a **Decoupled Monitoring Stack**. It lives on the `hypercode_hype
 | **AlertManager** | `:9093` | The Town Crier. Handles alerts sent by Prometheus. |
 | **Node Exporter** | `:9100` | The Doctor. Reports host (VM) hardware stats. |
 | **cAdvisor** | `:8080` | The Container Spy. Reports resource usage per container. |
+| **Redis Exporter** | `:9121` | The Memory Cache Monitor. |
 | **Blackbox Exp** | `:9115` | The Pinger. Checks if endpoints (API, Health) are reachable. |
 
 ## 3. Hands-On Setup 🛠️
@@ -40,14 +41,25 @@ docker-compose -f docker-compose.monitoring.yml up -d
 
 ### Verification
 1. **Prometheus**: Visit [http://localhost:9090](http://localhost:9090).
-   - Go to **Status > Targets**. All endpoints should be **UP**.
+   - Go to **Status > Targets**. You should see targets for:
+     - `hypercode-core`
+     - `hyper-agents-box`
+     - `broski-terminal`
+     - Exporters (node, cadvisor, redis, blackbox)
 2. **Grafana**: Visit [http://localhost:3001](http://localhost:3001).
    - Login with `admin` / `admin`.
-   - Add Data Source: Choose **Prometheus**.
-   - URL: `http://prometheus:9090`.
-   - Click **Save & Test**.
+   - Go to **Dashboards > Browse**.
+   - You should see the **HyperCode Overview** dashboard pre-loaded.
 
-## 4. PromQL Cheat Sheet (Copy-Paste Magic) 🧙‍♂️
+## 4. Application Metrics 📊
+
+We have instrumented the following services to expose native Prometheus metrics:
+
+- **HyperCode Core** (`:8000/metrics`): Request latency, count, and custom business logic metrics.
+- **Hyper-Agents-Box** (`:5000/metrics`): Agent activity and API health.
+- **Broski Terminal** (`:3000/api/metrics`): Frontend API route latency and Next.js internals.
+
+## 5. PromQL Cheat Sheet (Copy-Paste Magic) 🧙‍♂️
 
 **Basic Health Check:**
 ```promql
@@ -65,13 +77,13 @@ topk(5, rate(container_cpu_usage_seconds_total[5m]))
 sum(container_memory_usage_bytes) by (name)
 ```
 
-**HTTP Error Rate (requires custom app metrics):**
+**Average API Response Time (Global):**
 ```promql
-rate(http_requests_total{status=~"5.."}[5m])
+rate(http_request_duration_seconds_sum[5m]) / rate(http_request_duration_seconds_count[5m])
 ```
 
-## 5. Next Steps
-- **Import Dashboards**: Go to Grafana > Dashboards > Import. Use ID `1860` for a great Node Exporter dashboard or `14282` for cAdvisor.
+## 6. Next Steps
+- **Import Community Dashboards**: Use ID `1860` for Node Exporter or `14282` for cAdvisor.
 - **Silence Alerts**: Go to [http://localhost:9093](http://localhost:9093) to manage silences during maintenance.
 
 ---
