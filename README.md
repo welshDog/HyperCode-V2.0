@@ -73,7 +73,23 @@ graph TD
         Prom[Prometheus] --> Targets[Service Targets]
         Graf[Grafana] --> Prom
     end
+
+    subgraph "Autonomous Operations"
+        Agent1 -->|MCP| Docker[Docker Engine]
+        Docker --> Containers[Managed Containers]
+    end
 ```
+
+## 📚 Documentation Index
+
+We maintain comprehensive documentation to ensure clarity and traceability.
+
+- **Getting Started:** [Onboarding Guide](docs/getting_started.md)
+- **Technical Deep Dive:** [Architecture](docs/architecture.md)
+- **Integration:** [API Reference](docs/api_reference.md) | [MCP Integration](docs/MCP_INTEGRATION.md)
+- **Operations:** [Runbook](runbook.md) | [Security Threat Model](docs/security_threat_model.md)
+- **Quality Assurance:** [Traceability Matrix](docs/traceability_matrix.md) | [Benchmarks](docs/benchmarks.md)
+- **Governance:** [ADR-001](docs/ADR-001-MCP-Integration.md) | [Changelog](CHANGELOG.md)
 
 ## 🤝 Contributing
 
@@ -84,3 +100,6 @@ We welcome contributions from everyone, especially neurodivergent developers! Pl
 ## 📜 License
 
 This project is licensed under the MIT License.
+
+---
+> *Built with WelshDog + BROski* 🚀🌙

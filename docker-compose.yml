@@ -20,8 +20,8 @@ services:
       retries: 3
     networks: [hypernet]
     # Production: Use image code
-    # volumes:
-    #   - ./THE HYPERCODE/hypercode-core:/app
+    volumes:
+      - ./THE HYPERCODE/hypercode-core:/app
     environment:
       HYPERCODE_DB_URL: ${HYPERCODE_DB_URL}
       HYPERCODE_REDIS_URL: ${HYPERCODE_REDIS_URL}
@@ -94,6 +94,9 @@ services:
     environment:
       - CORE_URL=http://hypercode-core:8000
       - PROMETHEUS_URL=http://prometheus:9090
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     networks: [hypernet]
     depends_on:
       hypercode-core:
@@ -103,6 +106,16 @@ services:
         limits:
           cpus: "0.5"
           memory: 512M
+
+  mcp-server:
+    image: mcp/everything:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./agents/mcp-config.json:/config.json
+    networks:
+      - hypernet
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
 
   hyper-agents-box:
     build:

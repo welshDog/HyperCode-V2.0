@@ -1,10 +1,16 @@
 
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Create a non-root user
 RUN useradd -m -u 1000 appuser
 
 WORKDIR /app
+
+# Install system dependencies (including Docker CLI and Git)
+RUN apt-get update && apt-get install -y \
+    docker.io \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies as root
 COPY requirements.txt .

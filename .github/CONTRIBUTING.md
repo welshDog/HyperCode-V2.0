@@ -52,3 +52,6 @@ Be kind. Be patient. We are all learning and building together.
 - Focus on the code, not the person.
 
 Let's build something amazing together! 🚀
+
+---
+> *Built with WelshDog + BROski* 🚀🌙

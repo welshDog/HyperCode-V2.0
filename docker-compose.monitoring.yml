@@ -77,5 +77,15 @@ services:
       - "9115:9115"
     networks: [hypernet]
 
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686" # UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    networks: [hypernet]
+
 volumes:
   grafana_data:
