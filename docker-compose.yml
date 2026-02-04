@@ -25,6 +25,7 @@ services:
     environment:
       HYPERCODE_DB_URL: ${HYPERCODE_DB_URL}
       HYPERCODE_REDIS_URL: ${HYPERCODE_REDIS_URL}
+      HYPERCODE_MEMORY_KEY: ${HYPERCODE_MEMORY_KEY}
     depends_on:
       postgres:
         condition: service_healthy
@@ -215,6 +216,23 @@ services:
         limits:
           cpus: "2"
           memory: 4G
+
+  roundtrip-worker:
+    build:
+      context: ./tools/roundtrip-worker
+      dockerfile: Dockerfile
+    environment:
+      - PROMPT=ping
+    depends_on:
+      ollama:
+        condition: service_started
+    networks:
+      - hypernet
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
 
 volumes:
   pgdata:
