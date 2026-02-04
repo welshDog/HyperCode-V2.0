@@ -6,13 +6,13 @@ RUN useradd -m -u 1000 appuser
 
 WORKDIR /app
 
-# Install system dependencies (including Docker CLI and Git)
-RUN apt-get update && apt-get install -y \
-    docker.io \
-    git \
+# Install minimal system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies as root
+# Install Python dependencies
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

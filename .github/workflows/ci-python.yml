@@ -28,7 +28,10 @@ jobs:
       - name: Pytest with coverage
         working-directory: THE HYPERCODE/hypercode-core
         run: |
-          pytest -v --cov=hypercode --cov-report=xml:coverage.xml --cov-report=term-missing
+          for i in $(seq 1 10); do \
+            echo \"Run $i/10\"; \
+            pytest -v --cov=hypercode --cov-report=xml:coverage.xml --cov-report=term-missing || exit 1; \
+          done
 
       - name: Enforce coverage threshold
         working-directory: THE HYPERCODE/hypercode-core

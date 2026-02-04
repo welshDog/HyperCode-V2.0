@@ -62,3 +62,36 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  build-metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build images (no push) and collect metrics
+        run: |
+          set -e
+          build_img () { NAME=$1; CTX=$2; DOCKER_BUILDKIT=1 docker build -t $NAME $CTX; }
+          measure () { NAME=$1; echo \"$NAME size:\" $(docker image inspect $NAME --format='{{.Size}}'); }
+          # Build
+          build_img hypercode-core:metrics \"./THE HYPERCODE/hypercode-core\"
+          build_img agent-python:metrics \"./templates/agent-python\"
+          build_img coder-agent:metrics \"./agents/coder\"
+          build_img hyper-agents-box:metrics \"./Hyper-Agents-Box/hyper-agents-box\"
+          build_img broski-terminal:metrics \"./BROski Business Agents/broski-terminal\"
+          build_img hyperflow-editor:metrics \"./THE HYPERCODE/hyperflow-editor\"
+          # Metrics
+          measure hypercode-core:metrics
+          measure agent-python:metrics
+          measure coder-agent:metrics
+          measure hyper-agents-box:metrics
+          measure broski-terminal:metrics
+          measure hyperflow-editor:metrics
+      - name: Vulnerability scan with Trivy
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: hypercode-core:metrics
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true

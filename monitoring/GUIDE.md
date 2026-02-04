@@ -59,6 +59,36 @@ We have instrumented the following services to expose native Prometheus metrics:
 - **Hyper-Agents-Box** (`:5000/metrics`): Agent activity and API health.
 - **Broski Terminal** (`:3000/api/metrics`): Frontend API route latency and Next.js internals.
 
+### SSE Agent Registry Metrics
+- `agent_stream_latency_ms` histogram with labels: method, status, env, version
+- `agent_stream_clients_total` counter tagged by env, version
+- `agent_registry_errors_total` counter labeled by operation, env, version
+
+### Recording Rules
+- Latency quantiles: `job:agent_stream_latency_ms:hist_p50`, `hist_p95`, `hist_p99`
+- Clients rate: `job:agent_stream_clients_total:rate_5m`
+- Error rate: `job:agent_registry_errors_total:rate_5m`
+
+### Alerts
+- High p95 latency > 500ms for 5m
+- No SSE clients for 10m
+- Elevated error rate > 0.1/s for 10m
+
+### Grafana Dashboards
+- Import `monitoring/grafana/dashboards/sse_agent_registry.json`
+- Panels: SSE clients rate, latency quantiles, error rate by operation, throughput
+
+## 7. Test Execution Procedures
+Run unit tests:
+```
+pytest -q
+```
+
+Key suites:
+- SSE emission and resilience tests
+- Metrics latency validation
+- Heartbeat lifecycle and timeout handling
+
 ## 5. PromQL Cheat Sheet (Copy-Paste Magic) 🧙‍♂️
 
 **Basic Health Check:**

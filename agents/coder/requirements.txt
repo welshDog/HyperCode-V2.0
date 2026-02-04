@@ -2,7 +2,9 @@ aiohttp
 prometheus-api-client
 docker
 git+https://github.com/QuantGeekDev/docker-mcp.git
+mcp
 opentelemetry-api
 opentelemetry-sdk
 opentelemetry-exporter-otlp
 opentelemetry-distro
+opentelemetry-instrumentation-aiohttp-client
