@@ -1,23 +1,24 @@
-
 FROM python:3.11-alpine
-
-# Create a non-root user
-RUN adduser -D -u 1000 appuser
 
 WORKDIR /app
 
-# Install build deps minimally, then app deps
-RUN apk add --no-cache libstdc++ \
-    && pip install --no-cache-dir --upgrade pip
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Install dependencies
+RUN apk add --no-cache libstdc++
+
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-RUN chown -R appuser:appuser /app
+# Create non-root user and set ownership
+RUN adduser -D -u 1000 appuser \
+    && chown -R appuser:appuser /app
+
 USER appuser
 
 CMD ["python", "main.py"]
