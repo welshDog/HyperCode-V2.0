@@ -254,6 +254,31 @@ services:
       - platform-net
     restart: unless-stopped
 
+  llama:
+    image: ollama/ollama:latest
+    container_name: hypercode-llama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./data/ollama:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_ORIGINS=*
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 4G
+    networks:
+      - platform-net
+
   # Infrastructure
   redis:
     image: redis:7-alpine
