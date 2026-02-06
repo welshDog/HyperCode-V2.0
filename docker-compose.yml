@@ -18,12 +18,13 @@ services:
       dockerfile: Dockerfile
     container_name: hypercode-core
     environment:
-      - ENVIRONMENT=development
-      - PRISMA_PY_DEBUG=1
+      - ENVIRONMENT=production
+      - PRISMA_PY_DEBUG=0
       - HYPERCODE_REDIS_URL=redis://redis:6379/0
       - HYPERCODE_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-hypercode}
       - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
-      - API_KEY=
+      - API_KEY=XHh_1I73_joV8brIQ3vB1iMQ8SU6jlmvbi_D4bxvVF8
+      - HYPERCODE_JWT_SECRET=DzeJ4aPMJFWMeuSiSQFI6HYYHdoAhHfYhnI0dlP3IP2wzP2PGCimrDshC2HOuLEu
       - OTLP_EXPORTER_DISABLED=false
       - OTLP_ENDPOINT=http://jaeger:4318/v1/traces
     depends_on:
