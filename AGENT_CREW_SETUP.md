@@ -287,7 +287,7 @@ make restart-backend
 ```bash
 make clean
 # Or
-docker-compose -f docker-compose.agents.yml down -v
+docker compose -f docker-compose.yml down -v
 ```
 
 ## 🚢 Production Deployment
@@ -310,7 +310,7 @@ See `docs/DEPLOYMENT.md` for:
 ## 🐛 Troubleshooting
 
 ### Port Conflicts
-Edit `docker-compose.agents.yml` and change port mappings
+Edit `docker-compose.yml` and change port mappings
 
 ### API Key Issues
 ```bash
