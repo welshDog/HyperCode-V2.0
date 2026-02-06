@@ -14,7 +14,7 @@ services:
   # HyperCode Core
   hypercode-core:
     build:
-      context: ./HyperCode-V2.0/THE HYPERCODE/hypercode-core
+      context: ./THE HYPERCODE/hypercode-core
       dockerfile: Dockerfile
     container_name: hypercode-core
     environment:
@@ -36,7 +36,130 @@ services:
       - platform-net
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - ./THE HYPERCODE/hypercode-core:/app
+
+  # Frontend - Terminal
+  broski-terminal:
+    build:
+      context: ./BROski Business Agents/broski-terminal
+      dockerfile: Dockerfile
+    container_name: broski-terminal
+    environment:
+      NEXT_PUBLIC_CORE_URL: ${NEXT_PUBLIC_CORE_URL:-http://localhost:8000}
+      NEXT_PUBLIC_AGENTS_URL: ${NEXT_PUBLIC_AGENTS_URL:-http://localhost:8000}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - platform-net
+    ports:
+      - "3000:3000"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+
+  # Frontend - Editor
+  hyperflow-editor:
+    build:
+      context: ./THE HYPERCODE/hyperflow-editor
+      dockerfile: Dockerfile
+    container_name: hyperflow-editor
+    ports:
+      - "5173:4173"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - platform-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4173/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Worker
+  celery-worker:
+    build:
+      context: ./THE HYPERCODE/hypercode-core
+      dockerfile: Dockerfile
+    container_name: celery-worker
+    command: ["python", "-m", "celery", "-A", "app.core.celery_app", "worker", "--loglevel=info"]
+    volumes:
+      - ./THE HYPERCODE/hypercode-core:/app
+    environment:
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      PYTHONPATH: /app
+      HYPERCODE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/hypercode
+      HYPERCODE_REDIS_URL: redis://redis:6379/0
+      HYPERCODE_MEMORY_KEY: ${HYPERCODE_MEMORY_KEY}
+    healthcheck:
+      test: ["CMD-SHELL", "python -m celery -A app.core.celery_app inspect ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - platform-net
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+
+  # Agents
+  coder-agent:
+    build:
+      context: ./agents/coder
+      dockerfile: Dockerfile
+    container_name: coder-agent
+    environment:
+      - CORE_URL=http://hypercode-core:8000
+      - PROMETHEUS_URL=http://prometheus:9090
+    volumes:
+      - ./agents/coder/workspace:/workspace
+    networks:
+      - platform-net
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  mcp-server:
+    image: mcp/everything:latest
+    container_name: mcp-server
+    volumes:
+      - ./agents/mcp-config.json:/config.json
+    networks:
+      - platform-net
+      
+  hyper-agents-box:
+    build:
+      context: ./Hyper-Agents-Box/hyper-agents-box
+      dockerfile: docker/Dockerfile
+    container_name: hyper-agents-box
+    ports:
+      - "5000:5000"
     restart: unless-stopped
+    networks:
+      - platform-net
 
   dashboard:
     image: nginx:alpine

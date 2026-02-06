@@ -2,6 +2,15 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+# Grafana Cloud Remote Write
+# TODO: Get credentials from https://hypercode.grafana.net/connections/datasources
+# Click on "Prometheus" -> "Send Metrics" to find these values.
+remote_write:
+  - url: <Your Prometheus Remote Write Endpoint>
+    basic_auth:
+      username: <Your Prometheus Username / Instance ID>
+      password: <Your Grafana Cloud Access Policy Token>
+
 rule_files:
   - "/etc/prometheus/monitoring/rules/*.yml"
 
