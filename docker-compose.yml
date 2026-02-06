@@ -18,9 +18,10 @@ services:
       dockerfile: Dockerfile
     container_name: hypercode-core
     environment:
-      - ENVIRONMENT=local
+      - ENVIRONMENT=development
+      - PRISMA_PY_DEBUG=1
       - HYPERCODE_REDIS_URL=redis://redis:6379/0
-      - HYPERCODE_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/hypercode
+      - HYPERCODE_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-hypercode}
       - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
       - API_KEY=
       - OTLP_EXPORTER_DISABLED=false
@@ -98,7 +99,7 @@ services:
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
       PYTHONPATH: /app
-      HYPERCODE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/hypercode
+      HYPERCODE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-hypercode}
       HYPERCODE_REDIS_URL: redis://redis:6379/0
       HYPERCODE_MEMORY_KEY: ${HYPERCODE_MEMORY_KEY}
     healthcheck:
@@ -444,8 +445,8 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./HyperCode-V2.0/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./HyperCode-V2.0/monitoring/prometheus:/etc/prometheus/monitoring:ro
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus:/etc/prometheus/monitoring:ro
     networks:
       - platform-net
     restart: unless-stopped
@@ -457,8 +458,8 @@ services:
       - "3001:3000"
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./HyperCode-V2.0/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./HyperCode-V2.0/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     networks:
       - platform-net
     restart: unless-stopped
