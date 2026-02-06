@@ -1,0 +1,10 @@
+{
+  "agent_name": "devops-engineer",
+  "specializations": [
+    "Docker",
+    "Kubernetes",
+    "CI/CD",
+    "Infrastructure as Code",
+    "Monitoring"
+  ]
+}

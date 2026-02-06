@@ -1,0 +1,10 @@
+{
+  "agent_name": "database-architect",
+  "specializations": [
+    "PostgreSQL",
+    "Schema Design",
+    "Query Optimization",
+    "Migrations",
+    "Indexing"
+  ]
+}
