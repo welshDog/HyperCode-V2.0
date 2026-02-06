@@ -1,0 +1,10 @@
+{
+  "agent_name": "backend-specialist",
+  "specializations": [
+    "FastAPI",
+    "Python",
+    "REST APIs",
+    "Business Logic",
+    "Authentication"
+  ]
+}

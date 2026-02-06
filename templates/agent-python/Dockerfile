@@ -1,13 +1,11 @@
-FROM python:3.11-alpine
+FROM python:3.11-slim
 
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Install dependencies
-RUN apk add --no-cache libstdc++
-
+# Install Python dependencies (before copying code for better caching)
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
@@ -16,7 +14,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY . .
 
 # Create non-root user and set ownership
-RUN adduser -D -u 1000 appuser \
+RUN useradd -m -u 1000 appuser \
     && chown -R appuser:appuser /app
 
 USER appuser

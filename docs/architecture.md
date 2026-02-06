@@ -1,86 +1,240 @@
-# HyperCode V2.0 Architecture
+# HyperCode Agent Crew - Architecture
 
-> **built with WelshDog + BROski 🚀🌙**
+## System Overview
 
-## Overview
-
-HyperCode V2.0 is an autonomous AI coding platform designed to facilitate collaboration between human developers and AI agents. It leverages a microservices architecture, utilizing the Model Context Protocol (MCP) for agent communication and Docker for isolated execution environments.
-
-## High-Level Architecture
-
-```mermaid
-graph TD
-    User[User] --> FE[Next.js Frontend]
-    FE --> API[FastAPI Gateway]
-    API --> Agent1[Coder Agent]
-    API --> Agent2[Architect Agent]
-    API --> DB[(PostgreSQL)]
-    
-    subgraph Observability
-        Prom[Prometheus] --> Targets[Service Targets]
-        Graf[Grafana] --> Prom
-    end
-    
-    subgraph "Autonomous Operations"
-        Agent1 -->|MCP| Docker[Docker Engine]
-        Docker --> Containers[Managed Containers]
-    end
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Client Applications                          │
+│  (Web UI, CLI, API Clients, Trae Integration)                  │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              Crew Orchestrator (FastAPI)                        │
+│  - Task routing & delegation                                     │
+│  - Agent coordination                                            │
+│  - Workflow management                                           │
+│  - Redis pub/sub for real-time updates                          │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                    ┌────────┴────────┐
+                    ▼                 ▼
+        ┌───────────────────┐   ┌────────────────┐
+        │  Redis (Message   │   │  PostgreSQL    │
+        │  Queue & Cache)   │   │  (Task History)│
+        └───────────────────┘   └────────────────┘
+                    │
+         ┌──────────┼──────────┐
+         │          │          │
+         ▼          ▼          ▼
+┌────────────┐ ┌──────────┐ ┌──────────────┐
+│ Strategist │ │Architect │ │  Specialists │
+│  (Tier 1)  │ │ (Tier 1) │ │   (Tier 2)   │
+└──────┬─────┘ └────┬─────┘ └──────┬───────┘
+       │            │               │
+       └────────────┼───────────────┘
+                    │
+        ┌───────────┼───────────────┐
+        │           │               │
+        ▼           ▼               ▼
+ ┌──────────┐ ┌──────────┐  ┌────────────┐
+ │ Frontend │ │ Backend  │  │  Database  │
+ │    QA    │ │  DevOps  │  │  Security  │
+ └──────────┘ └──────────┘  └────────────┘
+        │           │               │
+        └───────────┼───────────────┘
+                    │
+                    ▼
+         ┌────────────────────┐
+         │    Hive Mind       │
+         │  (Shared Memory)   │
+         │  - Team Standards  │
+         │  - Skills Library  │
+         └────────────────────┘
 ```
 
-## Core Components
+## Agent Hierarchy
 
-### 1. Frontend (Next.js)
-- **Role:** User interface for interacting with the system.
-- **Tech Stack:** Next.js, React, TypeScript.
-- **Responsibility:**
-  - Authenticating users.
-  - Displaying project status and agent activities.
-  - Sending commands to the backend API.
+### Tier 1: Strategic Agents (Orchestrators)
+- **Project Strategist**: Plans, breaks down tasks, delegates
+- **System Architect**: Defines architecture, patterns, standards
 
-### 2. API Gateway (FastAPI)
-- **Role:** Central entry point for all requests.
-- **Tech Stack:** Python, FastAPI.
-- **Responsibility:**
-  - Routing requests to appropriate agents.
-  - Managing user sessions and authentication.
-  - Interacting with the PostgreSQL database.
+**Model**: Claude Opus (highest reasoning capability)
+**Responsibilities**: High-level planning, decision-making
 
-### 3. Coder Agent
-- **Role:** Autonomous coding agent capable of executing tasks.
-- **Tech Stack:** Python, LangChain (or similar), MCP Client.
-- **Responsibility:**
-  - Analyzing codebases.
-  - Generating code patches.
-  - Deploying containers via MCP.
-  - Running tests.
+### Tier 2: Specialist Agents (Executors)
+- **Frontend Specialist**: UI/UX, React, Next.js
+- **Backend Specialist**: APIs, business logic, Python
+- **Database Architect**: Schema, queries, optimization
+- **QA Engineer**: Testing, validation, quality assurance
+- **DevOps Engineer**: CI/CD, Docker, Kubernetes
+- **Security Engineer**: Security audits, vulnerability scanning
 
-### 4. Model Context Protocol (MCP) Server
-- **Role:** Standardized interface for agents to interact with the environment.
-- **Responsibility:**
-  - Exposing tools (filesystem, Docker, shell) to agents safely.
-  - Maintaining context across agent sessions.
+**Model**: Claude Sonnet (fast, efficient)
+**Responsibilities**: Specialized task execution
 
-### 5. Data Layer
-- **PostgreSQL:** Stores user data, project metadata, and execution logs.
-- **Redis:** Used for caching and pub/sub for real-time updates.
+## Communication Flow
+
+### 1. Task Submission
+```
+User → Orchestrator → Project Strategist → Breakdown → Specialists
+```
+
+### 2. Inter-Agent Communication
+```
+Agent A → Redis Pub/Sub → Agent B
+         ↓
+    PostgreSQL (persistence)
+```
+
+### 3. Result Aggregation
+```
+Specialists → Results → Orchestrator → Client
+                ↓
+           Task History (PostgreSQL)
+```
 
 ## Data Flow
 
-1. **Task Submission:** User submits a task via Frontend.
-2. **Orchestration:** API Gateway receives the task and delegates it to the Architect Agent (if high-level) or Coder Agent (if implementation-focused).
-3. **Execution:** Coder Agent analyzes the request, retrieves necessary context via MCP, and executes changes.
-4. **Validation:** Agent runs tests inside a Docker container.
-5. **Feedback:** Results are streamed back to the user via WebSocket/SSE.
+### Task Planning
+1. User submits task to Orchestrator
+2. Orchestrator forwards to Project Strategist
+3. Strategist analyzes and creates subtasks
+4. Subtasks stored in Redis with status
+5. Specialists notified via Redis pub/sub
 
-## Security Architecture
+### Task Execution
+1. Specialist receives task from queue
+2. Loads Hive Mind context (standards, skills)
+3. Calls Claude API with enriched prompt
+4. Stores result in Redis
+5. Notifies Orchestrator of completion
 
-- **Isolation:** Agents run in isolated containers.
-- **Access Control:** MCP enforces strict permissions on what tools agents can access.
-- **Network Policy:** Internal services communicate over a private Docker network.
+### Result Collection
+1. Orchestrator monitors Redis for completions
+2. Aggregates specialist results
+3. Returns to user
+4. Archives in PostgreSQL for history
 
-## Deployment View
+## Technology Stack
 
-The system is deployed using `docker-compose` for local development and can be scaled to Kubernetes for production.
+### Infrastructure
+- **Docker**: Containerization
+- **Docker Compose**: Local orchestration
+- **Kubernetes**: Production orchestration (optional)
 
----
-> **built with WelshDog + BROski 🚀🌙**
+### Backend
+- **FastAPI**: REST API framework
+- **Python 3.11**: Programming language
+- **Uvicorn**: ASGI server
+
+### Message Queue & Cache
+- **Redis**: Task queue, pub/sub, caching
+- **Redis Streams**: Event log
+
+### Database
+- **PostgreSQL**: Task history, agent memory
+- **pgvector**: Vector embeddings (future)
+
+### AI
+- **Anthropic Claude**: LLM (Opus, Sonnet)
+- **CrewAI**: Agent framework (optional)
+
+## Scalability
+
+### Horizontal Scaling
+```yaml
+# Scale specialist agents
+docker-compose up --scale backend-specialist=3
+```
+
+### Load Balancing
+- nginx/Traefik for orchestrator
+- Redis queue distributes tasks
+- Multiple specialist instances
+
+### Resource Allocation
+- Tier 1 agents: 0.75 CPU, 768MB RAM
+- Tier 2 agents: 0.5 CPU, 512MB RAM
+- Orchestrator: 1 CPU, 1GB RAM
+
+## Security
+
+### API Keys
+- Stored in environment variables
+- Never committed to git
+- Rotated regularly
+
+### Network Isolation
+- Agents on private network
+- Only orchestrator exposed
+- TLS for external communication
+
+### Container Security
+- Non-root users
+- Minimal base images
+- Regular security scans
+
+## Monitoring
+
+### Health Checks
+- HTTP endpoints on all services
+- 30-second intervals
+- Auto-restart on failure
+
+### Metrics (Future)
+- Prometheus for metrics
+- Grafana for visualization
+- Alert on SLA violations
+
+### Logging
+- Structured JSON logs
+- Centralized via ELK/Loki
+- Correlation IDs for tracing
+
+## Hive Mind (Shared Knowledge)
+
+### Team Memory Standards
+- Coding conventions
+- Best practices
+- Project-specific rules
+- Updated by all agents
+
+### Skills Library
+- Reusable functions
+- Common patterns
+- Tested solutions
+- Version controlled
+
+### Implementation
+- Mounted as read-only volumes
+- Loaded into agent context
+- Updated via configuration files
+
+## Integration Points
+
+### Trae Integration
+```yaml
+volumes:
+  - ${TRAE_WORKSPACE}:/workspace:ro
+environment:
+  - TRAE_MCP_ENABLED=true
+```
+
+### GitHub Integration
+- Webhooks for issues → tasks
+- PR review by agents
+- Commit on completion
+
+### CI/CD Integration
+- Trigger on deployment
+- Run agent-based tests
+- Quality gates
+
+## Future Enhancements
+
+1. **Vector Memory**: Store past solutions in pgvector
+2. **Learning Loop**: Fine-tune on project-specific patterns
+3. **Multi-project**: Separate workspaces per project
+4. **Human-in-the-Loop**: Approval workflow for changes
+5. **Telemetry**: Track agent performance metrics

@@ -84,12 +84,39 @@ graph TD
 
 We maintain comprehensive documentation to ensure clarity and traceability.
 
+- **Quickstart:** [QUICKSTART](docs/QUICKSTART.md)
+- **Mission API:** [MISSION.API](docs/MISSION.API.md)
+- **Manifesto:** [HYPERCODE-MANIFESTO](docs/HYPERCODE-MANIFESTO.md)
 - **Getting Started:** [Onboarding Guide](docs/getting_started.md)
 - **Technical Deep Dive:** [Architecture](docs/architecture.md)
 - **Integration:** [API Reference](docs/api_reference.md) | [MCP Integration](docs/MCP_INTEGRATION.md)
 - **Operations:** [Runbook](runbook.md) | [Security Threat Model](docs/security_threat_model.md)
 - **Quality Assurance:** [Traceability Matrix](docs/traceability_matrix.md) | [Benchmarks](docs/benchmarks.md)
 - **Governance:** [ADR-001](docs/ADR-001-MCP-Integration.md) | [Changelog](CHANGELOG.md)
+
+## 🧪 Running Tests
+
+```bash
+# Core tests (stable)
+pytest -v -m "not experimental"
+
+# All tests (including WIP)
+pytest -v
+```
+
+## 🩺 Health Check Mission Flow
+
+- Endpoint: POST /orchestrator/mission/{mission_id}/report
+- Payload: JSON report including agent_id and structured results
+- Artifacts: Saved under reports/health_check_{agent_id}_{timestamp}.json
+- Audit: Retrieved via GET /orchestrator/{mission_id}/audit
+
+### Dashboard Auto-Refresh
+
+- Open http://localhost:8088/
+- Use Health Check Report section to submit reports
+- Toggle Auto-Refresh to poll audit entries with backoff
+- Last refresh timestamp and status shown inline
 
 ## 🤝 Contributing
 
