@@ -1,0 +1,71 @@
+name: HyperCode Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: changeme
+          POSTGRES_DB: hypercode
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Dependencies
+      working-directory: ./THE HYPERCODE/hypercode-core
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Generate Prisma Client
+      working-directory: ./THE HYPERCODE/hypercode-core
+      run: |
+        prisma generate
+
+    - name: Run Tests
+      working-directory: ./THE HYPERCODE/hypercode-core
+      env:
+        ENVIRONMENT: test
+        HYPERCODE_DB_URL: postgresql://postgres:changeme@localhost:5432/hypercode
+        HYPERCODE_REDIS_URL: redis://localhost:6379/0
+        API_KEY: test-key
+        HYPERCODE_JWT_SECRET: super-secret-test-key-must-be-long-enough-32-chars
+      run: |
+        pytest --cov=app --cov-report=term --cov-report=xml
+
+    - name: Upload Coverage
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./THE HYPERCODE/hypercode-core/coverage.xml
