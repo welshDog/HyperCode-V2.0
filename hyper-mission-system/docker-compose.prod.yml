@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # Load Balancer / Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - server
+      - client
+    networks:
+      - production-net
+
+  # Database Cluster (Simulated)
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: secure_prod_password
+      POSTGRES_DB: hypermission
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./server/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - production-net
+    restart: always
+
+  # Redis Cache
+  redis:
+    image: redis:alpine
+    networks:
+      - production-net
+    restart: always
+
+  # API Server Cluster
+  server:
+    build: ./server
+    environment:
+      DATABASE_URL: postgres://user:secure_prod_password@postgres:5432/hypermission
+      NODE_ENV: production
+      PORT: 5000
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - production-net
+    deploy:
+      replicas: 3 # Scaled for high availability
+      restart_policy:
+        condition: on-failure
+
+  # Frontend Client
+  client:
+    build: ./client
+    networks:
+      - production-net
+    restart: always
+
+  # Monitoring Stack
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9092:9090"
+    networks:
+      - production-net
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3003:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - production-net
+
+networks:
+  production-net:
+
+volumes:
+  pg_data:
