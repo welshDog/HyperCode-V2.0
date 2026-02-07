@@ -1,4 +1,1 @@
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
 echo "Skipping pre-commit tests (no test script configured)"

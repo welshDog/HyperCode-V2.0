@@ -16,7 +16,7 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExport
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentator
+from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -33,7 +33,7 @@ trace.get_tracer_provider().add_span_processor(BatchSpanProcessor(otlp_exporter)
 tracer = trace.get_tracer(__name__)
 
 # Instrument aiohttp client
-AioHttpClientInstrumentator().instrument()
+AioHttpClientInstrumentor().instrument()
 CORE_URL = os.getenv("CORE_URL", "http://hypercode-core:8000")
 PROMETHEUS_URL = os.getenv("PROMETHEUS_URL", "http://prometheus:9090")
 AGENT_NAME = "Coder"
@@ -93,15 +93,15 @@ class CoderAgent:
         """Register the agent with the Core."""
         payload = {
             "name": AGENT_NAME,
-            "description": AGENT_DESCRIPTION,
+            "role": "coder",
             "version": "0.2.0",
-            "endpoint": "http://coder-agent:8000",
-            "tags": AGENT_TAGS,
+            "health_url": "http://coder-agent:8000/health",
+            "topics": AGENT_TAGS,
             "capabilities": [
-                {"name": "code_generation", "description": "Generate code from prompts", "version": "1.0"},
-                {"name": "refactoring", "description": "Refactor code for performance", "version": "1.0"},
-                {"name": "analyze_metrics", "description": "Analyze system metrics from Prometheus", "version": "1.0"},
-                {"name": "analyze_and_deploy", "description": "Analyze code and manage containers via MCP", "version": "1.0"}
+                "code_generation",
+                "refactoring",
+                "analyze_metrics",
+                "analyze_and_deploy"
             ]
         }
         
@@ -114,6 +114,19 @@ class CoderAgent:
                         self.id = data["id"]
                         logger.info(f"Registered Coder Agent with ID: {self.id}")
                         return True
+                    elif resp.status == 204:
+                        logger.info("Agent already registered. Fetching ID...")
+                        # Fetch ID from list
+                        async with session.get(f"{CORE_URL}/agents/") as list_resp:
+                            if list_resp.status == 200:
+                                agents = await list_resp.json()
+                                for a in agents:
+                                    if a["name"] == AGENT_NAME:
+                                        self.id = a["id"]
+                                        logger.info(f"Found existing Coder Agent with ID: {self.id}")
+                                        return True
+                        logger.error("Could not find agent ID after 204 registration.")
+                        return False
                     else:
                         logger.error(f"Registration failed: {resp.status} - {await resp.text()}")
                         return False
@@ -130,35 +143,37 @@ class CoderAgent:
         await self.initialize_mcp()
 
         ws_url = f"{CORE_URL}/agents/{self.id}/channel".replace("http", "ws")
-        try:
-            self.session = aiohttp.ClientSession()
-            async with self.session.ws_connect(ws_url) as ws:
-                self.ws = ws
-                logger.info("WebSocket connected")
-                
-                # Heartbeat loop
-                while True:
-                    await ws.send_str("ping")
-                    msg = await ws.receive()
+        while True:
+            try:
+                self.session = aiohttp.ClientSession()
+                async with self.session.ws_connect(ws_url) as ws:
+                    self.ws = ws
+                    logger.info("WebSocket connected")
                     
-                    if msg.type == aiohttp.WSMsgType.TEXT:
-                        if msg.data == "pong":
-                            logger.debug("Heartbeat pong received")
-                        else:
-                            await self.on_message(msg.data)
-                    elif msg.type == aiohttp.WSMsgType.CLOSED:
-                        logger.warning("WebSocket closed")
-                        break
-                    elif msg.type == aiohttp.WSMsgType.ERROR:
-                        logger.error("WebSocket error")
-                        break
-                    
-                    await asyncio.sleep(30)
-        except Exception as e:
-            logger.error(f"WebSocket connection error: {e}")
-        finally:
-            if self.session:
-                await self.session.close()
+                    # Heartbeat loop
+                    while True:
+                        await ws.send_str("ping")
+                        msg = await ws.receive()
+                        
+                        if msg.type == aiohttp.WSMsgType.TEXT:
+                            if msg.data == "pong":
+                                logger.debug("Heartbeat pong received")
+                            else:
+                                await self.on_message(msg.data)
+                        elif msg.type == aiohttp.WSMsgType.CLOSED:
+                            logger.warning("WebSocket closed")
+                            break
+                        elif msg.type == aiohttp.WSMsgType.ERROR:
+                            logger.error("WebSocket error")
+                            break
+                        
+                        await asyncio.sleep(30)
+            except Exception as e:
+                logger.error(f"WebSocket connection error: {e}. Retrying in 5s...")
+                await asyncio.sleep(5)
+            finally:
+                if self.session:
+                    await self.session.close()
             # Clean up MCP connection
             if self.mcp_exit_stack:
                 await self.mcp_exit_stack.aclose()
@@ -186,9 +201,10 @@ class CoderAgent:
             elif task_type == "analyze_and_deploy":
                 result = await self.analyze_and_deploy(task.get("code", ""))
             else:
-                # Simulation of coding work
-                await asyncio.sleep(2)
-                result = {"status": "completed", "result": "print('Hello World')"}
+                # Real thinking with Ollama
+                prompt = task.get("prompt", str(task))
+                code_result = await self.generate_code_with_ollama(prompt)
+                result = {"status": "completed", "result": code_result}
             
             span.set_attribute("task.status", result.get("status"))
             logger.info(f"Task completed: {result}")
@@ -253,6 +269,29 @@ class CoderAgent:
         except Exception as e:
             logger.error(f"Error querying Prometheus: {e}")
             return {"status": "error", "message": str(e)}
+
+    async def generate_code_with_ollama(self, prompt: str, model: str = "qwen2.5-coder:7b") -> str:
+        """Generate code using Ollama."""
+        url = "http://ollama:11434/api/generate"
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "stream": False
+        }
+        try:
+            async with aiohttp.ClientSession() as session:
+                # Increased timeout for LLM generation
+                async with session.post(url, json=payload, timeout=60) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        return data.get("response", "")
+                    else:
+                        error_text = await resp.text()
+                        logger.error(f"Ollama error: {resp.status} - {error_text}")
+                        return f"Error: Failed to generate code. Status: {resp.status}. Message: {error_text}"
+        except Exception as e:
+            logger.error(f"Ollama connection failed: {e}")
+            return f"Error: Could not connect to Ollama. Is it running? Details: {e}"
 
 if __name__ == "__main__":
     agent = CoderAgent()

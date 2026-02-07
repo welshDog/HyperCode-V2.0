@@ -20,6 +20,14 @@
   "graphTooltip": 0,
   "id": null,
   "links": [],
+  "links": [
+    {
+      "type": "dashboards",
+      "title": "Voice Coding Observability",
+      "url": "/d/voice-coding",
+      "asDropdown": false
+    }
+  ],
   "liveNow": false,
   "panels": [
     {

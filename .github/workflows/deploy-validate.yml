@@ -32,6 +32,7 @@ jobs:
           docker run -d --name core -p 8000:8000 \
             -e HYPERCODE_REDIS_URL=redis://host.docker.internal:6379/0 \
             -e HYPERCODE_JWT_SECRET="$JWT_SECRET" \
+            -e OTLP_EXPORTER_DISABLED=true \
             hypercode-core:ci
 
       - name: Wait for readiness
@@ -41,6 +42,13 @@ jobs:
       - name: Verify x-ratelimit-limit header
         run: |
           curl -s -D - http://localhost:8000/ready -o /dev/null | grep -i 'x-ratelimit-limit'
+
+      - name: Generate synthetic SSE load and verify metrics
+        run: |
+          for i in {1..20}; do curl -sf \"http://localhost:8000/agents/watch?one_shot=true\" >/dev/null || true; done
+          curl -sf -X POST http://localhost:8000/agents/register -H \"Content-Type: application/json\" \
+            --data '{\"name\":\"CI Agent\",\"role\":\"worker\",\"version\":\"0.1.0\",\"capabilities\":[],\"topics\":[],\"health_url\":null,\"dedup_key\":\"00000000-0000-0000-0000-00000000CI\"}' >/dev/null
+          curl -sf http://localhost:8000/metrics | grep -E \"agent_stream_latency_ms(_count)?\"
 
       - name: Generate JWT
         id: jwt

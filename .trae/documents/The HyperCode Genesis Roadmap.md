@@ -20,27 +20,37 @@ This is the definitive master plan to evolve **HyperCode V2.0** from a skeleton 
 
 ## 🧠 Phase 2: The Neural Network (Core Logic)
 *Objective: Build the brain and the nervous system.*
-**Timeline: Weeks 1-2**
+**Revised Timeline: February 2026 (In Progress)**
 
 ### 2.1 HyperCode Core (`THE HYPERCODE/hypercode-core`)
 -   **Task**: Replace the Python skeleton with the actual **Execution Engine**.
--   **Features**:
-    -   **Interpreter**: Parse "HyperCode" syntax (natural language + code).
-    -   **Context Manager**: Manage short-term (mission) and long-term (knowledge) memory.
-    -   **Event Bus**: Implement the message envelope system for agent-to-agent comms.
+-   **Features & Status**:
+    -   [ ] **Interpreter**: Parse "HyperCode" syntax (natural language + code).
+    -   [ ] **Context Manager**: Manage short-term (mission) and long-term (knowledge) memory.
+    -   [x] **Event Bus**: Redis Streams envelopes, consumer groups, retry scheduler, DLQ.
+    -   [x] **Mission Orchestration**: Circuit breaker, fallback assignment, environment-gated workers.
+    -   [x] **Testing**: Unit and integration tests for backoff/jitter, retries, DLQ, circuit breaker.
+    -   [ ] **Observability**: Metrics endpoints (retry depth, breaker opens), structured logs.
+    -   [ ] **Security Hardening**: Rate limiting on mission endpoints.
 
 ### 2.2 Agent Runtime (`hyper-agents-box`)
 -   **Task**: Implement the runtime for the 19 specialized agents.
--   **Features**:
-    -   **Agent Registry**: Dynamic registration of capabilities (e.g., "I am Frontend, I speak React").
-    -   **Tool Sandbox**: Secure execution environment for agent tools (file system access, web search).
-    -   **LLM Gateway**: Unified interface to OpenAI/Anthropic with rate limiting and cost tracking.
+-   **Features & Status**:
+    -   [~] **Agent Registry**: Core endpoints and models present; stabilization and contracts pending.
+    -   [ ] **Tool Sandbox**: Secure execution environment for agent tools.
+    -   [ ] **LLM Gateway**: Unified interface to OpenAI/Anthropic with rate limiting and cost tracking.
+
+### Phase 2 Progress Update (as of 2026-02-04)
+- Event Bus retry helpers, DLQ consumer utilities, and integration tests completed.
+- Mission circuit breaker and environment-specific background workers implemented.
+- In-memory models and tests enable local reliability; DB schema planning underway.
+- Outstanding: Interpreter MVP, Context Manager, metrics, rate limiting, timezone-aware datetime refactor.
 
 ---
 
 ## 🖥️ Phase 3: The Cortex (Interface & Experience)
 *Objective: Create the "Command Center" for the user.*
-**Timeline: Weeks 3-4**
+**Revised Timeline: Feb 17 – Mar 03, 2026**
 
 ### 3.1 Broski Terminal (`broski-terminal`)
 -   **Task**: Build the Next.js Command Center.
@@ -60,7 +70,7 @@ This is the definitive master plan to evolve **HyperCode V2.0** from a skeleton 
 
 ## 🧬 Phase 4: Evolution (Intelligence & Polish)
 *Objective: Make the system self-improving and robust.*
-**Timeline: Weeks 5-6**
+**Revised Timeline: Mar 04 – Mar 17, 2026**
 
 ### 4.1 The Learning Loop
 -   **Feature**: Implement feedback mechanisms where agents learn from user corrections.
@@ -72,10 +82,40 @@ This is the definitive master plan to evolve **HyperCode V2.0** from a skeleton 
 ---
 
 ## 🚀 Immediate Next Steps (The "Now")
-To kickstart **Phase 2**, we must implement the **HyperCode Core Engine**.
+Focus is completing Phase 2 core capabilities and hardening.
 
-1.  **Scaffold Core Architecture**: Set up the FastAPI structure with proper routers (Agents, Memory, Execution).
-2.  **Database Migration**: Define the initial Prisma schema for `Users`, `Missions`, and `Memories`.
-3.  **Agent Communication**: Implement the Redis Pub/Sub layer for real-time agent messaging.
+1.  **Interpreter MVP**: Minimal HyperCode parsing and execution hooks.
+2.  **Context Manager**: Mission/knowledge memory APIs and persistence abstraction.
+3.  **Observability**: Metrics endpoints for retries and breaker; structured audit logs.
+4.  **Security**: Rate limiting on mission endpoints; JWT timezone-safe handling.
+5.  **Datetime Refactor**: Replace `utcnow()` with timezone-aware `datetime.now(datetime.UTC)`.
+6.  **DB Schema Planning**: Postgres models (SQLAlchemy/Prisma per service) for Users, Missions, Memories.
+7.  **DLQ Replay Policy**: Business rules for replaying failed missions and safeguards.
 
-*Ready to execute Phase 2?*
+---
+
+## 📅 Revised Schedule & Checkpoints
+- **2026-02-10 Checkpoint**
+  - Interpreter MVP wired to execution engine.
+  - Retry/metrics endpoints exposed; breaker metrics recorded.
+  - Decision note on DB technology per service (SQLAlchemy vs Prisma).
+
+- **2026-02-17 Checkpoint**
+  - Context Manager APIs implemented with in-memory adapter and Postgres plan.
+  - Rate limiting enabled on mission endpoints.
+  - DLQ replay safeguards documented and feature-flagged.
+
+- **2026-02-24 Checkpoint**
+  - Phase 2 stabilization: all critical tests green; metrics dashboards.
+  - Phase 3 kickoff: Broski Terminal scaffolding begins.
+
+- **2026-03-03 Checkpoint**
+  - Terminal MVP demo; HyperFlow Editor prototyping starts.
+
+---
+
+## 🔁 Scope Changes (Captured)
+- Adopted **Redis Streams** with consumer groups and DLQ over simple Pub/Sub.
+- Introduced **circuit breaker** for agent health and **environment gating** for workers.
+- Strengthened **testing** with unit/integration coverage around retry, DLQ, and orchestration.
+- Planned **timezone-aware datetime** refactor and **metrics** for operational visibility.
