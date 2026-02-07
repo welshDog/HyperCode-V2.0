@@ -20,13 +20,13 @@ services:
     environment:
       - ENVIRONMENT=production
       - PRISMA_PY_DEBUG=0
-      - HYPERCODE_REDIS_URL=redis://redis:6379/0
-      - HYPERCODE_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL}
+      - HYPERCODE_DB_URL=${HYPERCODE_DB_URL}
       - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
-      - API_KEY=XHh_1I73_joV8brIQ3vB1iMQ8SU6jlmvbi_D4bxvVF8
-      - HYPERCODE_JWT_SECRET=DzeJ4aPMJFWMeuSiSQFI6HYYHdoAhHfYhnI0dlP3IP2wzP2PGCimrDshC2HOuLEu
-      - OTLP_EXPORTER_DISABLED=false
-      - OTLP_ENDPOINT=http://jaeger:4318/v1/traces
+      - API_KEY=${API_KEY}
+      - HYPERCODE_JWT_SECRET=${HYPERCODE_JWT_SECRET}
+      - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED}
+      - OTLP_ENDPOINT=${OTLP_ENDPOINT}
     depends_on:
       redis:
         condition: service_healthy
@@ -55,6 +55,7 @@ services:
     environment:
       NEXT_PUBLIC_CORE_URL: ${NEXT_PUBLIC_CORE_URL:-http://localhost:8000}
       NEXT_PUBLIC_AGENTS_URL: ${NEXT_PUBLIC_AGENTS_URL:-http://localhost:8000}
+      HOSTNAME: "0.0.0.0"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
       interval: 30s
@@ -392,7 +393,7 @@ services:
       - OLLAMA_HOST=0.0.0.0
       - OLLAMA_ORIGINS=*
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:11434/"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -425,9 +426,9 @@ services:
     image: postgres:15-alpine
     container_name: postgres
     environment:
-      - POSTGRES_DB=hypercode
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
@@ -457,6 +458,12 @@ services:
     container_name: grafana
     ports:
       - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      # Disable Analytics to fix console errors
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      - GF_ANALYTICS_FEEDBACK_LINKS_ENABLED=false
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro

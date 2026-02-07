@@ -7,10 +7,36 @@ const xss = require('xss-clean');
 const hpp = require('hpp');
 const compression = require('compression');
 const { Pool } = require('pg');
+const client = require('prom-client');
 require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 5000;
+
+// Prometheus Metrics
+const register = new client.Registry();
+client.collectDefaultMetrics({ register });
+
+// Custom Metrics
+const taskCounter = new client.Counter({
+  name: 'task_operations_total',
+  help: 'Total number of task operations',
+  labelNames: ['operation', 'status'],
+  registers: [register]
+});
+
+const taskDuration = new client.Histogram({
+  name: 'task_duration_seconds',
+  help: 'Duration of task operations in seconds',
+  labelNames: ['operation'],
+  registers: [register]
+});
+
+// Metrics Endpoint
+app.get('/metrics', async (req, res) => {
+  res.setHeader('Content-Type', register.contentType);
+  res.send(await register.metrics());
+});
 
 // Security & Optimization Middleware
 app.use(helmet()); // Set security headers
@@ -62,14 +88,19 @@ app.get('/api/tasks', async (req, res) => {
 
 // Create Task
 app.post('/api/tasks', async (req, res) => {
+  const end = taskDuration.startTimer({ operation: 'create_task' });
   const { title, description, impact, effort, urgency, due_date } = req.body;
   try {
     const result = await pool.query(
       'INSERT INTO tasks (title, description, impact, effort, urgency, due_date, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
       [title, description, impact, effort, urgency, due_date, 'pending']
     );
+    taskCounter.inc({ operation: 'create_task', status: 'success' });
+    end();
     res.status(201).json(result.rows[0]);
   } catch (err) {
+    taskCounter.inc({ operation: 'create_task', status: 'error' });
+    end();
     console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
