@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'node_app'
+    static_configs:
+      - targets: ['server:5000']
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
