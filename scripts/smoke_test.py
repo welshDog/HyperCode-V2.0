@@ -2,14 +2,15 @@ import requests
 import sys
 import time
 
-CORE_URL = "http://localhost:8000"
-TERMINAL_URL = "http://localhost:3000"
+CORE_URL = "http://localhost/api"
+TERMINAL_URL = "http://localhost"
 EDITOR_URL = "http://localhost:5173"
 
 def check_url(url, name):
     try:
         start = time.time()
-        response = requests.get(url, timeout=5)
+        # Disable SSL verification for self-signed certs
+        response = requests.get(url, timeout=5, verify=False)
         duration = time.time() - start
         if response.status_code == 200:
             print(f"[PASS] {name} is reachable ({duration:.3f}s)")
@@ -35,7 +36,8 @@ def main():
     
     # 4. Editor Frontend (Just check root)
     try:
-        requests.get(EDITOR_URL, timeout=5)
+        # Disable SSL verification for self-signed certs
+        requests.get(EDITOR_URL, timeout=5, verify=False)
         print(f"[PASS] HyperFlow Editor is reachable")
         editor_ok = True
     except:
