@@ -6,8 +6,8 @@ networks:
     name: hypercode_agent_network
 
 volumes:
-  redis-data:
-  postgres-data:
+  agent-redis-data:
+  agent-postgres-data:
   hive-mind-data:
 
 services:
@@ -22,13 +22,13 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://agent-redis:6379
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
     depends_on:
-      - redis
-      - postgres
+      - agent-redis
+      - agent-postgres
     networks:
       - agent-network
     restart: unless-stopped
@@ -53,7 +53,7 @@ services:
     container_name: project-strategist
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://agent-redis:6379
       - AGENT_NAME=project-strategist
       - AGENT_MODEL=claude-3-opus-20240229
     volumes:
@@ -62,7 +62,7 @@ services:
     networks:
       - agent-network
     depends_on:
-      - redis
+      - agent-redis
     restart: unless-stopped
     deploy:
       resources:
@@ -80,7 +80,7 @@ services:
     container_name: frontend-specialist
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://agent-redis:6379
       - AGENT_NAME=frontend-specialist
       - AGENT_MODEL=claude-3-5-sonnet-20241022
     volumes:
@@ -89,7 +89,7 @@ services:
     networks:
       - agent-network
     depends_on:
-      - redis
+      - agent-redis
     restart: unless-stopped
     deploy:
       resources:
@@ -104,7 +104,7 @@ services:
     container_name: backend-specialist
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://agent-redis:6379
       - AGENT_NAME=backend-specialist
       - AGENT_MODEL=claude-3-5-sonnet-20241022
     volumes:
@@ -113,7 +113,7 @@ services:
     networks:
       - agent-network
     depends_on:
-      - redis
+      - agent-redis
     restart: unless-stopped
     deploy:
       resources:
@@ -128,18 +128,18 @@ services:
     container_name: database-architect
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://agent-redis:6379
       - AGENT_NAME=database-architect
       - AGENT_MODEL=claude-3-5-sonnet-20241022
-      - POSTGRES_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/hypercode
+      - POSTGRES_URL=postgresql://postgres:${POSTGRES_PASSWORD}@agent-postgres:5432/hypercode
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
     networks:
       - agent-network
     depends_on:
-      - redis
-      - postgres
+      - agent-redis
+      - agent-postgres
     restart: unless-stopped
     deploy:
       resources:
@@ -154,7 +154,7 @@ services:
     container_name: qa-engineer
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://agent-redis:6379
       - AGENT_NAME=qa-engineer
       - AGENT_MODEL=claude-3-5-sonnet-20241022
     volumes:
@@ -163,7 +163,7 @@ services:
     networks:
       - agent-network
     depends_on:
-      - redis
+      - agent-redis
     restart: unless-stopped
     deploy:
       resources:
@@ -178,7 +178,7 @@ services:
     container_name: devops-engineer
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://agent-redis:6379
       - AGENT_NAME=devops-engineer
       - AGENT_MODEL=claude-3-5-sonnet-20241022
       - DOCKER_HOST=unix:///var/run/docker.sock
@@ -189,7 +189,7 @@ services:
     networks:
       - agent-network
     depends_on:
-      - redis
+      - agent-redis
     restart: unless-stopped
     deploy:
       resources:
@@ -204,7 +204,7 @@ services:
     container_name: security-engineer
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://agent-redis:6379
       - AGENT_NAME=security-engineer
       - AGENT_MODEL=claude-3-5-sonnet-20241022
     volumes:
@@ -213,7 +213,7 @@ services:
     networks:
       - agent-network
     depends_on:
-      - redis
+      - agent-redis
     restart: unless-stopped
     deploy:
       resources:
@@ -228,7 +228,7 @@ services:
     container_name: system-architect
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://agent-redis:6379
       - AGENT_NAME=system-architect
       - AGENT_MODEL=claude-3-opus-20240229
     volumes:
@@ -237,7 +237,7 @@ services:
     networks:
       - agent-network
     depends_on:
-      - redis
+      - agent-redis
     restart: unless-stopped
     deploy:
       resources:
@@ -248,12 +248,12 @@ services:
   # ======================
   # INFRASTRUCTURE
   # ======================
-  redis:
+  agent-redis:
     image: redis:7-alpine
     container_name: agent-redis
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
-      - redis-data:/data
+      - agent-redis-data:/data
     networks:
       - agent-network
     healthcheck:
@@ -268,7 +268,7 @@ services:
           cpus: "0.25"
           memory: 256M
 
-  postgres:
+  agent-postgres:
     image: postgres:15-alpine
     container_name: agent-postgres
     environment:
@@ -276,7 +276,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - agent-postgres-data:/var/lib/postgresql/data
     networks:
       - agent-network
     healthcheck:
