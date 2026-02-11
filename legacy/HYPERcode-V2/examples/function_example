@@ -1,0 +1,12 @@
+# Function Example
+# Define and call a function
+
+function greet(name) {
+  print "Hello, ";
+  print name;
+  print "!";
+}
+
+greet("Alex");
+greet("Jordan");
+greet("HyperCode");
