@@ -43,6 +43,11 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
     volumes:
       - ./THE HYPERCODE/hypercode-core:/app
 
@@ -80,6 +85,11 @@ services:
     depends_on:
       hypercode-core:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
     networks:
       - platform-net
     healthcheck:
