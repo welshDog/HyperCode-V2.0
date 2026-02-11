@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 HyperCode IDE</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #1a1a1a;
+            --bg-darker: #0f0f0f;
+            --bg-light: #2d2d2d;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent-teal: #32b8c6;
+            --accent-green: #22c55e;
+            --accent-red: #ff5459;
+            --accent-orange: #e68161;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Menlo, Monaco, 'Courier New', monospace;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--bg-darker);
+            border-right: 1px solid var(--bg-light);
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 30px;
+        }
+
+        .sidebar-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .example-btn {
+            width: 100%;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: var(--bg-light);
+            border: 1px solid var(--bg-light);
+            border-radius: 6px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .example-btn:hover {
+            background: var(--accent-teal);
+            border-color: var(--accent-teal);
+            color: #000;
+        }
+
+        .main-editor {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .toolbar {
+            background: var(--bg-darker);
+            border-bottom: 1px solid var(--bg-light);
+            padding: 12px 20px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--accent-teal);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background: #28a8b5;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: #3d3d3d;
+        }
+
+        .editor-section {
+            flex: 1;
+            display: flex;
+            gap: 0;
+            overflow: hidden;
+        }
+
+        .editor {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--bg-light);
+        }
+
+        .editor-label {
+            padding: 8px 16px;
+            background: var(--bg-light);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        textarea {
+            flex: 1;
+            padding: 16px;
+            background: var(--bg-darker);
+            color: var(--text-primary);
+            border: none;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            overflow: auto;
+        }
+
+        textarea:focus {
+            outline: none;
+        }
+
+        .output {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .output-content {
+            flex: 1;
+            padding: 16px;
+            background: var(--bg-darker);
+            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.6;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .output-line {
+            margin-bottom: 4px;
+        }
+
+        .output-success {
+            color: var(--accent-green);
+        }
+
+        .output-error {
+            color: var(--accent-red);
+        }
+
+        .output-info {
+            color: var(--text-secondary);
+        }
+
+        .resize-handle {
+            width: 100%;
+            height: 2px;
+            background: var(--bg-light);
+            cursor: ns-resize;
+            transition: background 0.2s;
+        }
+
+        .resize-handle:hover {
+            background: var(--accent-teal);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-light);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-teal);
+        }
+
+        .status {
+            padding: 8px 16px;
+            font-size: 12px;
+            background: var(--bg-light);
+            color: var(--text-secondary);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <span>🧠</span>
+                <span>HyperCode</span>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Examples</div>
+                <button class="example-btn" onclick="loadExample('hello')">👋 Hello World</button>
+                <button class="example-btn" onclick="loadExample('variables')">💰 Variables</button>
+                <button class="example-btn" onclick="loadExample('conditionals')">🔄 Conditionals</button>
+                <button class="example-btn" onclick="loadExample('loop')">🔁 Loops</button>
+                <button class="example-btn" onclick="loadExample('function')">🌟 Functions</button>
+                <button class="example-btn" onclick="loadExample('fizzbuzz')">🪣 FizzBuzz</button>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Help</div>
+                <button class="example-btn" onclick="showHelp()">📖 Syntax Guide</button>
+                <button class="example-btn" onclick="clearCode()">🗑 Clear</button>
+            </div>
+
+            <div class="sidebar-section" style="margin-top: auto;">
+                <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.5;">
+                    🧠 HyperCode v0.9<br>
+                    Neurodivergent-first<br>
+                    programming
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Editor -->
+        <div class="main-editor">
+            <div class="toolbar">
+                <button class="btn btn-primary" onclick="runCode()">🚀 Run</button>
+                <button class="btn btn-secondary" onclick="clearOutput()">Clear Output</button>
+                <div style="margin-left: auto; font-size: 12px; color: var(--text-secondary);">
+                    <span id="status">Ready</span>
+                </div>
+            </div>
+
+            <div class="editor-section">
+                <!-- Code Editor -->
+                <div class="editor">
+                    <div class="editor-label">📙 Code</div>
+                    <textarea id="code" placeholder="Write HyperCode here..."># Your HyperCode here
+print "Hello, HyperCode!";
+</textarea>
+                </div>
+
+                <!-- Output Panel -->
+                <div class="output">
+                    <div class="editor-label">📚 Output</div>
+                    <div class="output-content" id="output"></div>
+                </div>
+            </div>
+
+            <div class="status">
+                💓 Built for neurodivergent minds
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const codeEditor = document.getElementById('code');
+        const outputPanel = document.getElementById('output');
+        const statusDiv = document.getElementById('status');
+
+        // Examples
+        const examples = {
+            hello: `# Hello World\nprint "Hello, HyperCode!";
+`,
+            variables: `# Variables\nlet x = 10;
+let name = "Alex";
+print "Name: ";
+print name;
+print "Age: ";
+print x;
+`,
+            conditionals: `# Conditionals\nlet age = 20;
+if age >= 18 print "Adult";
+if age < 18 print "Minor";
+`,
+            loop: `# Loops\nloop(5) {
+  print "HyperCode!";
+}
+`,
+            function: `# Functions\nfunction greet(name) {
+  print "Hello, ";
+  print name;
+  print "!";
+}
+greet("Alex");
+greet("Jordan");
+`,
+            fizzbuzz: `# FizzBuzz\nlet i = 1;
+loop(15) {
+  if i % 15 == 0 print "FizzBuzz";
+  if i % 3 == 0 print "Fizz";
+  if i % 5 == 0 print "Buzz";
+  if i % 3 != 0 print i;
+  if i % 5 != 0 print i;
+  let i = i + 1;
+}
+`
+        };
+
+        function loadExample(name) {
+            codeEditor.value = examples[name] || '';
+            codeEditor.focus();
+        }
+
+        function runCode() {
+            const code = codeEditor.value;
+            outputPanel.innerHTML = '';
+            statusDiv.textContent = 'Running...';
+
+            try {
+                // Simulate execution (in production, would call backend)
+                let output = '';
+                const logs = [];
+
+                // Mock execution for demo
+                if (code.includes('print')) {
+                    // This is simplified - in production, use real interpreter
+                    statusDiv.textContent = '✓ Executed';
+                    logs.push('<span class="output-success">✓ Code executed successfully</span>');
+                    logs.push('<span class="output-info">(Backend integration coming in Phase 2)</span>');
+                    
+                    // Show what would be printed
+                    if (code.includes('Hello')) {
+                        logs.push('Hello, HyperCode!');
+                    }
+                } else {
+                    statusDiv.textContent = 'Ready';
+                    logs.push('<span class="output-info">No output</span>');
+                }
+
+                outputPanel.innerHTML = logs.map(log => `<div class="output-line">${log}</div>`).join('');
+            } catch (e) {
+                statusDiv.textContent = '✗ Error';
+                outputPanel.innerHTML = `<div class="output-line"><span class="output-error">✗ Error: ${e.message}</span></div>`;
+            }
+        }
+
+        function clearOutput() {
+            outputPanel.innerHTML = '';
+            statusDiv.textContent = 'Ready';
+        }
+
+        function clearCode() {
+            codeEditor.value = '';
+            outputPanel.innerHTML = '';
+            statusDiv.textContent = 'Ready';
+            codeEditor.focus();
+        }
+
+        function showHelp() {
+            const helpText = `
+📖 HyperCode Syntax Quick Reference
+
+VARIABLES:
+  let x = 10;
+  let name = "Alex";
+
+PRINTING:
+  print "Hello!";
+  print x;
+
+CONDITIONALS:
+  if x > 5 print "big";
+  if x == 10 { print "ten"; }
+
+LOOPS:
+  loop(5) { print "hi"; }
+
+FUNCTIONS:
+  function greet(name) { print name; }
+  greet("Alex");
+
+OPERATORS:
+  +, -, *, /, %  (math)
+  ==, !=, <, >   (compare)
+  "            ";
+`;
+            clearOutput();
+            outputPanel.innerHTML = `<div class="output-line"><span class="output-info">${helpText}</span></div>`;
+        }
+
+        // Keyboard shortcuts
+        codeEditor.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                runCode();
+            }
+        });
+
+        // Focus on load
+        window.addEventListener('load', () => {
+            codeEditor.focus();
+        });
+    </script>
+</body>
+</html>

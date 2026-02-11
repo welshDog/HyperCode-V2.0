@@ -1,0 +1,16 @@
+# FizzBuzz in HyperCode
+# For numbers 1 to 15:
+# - If divisible by 3: print "Fizz"
+# - If divisible by 5: print "Buzz"
+# - If divisible by both: print "FizzBuzz"
+# - Otherwise: print the number
+
+let i = 1;
+loop(15) {
+  if i % 15 == 0 print "FizzBuzz";
+  if i % 3 == 0 print "Fizz";
+  if i % 5 == 0 print "Buzz";
+  if i % 3 != 0 print i;
+  if i % 5 != 0 print i;
+  let i = i + 1;
+}
