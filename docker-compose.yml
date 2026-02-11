@@ -1,9 +1,17 @@
 version: "3.9"
 
 networks:
-  platform-net:
+  frontend-net:
     driver: bridge
-    name: hypercode_platform_net
+    name: hypercode_frontend_net
+  backend-net:
+    driver: bridge
+    name: hypercode_backend_net
+    internal: true
+  data-net:
+    driver: bridge
+    name: hypercode_data_net
+    internal: true
 
 volumes:
   redis-data:
@@ -25,6 +33,7 @@ services:
       - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
       - API_KEY=${API_KEY}
       - HYPERCODE_JWT_SECRET=${HYPERCODE_JWT_SECRET}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED}
       - OTLP_ENDPOINT=${OTLP_ENDPOINT}
     depends_on:
@@ -35,7 +44,8 @@ services:
       jaeger:
         condition: service_started
     networks:
-      - platform-net
+      - backend-net
+      - data-net
     ports:
       - "8000:8000"
     healthcheck:
@@ -62,12 +72,13 @@ services:
       NEXT_PUBLIC_AGENTS_URL: ${NEXT_PUBLIC_AGENTS_URL:-http://localhost:8000}
       HOSTNAME: "0.0.0.0"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {if (r.statusCode !== 200) process.exit(1)})"]
       interval: 30s
       timeout: 10s
       retries: 3
     networks:
-      - platform-net
+      - frontend-net
+      - backend-net
     ports:
       - "3000:3000"
     depends_on:
@@ -91,7 +102,7 @@ services:
           cpus: "0.5"
           memory: 512M
     networks:
-      - platform-net
+      - frontend-net
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:4173/"]
       interval: 30s
@@ -126,7 +137,8 @@ services:
       hypercode-core:
         condition: service_healthy
     networks:
-      - platform-net
+      - backend-net
+      - data-net
     deploy:
       resources:
         limits:
@@ -145,7 +157,7 @@ services:
     volumes:
       - ./agents/coder/workspace:/workspace
     networks:
-      - platform-net
+      - backend-net
     depends_on:
       hypercode-core:
         condition: service_healthy
@@ -161,7 +173,7 @@ services:
     volumes:
       - ./agents/mcp-config.json:/config.json
     networks:
-      - platform-net
+      - backend-net
       
   hyper-agents-box:
     build:
@@ -172,7 +184,7 @@ services:
       - "5000:5000"
     restart: unless-stopped
     networks:
-      - platform-net
+      - backend-net
 
   dashboard:
     image: nginx:alpine
@@ -191,7 +203,7 @@ services:
       hypercode-core:
         condition: service_healthy
     networks:
-      - platform-net
+      - frontend-net
     restart: unless-stopped
 
   # Crew Orchestrator
@@ -212,7 +224,8 @@ services:
       hypercode-core:
         condition: service_healthy
     networks:
-      - platform-net
+      - backend-net
+      - data-net
     ports:
       - "8080:8080"
     restart: unless-stopped
@@ -236,7 +249,13 @@ services:
       hypercode-core:
         condition: service_healthy
     networks:
-      - platform-net
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
 
   backend-specialist:
@@ -257,7 +276,13 @@ services:
       hypercode-core:
         condition: service_healthy
     networks:
-      - platform-net
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
 
   database-architect:
@@ -281,7 +306,13 @@ services:
       hypercode-core:
         condition: service_healthy
     networks:
-      - platform-net
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8004/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
 
   qa-engineer:
@@ -302,7 +333,13 @@ services:
       hypercode-core:
         condition: service_healthy
     networks:
-      - platform-net
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8005/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
 
   devops-engineer:
@@ -313,6 +350,7 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - REDIS_URL=redis://redis:6379
       - CORE_URL=http://hypercode-core:8000
+      - AGENT_PORT=8006
       - AGENT_HEALTH_URL=http://devops-engineer:8006/health
       - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
@@ -325,7 +363,13 @@ services:
       hypercode-core:
         condition: service_healthy
     networks:
-      - platform-net
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8006/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
 
   security-engineer:
@@ -346,7 +390,13 @@ services:
       hypercode-core:
         condition: service_healthy
     networks:
-      - platform-net
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8007/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
 
   system-architect:
@@ -357,6 +407,7 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - REDIS_URL=redis://redis:6379
       - CORE_URL=http://hypercode-core:8000
+      - AGENT_PORT=8008
       - AGENT_HEALTH_URL=http://system-architect:8008/health
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
@@ -367,7 +418,13 @@ services:
       hypercode-core:
         condition: service_healthy
     networks:
-      - platform-net
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8008/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
 
   project-strategist:
@@ -388,8 +445,16 @@ services:
       hypercode-core:
         condition: service_healthy
     networks:
-      - platform-net
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
+
+  # End of agents
 
   llama:
     image: ollama/ollama:latest
@@ -403,7 +468,7 @@ services:
       - OLLAMA_HOST=0.0.0.0
       - OLLAMA_ORIGINS=*
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:11434/"]
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/11434'"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -414,7 +479,7 @@ services:
           cpus: '1.5'
           memory: 4G
     networks:
-      - platform-net
+      - backend-net
 
   # Infrastructure
   redis:
@@ -424,7 +489,7 @@ services:
     volumes:
       - redis-data:/data
     networks:
-      - platform-net
+      - data-net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -442,7 +507,7 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
-      - platform-net
+      - data-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -460,7 +525,7 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/prometheus:/etc/prometheus/monitoring:ro
     networks:
-      - platform-net
+      - backend-net
     restart: unless-stopped
 
   grafana:
@@ -479,14 +544,18 @@ services:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     networks:
-      - platform-net
+      - frontend-net
+      - backend-net
     restart: unless-stopped
 
   jaeger:
     image: jaegertracing/all-in-one:1.56
     container_name: jaeger
     ports:
-      - "16686:16686"
+      - "16686:16686" # UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
     networks:
-      - platform-net
+      - backend-net
+      - frontend-net
     restart: unless-stopped

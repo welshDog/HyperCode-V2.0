@@ -1,9 +1,17 @@
 version: "3.9"
 
 networks:
-  platform-net:
+  frontend-net:
     driver: bridge
-    name: hypercode_platform_net
+    name: hypercode_frontend_net
+  backend-net:
+    driver: bridge
+    name: hypercode_backend_net
+    internal: true
+  data-net:
+    driver: bridge
+    name: hypercode_data_net
+    internal: true
 
 volumes:
   redis-data:
@@ -28,7 +36,8 @@ services:
       - broski-terminal
       - grafana
     networks:
-      - platform-net
+      - frontend-net
+      - backend-net
     restart: always
 
   # HyperCode Core
@@ -58,7 +67,8 @@ services:
       jaeger:
         condition: service_started
     networks:
-      - platform-net
+      - backend-net
+      - data-net
     # Ports not exposed directly to host in production, only to Nginx
     # ports:
     #   - "8000:8000"
@@ -89,7 +99,8 @@ services:
       timeout: 10s
       retries: 3
     networks:
-      - platform-net
+      - frontend-net
+      - backend-net
     # Ports not exposed directly
     # ports:
     #   - "3000:3000"
@@ -116,10 +127,13 @@ services:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
     depends_on:
-      - redis
-      - postgres
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     networks:
-      - platform-net
+      - backend-net
+      - data-net
     restart: always
 
   # Infrastructure Services
@@ -131,7 +145,7 @@ services:
     volumes:
       - redis-data:/data
     networks:
-      - platform-net
+      - data-net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -165,7 +179,8 @@ services:
       - "4317:4317"
       - "4318:4318"
     networks:
-      - platform-net
+      - backend-net
+      - frontend-net
     restart: always
 
   # Monitoring
@@ -183,7 +198,7 @@ services:
     ports:
       - "9090:9090"
     networks:
-      - platform-net
+      - backend-net
     restart: always
 
   grafana:
@@ -202,7 +217,8 @@ services:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
     networks:
-      - platform-net
+      - frontend-net
+      - backend-net
     depends_on:
       - prometheus
     restart: always
@@ -217,7 +233,7 @@ services:
     volumes:
       - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
     networks:
-      - platform-net
+      - backend-net
     restart: always
 
   node-exporter:
@@ -233,7 +249,7 @@ services:
       - '--collector.filesystem.ignored-mount-points'
       - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
     networks:
-      - platform-net
+      - backend-net
     restart: always
 
   cadvisor:
@@ -246,6 +262,6 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     networks:
-      - platform-net
+      - backend-net
     restart: always
 
