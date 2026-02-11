@@ -80,6 +80,16 @@ graph TD
     end
 ```
 
+### 🛡️ Network Security Architecture
+
+HyperCode V2.0 employs a strict 3-tier network segmentation strategy to enforce least-privilege access:
+
+- **frontend-net**: Public-facing zone. Contains `nginx` (Prod) or exposed ports for `dashboard` and `grafana`.
+- **backend-net**: Internal application zone. Hosts `hypercode-core`, Agent Swarm, and monitoring collectors. No direct external access.
+- **data-net**: Restricted data zone. Hosts `postgres` and `redis`. Only accessible by `hypercode-core` and authorized data agents.
+
+All inter-service communication is strictly controlled via Docker internal networks.
+
 ## 📚 Documentation Index
 
 We maintain comprehensive documentation to ensure clarity and traceability.
