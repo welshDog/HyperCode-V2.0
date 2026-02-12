@@ -2,55 +2,39 @@
 
 ## System Overview
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Client Applications                          │
-│  (Web UI, CLI, API Clients, Trae Integration)                  │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              Crew Orchestrator (FastAPI)                        │
-│  - Task routing & delegation                                     │
-│  - Agent coordination                                            │
-│  - Workflow management                                           │
-│  - Redis pub/sub for real-time updates                          │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                    ┌────────┴────────┐
-                    ▼                 ▼
-        ┌───────────────────┐   ┌────────────────┐
-        │  Redis (Message   │   │  PostgreSQL    │
-        │  Queue & Cache)   │   │  (Task History)│
-        └───────────────────┘   └────────────────┘
-                    │
-         ┌──────────┼──────────┐
-         │          │          │
-         ▼          ▼          ▼
-┌────────────┐ ┌──────────┐ ┌──────────────┐
-│ Strategist │ │Architect │ │  Specialists │
-│  (Tier 1)  │ │ (Tier 1) │ │   (Tier 2)   │
-└──────┬─────┘ └────┬─────┘ └──────┬───────┘
-       │            │               │
-       └────────────┼───────────────┘
-                    │
-        ┌───────────┼───────────────┐
-        │           │               │
-        ▼           ▼               ▼
- ┌──────────┐ ┌──────────┐  ┌────────────┐
- │ Frontend │ │ Backend  │  │  Database  │
- │    QA    │ │  DevOps  │  │  Security  │
- └──────────┘ └──────────┘  └────────────┘
-        │           │               │
-        └───────────┼───────────────┘
-                    │
-                    ▼
-         ┌────────────────────┐
-         │    Hive Mind       │
-         │  (Shared Memory)   │
-         │  - Team Standards  │
-         │  - Skills Library  │
-         └────────────────────┘
+```mermaid
+graph TD
+    User[Client Applications] -->|HTTP/WS| API[Crew Orchestrator]
+    API -->|Delegation| Strat[Project Strategist]
+    API -->|Coordination| Arch[System Architect]
+    
+    subgraph "Data Layer"
+        Redis[(Redis Cache & Queue)]
+        DB[(PostgreSQL History)]
+    end
+    
+    subgraph "Specialist Swarm (Tier 2)"
+        FE[Frontend Specialist]
+        BE[Backend Specialist]
+        QA[QA Engineer]
+        DevOps[DevOps Engineer]
+        Sec[Security Engineer]
+    end
+    
+    subgraph "Observability"
+        Prom[Prometheus]
+        Graf[Grafana]
+        Jaeger[Jaeger Tracing]
+    end
+
+    Strat -->|Task| Redis
+    Arch -->|Standards| Redis
+    Redis -->|Pub/Sub| Specialist Swarm
+    Specialist Swarm -->|Results| Redis
+    Redis -->|Aggregation| API
+    
+    API -->|Metrics| Prom
+    Prom --> Graf
 ```
 
 ## Agent Hierarchy
@@ -73,49 +57,6 @@
 **Model**: Claude Sonnet (fast, efficient)
 **Responsibilities**: Specialized task execution
 
-## Communication Flow
-
-### 1. Task Submission
-```
-User → Orchestrator → Project Strategist → Breakdown → Specialists
-```
-
-### 2. Inter-Agent Communication
-```
-Agent A → Redis Pub/Sub → Agent B
-         ↓
-    PostgreSQL (persistence)
-```
-
-### 3. Result Aggregation
-```
-Specialists → Results → Orchestrator → Client
-                ↓
-           Task History (PostgreSQL)
-```
-
-## Data Flow
-
-### Task Planning
-1. User submits task to Orchestrator
-2. Orchestrator forwards to Project Strategist
-3. Strategist analyzes and creates subtasks
-4. Subtasks stored in Redis with status
-5. Specialists notified via Redis pub/sub
-
-### Task Execution
-1. Specialist receives task from queue
-2. Loads Hive Mind context (standards, skills)
-3. Calls Claude API with enriched prompt
-4. Stores result in Redis
-5. Notifies Orchestrator of completion
-
-### Result Collection
-1. Orchestrator monitors Redis for completions
-2. Aggregates specialist results
-3. Returns to user
-4. Archives in PostgreSQL for history
-
 ## Technology Stack
 
 ### Infrastructure
@@ -134,18 +75,19 @@ Specialists → Results → Orchestrator → Client
 
 ### Database
 - **PostgreSQL**: Task history, agent memory
-- **pgvector**: Vector embeddings (future)
+- **pgvector**: Vector embeddings
 
 ### AI
 - **Anthropic Claude**: LLM (Opus, Sonnet)
-- **CrewAI**: Agent framework (optional)
+- **Ollama**: Local LLM inference (optional fallback)
+- **CrewAI**: Agent framework
 
 ## Scalability
 
 ### Horizontal Scaling
-```yaml
+```bash
 # Scale specialist agents
-docker-compose up --scale backend-specialist=3
+docker compose up -d --scale backend-specialist=3
 ```
 
 ### Load Balancing
@@ -161,35 +103,30 @@ docker-compose up --scale backend-specialist=3
 ## Security
 
 ### API Keys
-- Stored in environment variables
+- Stored in `.env` file (via `.env.example`)
 - Never committed to git
 - Rotated regularly
 
 ### Network Isolation
-- Agents on private network
+- Agents on private network (`backend-net`)
 - Only orchestrator exposed
 - TLS for external communication
 
-### Container Security
-- Non-root users
-- Minimal base images
-- Regular security scans
-
-## Monitoring
+## Monitoring (Active)
 
 ### Health Checks
 - HTTP endpoints on all services
 - 30-second intervals
 - Auto-restart on failure
 
-### Metrics (Future)
-- Prometheus for metrics
-- Grafana for visualization
-- Alert on SLA violations
+### Observability Stack
+- **Prometheus**: Metrics collection
+- **Grafana**: Visual dashboards (http://localhost:3001)
+- **Jaeger**: Distributed tracing
 
 ### Logging
 - Structured JSON logs
-- Centralized via ELK/Loki
+- Centralized via ELK/Loki (optional)
 - Correlation IDs for tracing
 
 ## Hive Mind (Shared Knowledge)
@@ -206,11 +143,6 @@ docker-compose up --scale backend-specialist=3
 - Tested solutions
 - Version controlled
 
-### Implementation
-- Mounted as read-only volumes
-- Loaded into agent context
-- Updated via configuration files
-
 ## Integration Points
 
 ### Trae Integration
@@ -226,15 +158,7 @@ environment:
 - PR review by agents
 - Commit on completion
 
-### CI/CD Integration
-- Trigger on deployment
-- Run agent-based tests
-- Quality gates
-
 ## Future Enhancements
-
-1. **Vector Memory**: Store past solutions in pgvector
-2. **Learning Loop**: Fine-tune on project-specific patterns
-3. **Multi-project**: Separate workspaces per project
-4. **Human-in-the-Loop**: Approval workflow for changes
-5. **Telemetry**: Track agent performance metrics
+1. **Learning Loop**: Fine-tune on project-specific patterns
+2. **Multi-project**: Separate workspaces per project
+3. **Human-in-the-Loop**: Approval workflow for changes
