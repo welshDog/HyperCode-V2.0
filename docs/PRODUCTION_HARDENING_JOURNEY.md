@@ -15,6 +15,10 @@ We have stabilized the test infrastructure to ensure reliable security and perfo
 - **Action Taken:** Upgraded `cryptography` to 46.0.5 and `requests` to 2.32.5.
 - **Verification:** `pip-audit` confirms no high-severity vulnerabilities remain. Unit tests passed.
 - **Remaining Issues:** CVE-2024-23342 (Medium) in `ecdsa`. Scheduled for next sprint.
+- **Monitoring:** Monitor logs for anomalies (e.g., `ImportError` or crypto failures) for 48 hours:
+  ```bash
+  docker logs -f hypercode-core | grep -E "ERROR|CRITICAL|Traceback"
+  ```
 
 ### Immediate Actions
 - [x] Run `pip-audit` or `safety` check on all requirements files.
