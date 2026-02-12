@@ -10,66 +10,68 @@
 ### Start Sequence
 1. **Pull Images**:
    ```bash
-   docker-compose pull
+   docker compose pull
    ```
-2. **Start Core Services**:
+2. **Start All Services**:
    ```bash
-   docker-compose up -d postgres redis hypercode-core
+   docker compose up -d
    ```
-3. **Start Monitoring**:
-   ```bash
-   docker-compose up -d prometheus grafana
-   ```
-4. **Start Agents**:
-   ```bash
-   docker-compose up -d mcp-server coder-agent
-   ```
+   *This starts Core, Agents, Database, Redis, and Observability stack.*
 
 ### Verification Checks
-- **Core API**: `curl http://localhost:8000/health` → `{"status": "ok"}`
-- **Agent Connectivity**: Check logs for `Successfully connected to Docker MCP Server`
-  ```bash
-  docker-compose logs coder-agent | grep "MCP"
-  ```
+- **Core API**: `curl http://localhost:8000/health` → `{"status": "healthy", ...}`
+- **Frontend**: Access `http://localhost:3000`
 - **Grafana**: Access `http://localhost:3001`
+- **Container Status**:
+  ```bash
+  docker compose ps
+  ```
 
 ## 🔄 Rollback
 
 If a deployment fails:
 
-1. **Stop Agents First**:
+1. **Stop Services**:
    ```bash
-   docker-compose stop coder-agent mcp-server
+   docker compose down
    ```
 2. **Revert Image Tags**:
    Edit `docker-compose.yml` to point to previous stable tags.
 3. **Restart Stack**:
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 ## 🚨 Incident Response
 
 ### High Memory Usage
-If `coder-agent` consumes >512MB:
-1. Check for orphaned containers spawned by the agent:
+If `coder-agent` or `hypercode-ollama` consumes excessive memory:
+1. Check resource usage:
    ```bash
-   docker ps --filter "label=managed_by=coder-agent"
+   docker stats
    ```
-2. Prune resources:
+2. Restart the specific service:
+   ```bash
+   docker compose restart hypercode-ollama
+   ```
+3. Prune unused resources:
    ```bash
    docker system prune -f
    ```
 
-### MCP Connection Failure
-If agent logs show `MCP Client not initialized`:
-1. Verify Docker socket mount:
+### Agent Connection Failure
+If agent logs show connection errors:
+1. Verify Docker socket mount (for MCP):
    ```bash
    docker inspect hypercode-v20-coder-agent-1 | grep docker.sock
    ```
-2. Restart MCP server:
+2. Check Agent Logs:
    ```bash
-   docker-compose restart mcp-server coder-agent
+   docker compose logs coder-agent
+   ```
+3. Restart MCP server:
+   ```bash
+   docker compose restart mcp-server coder-agent
    ```
 
 ---

@@ -3,7 +3,10 @@
 > **built with WelshDog + BROski 🚀🌙**
 
 This document describes the core REST API endpoints for HyperCode V2.0.
-*Note: This documentation is automatically synchronized with the OpenAPI specification.*
+
+**Interactive Documentation:**
+For real-time testing and schema details, visit the Swagger UI:
+👉 **[http://localhost:8000/docs](http://localhost:8000/docs)**
 
 ## Base URL
 `http://localhost:8000/api/v1`
