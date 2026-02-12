@@ -17,13 +17,9 @@ volumes:
   redis-data:
   postgres-data:
   grafana-data:
-  prometheus-data:
-  ollama-data:
 
 services:
-  # ====================
-  # CORE SERVICES
-  # ====================
+  # HyperCode Core
   hypercode-core:
     build:
       context: ./THE HYPERCODE/hypercode-core
@@ -51,7 +47,7 @@ services:
       - backend-net
       - data-net
     ports:
-      - "127.0.0.1:8000:8000" # Localhost only for security
+      - "8000:8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -62,16 +58,6 @@ services:
         limits:
           cpus: "1"
           memory: 1G
-        reservations:
-          cpus: "0.5"
-          memory: 512M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
     volumes:
       - ./THE HYPERCODE/hypercode-core:/app
 
@@ -94,25 +80,10 @@ services:
       - frontend-net
       - backend-net
     ports:
-      - "3000:3000" # Public facing
+      - "3000:3000"
     depends_on:
       hypercode-core:
         condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1G
-        reservations:
-          cpus: "0.25"
-          memory: 256M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
 
   # Frontend - Editor
   hyperflow-editor:
@@ -121,7 +92,7 @@ services:
       dockerfile: Dockerfile
     container_name: hyperflow-editor
     ports:
-      - "5173:4173" # Public facing
+      - "5173:4173"
     depends_on:
       hypercode-core:
         condition: service_healthy
@@ -130,9 +101,6 @@ services:
         limits:
           cpus: "0.5"
           memory: 512M
-        reservations:
-          cpus: "0.1"
-          memory: 128M
     networks:
       - frontend-net
     healthcheck:
@@ -140,13 +108,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
 
   # Worker
   celery-worker:
@@ -183,20 +144,8 @@ services:
         limits:
           cpus: "1"
           memory: 1G
-        reservations:
-          cpus: "0.25"
-          memory: 256M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
 
-  # ====================
-  # AGENTS
-  # ====================
+  # Agents
   coder-agent:
     build:
       context: ./agents/coder
@@ -217,18 +166,6 @@ services:
         limits:
           cpus: "0.5"
           memory: 512M
-        reservations:
-          cpus: "0.1"
-          memory: 128M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
 
   mcp-server:
     image: mcp/everything:latest
@@ -237,18 +174,6 @@ services:
       - ./agents/mcp-config.json:/config.json
     networks:
       - backend-net
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
       
   hyper-agents-box:
     build:
@@ -256,22 +181,10 @@ services:
       dockerfile: docker/Dockerfile
     container_name: hyper-agents-box
     ports:
-      - "127.0.0.1:5000:5000"
+      - "5000:5000"
     restart: unless-stopped
     networks:
       - backend-net
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
 
   dashboard:
     image: nginx:alpine
@@ -283,7 +196,7 @@ services:
       retries: 5
       start_period: 10s
     ports:
-      - "8088:80" # Public facing dashboard
+      - "8088:80"
     volumes:
       - ./agents/dashboard:/usr/share/nginx/html:ro
     depends_on:
@@ -292,19 +205,8 @@ services:
     networks:
       - frontend-net
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.2"
-          memory: 128M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
 
+  # Crew Orchestrator
   crew-orchestrator:
     build:
       context: ./agents/crew-orchestrator
@@ -325,25 +227,8 @@ services:
       - backend-net
       - data-net
     ports:
-      - "127.0.0.1:8080:8080"
+      - "8080:8080"
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          cpus: "0.25"
-          memory: 256M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
 
   # Agents (Tier 2)
   frontend-specialist:
@@ -375,21 +260,9 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          cpus: "0.25"
-          memory: 256M
+          cpus: "1"
+          memory: 1G
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
 
   backend-specialist:
     build:
@@ -420,21 +293,9 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          cpus: "0.25"
-          memory: 256M
+          cpus: "1"
+          memory: 1G
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
 
   database-architect:
     build:
@@ -468,21 +329,9 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          cpus: "0.25"
-          memory: 256M
+          cpus: "1"
+          memory: 1G
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
 
   qa-engineer:
     build:
@@ -513,21 +362,9 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          cpus: "0.25"
-          memory: 256M
+          cpus: "1"
+          memory: 1G
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
 
   devops-engineer:
     build:
@@ -539,11 +376,11 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_PORT=8006
       - AGENT_HEALTH_URL=http://devops-engineer:8006/health
-      # DOCKER_HOST removed for security hardening
+      - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
-      # Docker socket mount removed for security hardening
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       redis:
         condition: service_healthy
@@ -561,21 +398,9 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          cpus: "0.25"
-          memory: 256M
+          cpus: "1"
+          memory: 1G
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
 
   security-engineer:
     build:
@@ -606,21 +431,9 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          cpus: "0.25"
-          memory: 256M
+          cpus: "1"
+          memory: 1G
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
 
   system-architect:
     build:
@@ -652,21 +465,9 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          cpus: "0.25"
-          memory: 256M
+          cpus: "1"
+          memory: 1G
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
 
   project-strategist:
     build:
@@ -697,35 +498,25 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          cpus: "0.25"
-          memory: 256M
+          cpus: "1"
+          memory: 1G
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
 
-  ollama:
+  # End of agents
+
+  llama:
     image: ollama/ollama:latest
-    container_name: hypercode-ollama
+    container_name: hypercode-llama
     restart: unless-stopped
     ports:
-      - "127.0.0.1:11434:11434"
+      - "11434:11434"
     volumes:
       - ./data/ollama:/root/.ollama
     environment:
       - OLLAMA_HOST=0.0.0.0
       - OLLAMA_ORIGINS=*
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/11434'"]
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/11434'"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -733,20 +524,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.5"
+          cpus: '1.5'
           memory: 4G
-        reservations:
-          cpus: "0.5"
-          memory: 2G
     networks:
       - backend-net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
 
   # Infrastructure
   redis:
@@ -763,23 +544,6 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:6379:6379"
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-        reservations:
-          cpus: "0.1"
-          memory: 128M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
 
   postgres:
     image: postgres:15-alpine
@@ -798,58 +562,25 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:5432:5432"
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 1G
-        reservations:
-          cpus: "0.25"
-          memory: 512M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
 
   # Observability
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
     ports:
-      - "127.0.0.1:9090:9090"
+      - "9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/prometheus:/etc/prometheus/monitoring:ro
-      - prometheus-data:/prometheus
     networks:
       - backend-net
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          cpus: "0.1"
-          memory: 256M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
 
   grafana:
     image: grafana/grafana:10.4.3
     container_name: grafana
     ports:
-      - "127.0.0.1:3001:3000"
+      - "3001:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       # Disable Analytics to fix console errors
@@ -864,45 +595,15 @@ services:
       - frontend-net
       - backend-net
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          cpus: "0.1"
-          memory: 256M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
 
   jaeger:
     image: jaegertracing/all-in-one:1.56
     container_name: jaeger
     ports:
-      - "127.0.0.1:16686:16686" # UI
-      - "127.0.0.1:4317:4317"   # OTLP gRPC
-      - "127.0.0.1:4318:4318"   # OTLP HTTP
+      - "16686:16686" # UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
     networks:
       - backend-net
       - frontend-net
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          cpus: "0.1"
-          memory: 256M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true

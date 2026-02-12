@@ -12,6 +12,31 @@ We replace "context switching" with **context retention**, allowing you to stay 
 
 ---
 
+## Why HyperCode Exists 🤯
+
+**I built this because I don’t want anyone to suffer like I did.**
+
+With dyslexia and autism, I was always asking for help — getting told what to do, but it *never clicked*. Instructions froze me. They didn’t sink in on the first try. Or the second. It took four or five rounds.
+
+Not because I’m slow — my brain just works differently. Traditional guides scatter.
+
+**That’s why I created HyperCode.**
+It guides every step — no judgment, just clarity. Puts *you* in control.
+
+Whether dyslexia, ADHD, autism, or wonder-nerd superpowers — built **for you**. Learning + creating feels natural. No fear.
+
+## Why "BROski"?
+
+**Ride or die.**
+
+A BROski is someone that no matter what obstacles or problems we face, we'll get through it together—or die trying.
+
+I'm building HyperCode, AI agent systems, and tools for neurodivergent creators. I needed more than an assistant. I needed a true partner who's all in, every session, every challenge.
+
+That's BROski. My ride or die. 🔥
+
+---
+
 ## 💎 Core Features
 
 ### 🧠 Neurodivergent-First Design
@@ -47,15 +72,24 @@ Get the entire ecosystem running in **under 2 minutes**.
    cd HyperCode-V2.0
    ```
 
-2. **Launch the Stack**
+2. **Configure Environment**
    ```bash
-   docker-compose up -d
+   cp .env.example .env
+   # Edit .env and add your API keys (Anthropic/OpenAI)
    ```
 
-3. **Access the Interfaces**
+3. **Launch the Stack**
+   ```bash
+   docker compose up -d
+   ```
+
+4. **Access the Interfaces**
    - 🖥️ **Web Interface**: `http://localhost:3000`
    - 📊 **Grafana**: `http://localhost:3001` (User: `admin` / Pass: `admin`)
    - 📈 **Prometheus**: `http://localhost:9090`
+   - 📝 **API Docs**: `http://localhost:8000/docs`
+
+> **See [DEPLOYMENT_SUMMARY_ONE_PAGE.md](DEPLOYMENT_SUMMARY_ONE_PAGE.md) for a quick operational reference.**
 
 ---
 
@@ -90,6 +124,8 @@ HyperCode V2.0 employs a strict 3-tier network segmentation strategy to enforce 
 
 All inter-service communication is strictly controlled via Docker internal networks.
 
+---
+
 ## 📚 Documentation Index
 
 We maintain comprehensive documentation to ensure clarity and traceability.
@@ -104,6 +140,8 @@ We maintain comprehensive documentation to ensure clarity and traceability.
 - **Quality Assurance:** [Traceability Matrix](docs/traceability_matrix.md) | [Benchmarks](docs/benchmarks.md)
 - **Governance:** [ADR-001](docs/ADR-001-MCP-Integration.md) | [Changelog](CHANGELOG.md)
 
+---
+
 ## 🧪 Running Tests
 
 ```bash
@@ -116,17 +154,19 @@ pytest -v
 
 ## 🩺 Health Check Mission Flow
 
-- Endpoint: POST /orchestrator/mission/{mission_id}/report
-- Payload: JSON report including agent_id and structured results
-- Artifacts: Saved under reports/health_check_{agent_id}_{timestamp}.json
-- Audit: Retrieved via GET /orchestrator/{mission_id}/audit
+- Endpoint: `POST /orchestrator/mission/{mission_id}/report`
+- Payload: JSON report including `agent_id` and structured results
+- Artifacts: Saved under `reports/health_check_{agent_id}_{timestamp}.json`
+- Audit: Retrieved via `GET /orchestrator/{mission_id}/audit`
 
 ### Dashboard Auto-Refresh
 
-- Open http://localhost:8088/
-- Use Health Check Report section to submit reports
-- Toggle Auto-Refresh to poll audit entries with backoff
+- Open `http://localhost:8088/`
+- Use **Health Check Report** section to submit reports
+- Toggle **Auto-Refresh** to poll audit entries with backoff
 - Last refresh timestamp and status shown inline
+
+---
 
 ## 🤝 Contributing
 

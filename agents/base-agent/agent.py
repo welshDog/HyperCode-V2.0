@@ -135,6 +135,17 @@ class BaseAgent:
             # Build context with Hive Mind
             system_prompt = self.build_system_prompt()
             
+            # --- SWARM MEMORY RECALL ---
+            try:
+                memories = await self.recall(request.task, limit=3)
+                if memories:
+                    memory_context = "\n".join([f"- {m.get('content')} (Score: {m.get('metadata', {}).get('score', 0):.2f})" for m in memories])
+                    system_prompt += f"\n\n**Relevant Team Memories:**\n{memory_context}\n"
+                    print(f"🧠 {self.config.name} recalled {len(memories)} memories for task {request.task_id}")
+            except Exception as e:
+                print(f"⚠️ Memory recall failed: {e}")
+            # ---------------------------
+
             # Call Claude
             message = self.client.messages.create(
                 model=self.config.model,
@@ -155,6 +166,20 @@ class BaseAgent:
                 result
             )
             
+            # --- SWARM MEMORY REMEMBER ---
+            try:
+                # Only remember significant results (heuristic: length > 50 chars)
+                if len(result) > 50:
+                    await self.remember(
+                        content=f"Task: {request.task}\nResult: {result[:500]}...", # Truncate for summary
+                        keywords=["task_result", self.config.role],
+                        metadata={"task_id": request.task_id, "full_result_length": len(result)}
+                    )
+                    print(f"💾 {self.config.name} stored memory for task {request.task_id}")
+            except Exception as e:
+                print(f"⚠️ Memory storage failed: {e}")
+            # -----------------------------
+
             return TaskResponse(
                 task_id=request.task_id,
                 agent=self.config.name,
@@ -227,7 +252,9 @@ Follow these standards strictly and leverage the skills library when applicable.
         uvicorn.run(self.app, host="0.0.0.0", port=self.config.port)
 
     async def _register_with_core(self):
+        """Attempts to register the agent with Core. Returns True on success."""
         try:
+            print(f"🔄 Attempting to register {self.config.name} with Core at {self.config.core_url}...")
             payload = {
                 "name": self.config.name,
                 "role": (self.config.role or "general").lower(),
@@ -237,30 +264,50 @@ Follow these standards strictly and leverage the skills library when applicable.
                 "health_url": self.config.health_url,
                 "dedup_key": self.config.name,
             }
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(timeout=10.0) as client:
                 r = await client.post(f"{self.config.core_url}/agents/register", json=payload)
-                if r.status_code in (200, 204):
-                    try:
-                        data = r.json()
-                        self._agent_id = data.get("id") or self._agent_id
-                    except Exception:
-                        pass
+                if r.status_code in (200, 201, 204):
+                    data = r.json()
+                    self._agent_id = data.get("id")
+                    print(f"✅ Successfully registered agent: {self.config.name} (ID: {self._agent_id})")
+                    return True
+                else:
+                    print(f"⚠️ Registration failed with status {r.status_code}: {r.text}")
         except Exception as e:
-            print(f"⚠️ Agent registration with Core failed: {e}")
+            print(f"⚠️ Agent registration connection failed: {e}")
+        return False
 
     async def _heartbeat_loop(self):
+        """Sends periodic heartbeats, handling registration if needed."""
+        print(f"💓 Starting heartbeat loop for {self.config.name}...")
         while True:
             try:
-                aid = self._agent_id
-                if aid:
-                    payload = {"agent_id": aid, "status": "active", "load": 0.0}
-                    async with httpx.AsyncClient(timeout=3.0) as client:
-                        await client.post(f"{self.config.core_url}/agents/heartbeat", json=payload)
-                await asyncio.sleep(30)
+                # If not registered, try to register first
+                if not self._agent_id:
+                    success = await self._register_with_core()
+                    if not success:
+                        await asyncio.sleep(5)  # Retry registration sooner
+                        continue
+
+                # Send heartbeat
+                if self._agent_id:
+                    payload = {"agent_id": self._agent_id, "status": "active", "load": 0.0}
+                    async with httpx.AsyncClient(timeout=5.0) as client:
+                        r = await client.post(f"{self.config.core_url}/agents/heartbeat", json=payload)
+                        if r.status_code == 404:
+                            # Agent ID not found (maybe core restarted), re-register
+                            print(f"⚠️ Core lost agent {self._agent_id}, re-registering...")
+                            self._agent_id = None
+                        elif r.status_code != 200:
+                            print(f"⚠️ Heartbeat failed: {r.status_code}")
+                
+                await asyncio.sleep(10) # Heartbeat every 10s
             except asyncio.CancelledError:
+                print("🛑 Heartbeat loop cancelled")
                 break
-            except Exception:
-                await asyncio.sleep(30)
+            except Exception as e:
+                print(f"⚠️ Heartbeat error: {e}")
+                await asyncio.sleep(10)
 
 if __name__ == "__main__":
     config = AgentConfig()
