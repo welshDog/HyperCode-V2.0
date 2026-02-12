@@ -194,6 +194,32 @@ class BaseAgent:
 
 Follow these standards strictly and leverage the skills library when applicable.
 """
+
+    async def remember(self, content: str, keywords: List[str] = [], metadata: Dict = {}):
+        """Store a memory in the Swarm Memory"""
+        try:
+            payload = {
+                "content": content,
+                "keywords": keywords,
+                "metadata": {**metadata, "agent": self.config.name, "role": self.config.role},
+                "type": "observation"
+            }
+            async with httpx.AsyncClient() as client:
+                await client.post(f"{self.config.core_url}/memory/", json=payload)
+        except Exception as e:
+            print(f"⚠️ Failed to remember: {e}")
+
+    async def recall(self, query: str, limit: int = 5) -> List[Dict]:
+        """Recall memories from the Swarm Memory"""
+        try:
+            async with httpx.AsyncClient() as client:
+                res = await client.get(f"{self.config.core_url}/memory/search", params={"query": query, "limit": limit})
+                if res.status_code == 200:
+                    return res.json()
+            return []
+        except Exception as e:
+            print(f"⚠️ Failed to recall: {e}")
+            return []
     
     def run(self):
         """Start the agent service"""
