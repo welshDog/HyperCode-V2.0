@@ -39,6 +39,11 @@ services:
       - frontend-net
       - backend-net
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
 
   # HyperCode Core
   hypercode-core:
@@ -82,6 +87,11 @@ services:
     # volumes:
     #   - ./THE HYPERCODE/hypercode-core:/app
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
 
   # Frontend - Terminal
   broski-terminal:
@@ -92,7 +102,6 @@ services:
     environment:
       NEXT_PUBLIC_CORE_URL: https://hypercode.zone/api
       NEXT_PUBLIC_AGENTS_URL: https://hypercode.zone/api
-      # HOSTNAME: "0.0.0.0"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
       interval: 30s
@@ -110,6 +119,11 @@ services:
       hypercode-core:
         condition: service_healthy
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
 
   # Worker
   celery-worker:
@@ -122,6 +136,9 @@ services:
       - ./THE HYPERCODE/hypercode-core:/app
     environment:
       - ENVIRONMENT=production
+      - API_KEY=${API_KEY}
+      - HYPERCODE_JWT_SECRET=${HYPERCODE_JWT_SECRET}
+      - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
       - HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL}
       - HYPERCODE_DB_URL=${HYPERCODE_DB_URL}
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
@@ -135,13 +152,18 @@ services:
       - backend-net
       - data-net
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
 
   # Infrastructure Services
   redis:
     image: redis:7-alpine
     container_name: redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis-data:/data
     networks:
@@ -152,6 +174,11 @@ services:
       timeout: 5s
       retries: 5
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
 
   postgres:
     image: postgres:15-alpine
@@ -163,25 +190,35 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
-      - platform-net
+      - data-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
 
   jaeger:
     image: jaegertracing/all-in-one:1.56
     container_name: jaeger
     ports:
-      - "16686:16686"
-      - "4317:4317"
-      - "4318:4318"
+      - "127.0.0.1:16686:16686"
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
     networks:
       - backend-net
       - frontend-net
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
 
   # Monitoring
   prometheus:
@@ -195,10 +232,16 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=15d'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 1G
     ports:
       - "9090:9090"
     networks:
       - backend-net
+      - frontend-net
     restart: always
 
   grafana:
