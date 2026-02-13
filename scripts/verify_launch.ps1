@@ -3,15 +3,20 @@
 
 Write-Host "🚀 Initiating Launch Verification Sequence..." -ForegroundColor Cyan
 
-# Helper to check URL with SSL bypass
+# Helper to check URL with SSL bypass using curl
 function Test-Url {
     param($Url, $Name)
     Write-Host -NoNewline "Checking $Name ($Url)... "
     try {
-        # Use Invoke-WebRequest with -SkipCertificateCheck for PowerShell 7+ / Core support
-        # Use GET method as some endpoints (like FastAPI) might not explicitly support HEAD or return 405
-        $response = Invoke-WebRequest -Uri $Url -Method Get -TimeoutSec 5 -SkipCertificateCheck -ErrorAction Stop
-        $code = [int]$response.StatusCode
+        # Use curl.exe directly to bypass SSL verification reliably across environments
+        # -k: insecure (bypass SSL)
+        # -s: silent
+        # -o NUL: discard output
+        # -w "%{http_code}": print only HTTP status code
+        $code = curl.exe -k -s -o NUL -w "%{http_code}" $Url
+        
+        # Ensure code is an integer (curl returns string)
+        $code = [int]$code
         
         if ($code -ge 200 -and $code -lt 400) {
             Write-Host "✅ ONLINE ($code)" -ForegroundColor Green
@@ -56,7 +61,11 @@ if ($redisStatus -match "PONG") {
     Write-Host "❌ FAILED" -ForegroundColor Red
 }
 
-# 7. Agent Swarm Check
+# 7. Observability Check (Prometheus & Jaeger)
+Test-Url "http://localhost:9090/-/healthy" "Prometheus"
+Test-Url "http://localhost:16686/" "Jaeger UI"
+
+# 8. Agent Swarm Check
 Write-Host "Checking Agent Swarm Containers..."
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.State}}" | Select-String "crew-orchestrator|project-strategist|frontend-specialist" | ForEach-Object {
     Write-Host $_
