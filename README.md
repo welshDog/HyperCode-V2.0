@@ -170,7 +170,10 @@ pytest -v
 
 ## 🤝 Contributing
 
-We welcome contributions from everyone, especially neurodivergent developers! Please read our [Contributing Guide](.github/CONTRIBUTING.md) to get started.
+We welcome contributions from everyone, especially neurodivergent developers!
+
+- Start here: [Contributing Guide](.github/CONTRIBUTING.md)
+- Looking for high-impact areas: [Developer Call to Action](docs/DEVELOPER_CALL_TO_ACTION.md)
 
 ---
 
