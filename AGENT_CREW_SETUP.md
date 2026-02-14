@@ -56,7 +56,25 @@
 
 ## 🚀 Quick Start
 
-### Option 1: Using Scripts (Easiest)
+### Option 1: Core Platform Setup (Recommended)
+This option launches the Core Platform including the Terminal, Editor, and Core Services.
+
+1. Navigate to the subdirectory:
+   ```bash
+   cd HyperCode-V2.0
+   ```
+
+2. Start the services:
+   ```bash
+   docker compose up -d --build
+   ```
+
+3. Access the interfaces:
+   - **Terminal**: http://localhost:3000
+   - **Editor**: http://localhost:5173
+   - **Core API**: http://localhost:8000
+
+### Option 2: Using Scripts (Easiest)
 
 **Windows:**
 ```cmd
@@ -69,7 +87,7 @@ chmod +x scripts/start-agents.sh
 ./scripts/start-agents.sh
 ```
 
-### Option 2: Using Makefile
+### Option 3: Using Makefile
 
 ```bash
 # Initialize and start everything
@@ -87,7 +105,7 @@ make logs
 make status
 ```
 
-### Option 3: Manual Docker Compose
+### Option 4: Manual Docker Compose
 
 ```bash
 # 1. Setup environment

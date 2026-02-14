@@ -1,35 +1,57 @@
-# System Architect Agent
-FROM python:3.11-slim AS builder
+# System Architect Agent - Optimized
+# Multi-stage build with improved caching
+
+# ========================================
+# Stage 1: Builder
+# ========================================
+FROM python:3.11.8-slim AS builder
 
 WORKDIR /build
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc g++ && \
-    rm -rf /var/lib/apt/lists/*
+# Install build dependencies
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
+# Install Python dependencies (leverage cache)
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip wheel --no-cache-dir --no-deps --wheel-dir /wheels -r requirements.txt
 
-FROM python:3.11-slim
+# ========================================
+# Stage 2: Runtime
+# ========================================
+FROM python:3.11.8-slim
 
 WORKDIR /app
 
-COPY --from=builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    AGENT_NAME=system-architect \
+    AGENT_ROLE="System Architect" \
+    AGENT_MODEL=claude-3-5-sonnet-20241022 \
+    AGENT_PORT=8008
 
+# Install wheels from builder
+COPY --from=builder /wheels /wheels
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir /wheels/* && \
+    rm -rf /wheels
+
+# Copy application code (after deps for better caching)
 COPY agent.py .
 COPY config.json .
 
+# Mount point for Hive Mind
 VOLUME ["/app/hive_mind"]
 
-ENV AGENT_NAME=system-architect
-ENV AGENT_ROLE="System Architect"
-ENV AGENT_MODEL=claude-3-opus-20240229
-ENV AGENT_PORT=8008
-
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD python -c "import httpx; httpx.get('http://localhost:8008/health')" || exit 1
-
 EXPOSE 8008
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \
+    CMD python -c "import httpx; httpx.get('http://localhost:8008/health', timeout=2)" || exit 1
 
 CMD ["python", "agent.py"]

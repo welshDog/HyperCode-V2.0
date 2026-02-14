@@ -192,6 +192,11 @@ services:
         condition: service_healthy
     networks:
       - platform-net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     restart: unless-stopped
 
   # Crew Orchestrator
@@ -206,6 +211,11 @@ services:
       - CORE_URL=http://hypercode-core:8000
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
     depends_on:
       redis:
         condition: service_healthy
@@ -230,6 +240,11 @@ services:
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -251,6 +266,11 @@ services:
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -273,6 +293,11 @@ services:
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -296,6 +321,11 @@ services:
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -319,6 +349,11 @@ services:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
       - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -340,6 +375,11 @@ services:
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -361,6 +401,11 @@ services:
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -382,6 +427,11 @@ services:
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -402,17 +452,21 @@ services:
     environment:
       - OLLAMA_HOST=0.0.0.0
       - OLLAMA_ORIGINS=*
+      - OLLAMA_MODEL=tinyllama
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:11434/"]
+      test: ["CMD", "bash", "-c", "timeout 2 bash -c '</dev/tcp/127.0.0.1/11434' 2>/dev/null"]
       interval: 30s
       timeout: 10s
-      retries: 5
+      retries: 3
       start_period: 60s
     deploy:
       resources:
         limits:
-          cpus: '1.5'
-          memory: 4G
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
     networks:
       - platform-net
 
@@ -430,6 +484,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     restart: unless-stopped
 
   postgres:
@@ -461,6 +520,11 @@ services:
       - ./monitoring/prometheus:/etc/prometheus/monitoring:ro
     networks:
       - platform-net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     restart: unless-stopped
 
   grafana:
@@ -469,17 +533,27 @@ services:
     ports:
       - "3001:3000"
     environment:
+<<<<<<< HEAD
       - GF_SECURITY_ADMIN_PASSWORD=admin
       # Disable Analytics to fix console errors
       - GF_ANALYTICS_REPORTING_ENABLED=false
       - GF_ANALYTICS_CHECK_FOR_UPDATES=false
       - GF_ANALYTICS_FEEDBACK_LINKS_ENABLED=false
+=======
+      - GF_SECURITY_ADMIN_USER=lyndzwills@gmail.com
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+>>>>>>> 14c7d99 (Fix deployment issues, update docs, and apply design system)
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     networks:
       - platform-net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     restart: unless-stopped
 
   jaeger:
@@ -489,4 +563,13 @@ services:
       - "16686:16686"
     networks:
       - platform-net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     restart: unless-stopped
+
+
+
+

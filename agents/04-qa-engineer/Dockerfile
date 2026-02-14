@@ -1,43 +1,57 @@
-# QA Engineer Agent
-FROM python:3.11-slim AS builder
+# QA Engineer Agent - Optimized
+# Multi-stage build with improved caching
+
+# ========================================
+# Stage 1: Builder
+# ========================================
+FROM python:3.11.8-slim AS builder
 
 WORKDIR /build
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc g++ && \
-    rm -rf /var/lib/apt/lists/*
+# Install build dependencies
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
+# Install Python dependencies (leverage cache)
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip wheel --no-cache-dir --no-deps --wheel-dir /wheels -r requirements.txt
 
-FROM python:3.11-slim
+# ========================================
+# Stage 2: Runtime
+# ========================================
+FROM python:3.11.8-slim
 
 WORKDIR /app
 
-# Install Playwright dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
-    libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
-    libxrandr2 libgbm1 libasound2 && \
-    rm -rf /var/lib/apt/lists/*
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    AGENT_NAME=qa-engineer \
+    AGENT_ROLE="QA Engineer" \
+    AGENT_MODEL=claude-3-5-sonnet-20241022 \
+    AGENT_PORT=8005
 
-COPY --from=builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH
+# Install wheels from builder
+COPY --from=builder /wheels /wheels
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir /wheels/* && \
+    rm -rf /wheels
 
+# Copy application code (after deps for better caching)
 COPY agent.py .
 COPY config.json .
 
+# Mount point for Hive Mind
 VOLUME ["/app/hive_mind"]
 
-ENV AGENT_NAME=qa-engineer
-ENV AGENT_ROLE="QA Engineer"
-ENV AGENT_MODEL=claude-3-5-sonnet-20241022
-ENV AGENT_PORT=8005
-
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD python -c "import httpx; httpx.get('http://localhost:8005/health')" || exit 1
-
 EXPOSE 8005
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \
+    CMD python -c "import httpx; httpx.get('http://localhost:8005/health', timeout=2)" || exit 1
 
 CMD ["python", "agent.py"]

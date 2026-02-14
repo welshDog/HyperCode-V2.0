@@ -1,0 +1,956 @@
+version: "3.9"
+
+# Production-ready docker-compose configuration
+# Security-hardened, properly monitored, and scalable
+
+networks:
+  # Separate networks for better security isolation
+  frontend-net:
+    driver: bridge
+    name: hypercode_frontend_net
+  backend-net:
+    driver: bridge
+    name: hypercode_backend_net
+    internal: true  # No external access
+  data-net:
+    driver: bridge
+    name: hypercode_data_net
+    internal: true  # Database layer isolated
+
+volumes:
+  redis-data:
+    driver: local
+  postgres-data:
+    driver: local
+  grafana-data:
+    driver: local
+  prometheus-data:
+    driver: local
+
+# Secrets management (use docker secrets or external secret manager in production)
+secrets:
+  anthropic_api_key:
+    file: ./secrets/anthropic_api_key.txt
+  hypercode_jwt_secret:
+    file: ./secrets/hypercode_jwt_secret.txt
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+
+services:
+  # ==================== CORE SERVICES ====================
+  
+  hypercode-core:
+    build:
+      context: ./HyperCode-V2.0/THE HYPERCODE/hypercode-core
+      dockerfile: Dockerfile
+    container_name: hypercode-core
+    
+    environment:
+      - ENVIRONMENT=production
+      - PRISMA_PY_DEBUG=0
+      - HYPERCODE_REDIS_URL=redis://redis:6379
+      - HYPERCODE_DB_URL=postgresql://postgres@postgres:5432/hypercode
+      - OTLP_EXPORTER_DISABLED=false
+      - OTLP_ENDPOINT=http://jaeger:4318/v1/traces
+    
+    secrets:
+      - anthropic_api_key
+      - hypercode_jwt_secret
+    
+    # Security context
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run
+    
+    # Resource constraints
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+    
+    networks:
+      - frontend-net
+      - backend-net
+      - data-net
+    
+    ports:
+      - "127.0.0.1:8000:8000"  # Bind to localhost only
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==================== DASHBOARD ====================
+  
+  dashboard:
+    image: nginx:1.26-alpine  # Pinned version
+    container_name: hypercode-dashboard
+    
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - SETGID
+      - SETUID
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run
+      - /var/cache/nginx
+    
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    
+    ports:
+      - "127.0.0.1:8088:80"  # Bind to localhost, use reverse proxy
+    
+    volumes:
+      - ./agents/dashboard:/usr/share/nginx/html:ro
+    
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    
+    networks:
+      - frontend-net
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==================== ORCHESTRATOR ====================
+  
+  crew-orchestrator:
+    build:
+      context: ./agents/crew-orchestrator
+      dockerfile: Dockerfile
+    container_name: crew-orchestrator
+    
+    secrets:
+      - anthropic_api_key
+    
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+    
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+    
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8080/health', timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    
+    networks:
+      - backend-net
+    
+    ports:
+      - "127.0.0.1:8080:8080"
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==================== AGENTS (Tier 2) ====================
+  
+  frontend-specialist:
+    build:
+      context: ./agents/01-frontend-specialist
+    container_name: frontend-specialist
+    
+    secrets:
+      - anthropic_api_key
+    
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://frontend-specialist:8002/health
+    
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8002/health', timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    
+    networks:
+      - backend-net
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  backend-specialist:
+    build:
+      context: ./agents/02-backend-specialist
+    container_name: backend-specialist
+    
+    secrets:
+      - anthropic_api_key
+    
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://backend-specialist:8003/health
+    
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8003/health', timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    
+    networks:
+      - backend-net
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  database-architect:
+    build:
+      context: ./agents/03-database-architect
+    container_name: database-architect
+    
+    secrets:
+      - anthropic_api_key
+      - postgres_password
+    
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://database-architect:8004/health
+    
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8004/health', timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    
+    networks:
+      - backend-net
+      - data-net
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  qa-engineer:
+    build:
+      context: ./agents/04-qa-engineer
+    container_name: qa-engineer
+    
+    secrets:
+      - anthropic_api_key
+    
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://qa-engineer:8005/health
+    
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8005/health', timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    
+    networks:
+      - backend-net
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  devops-engineer:
+    build:
+      context: ./agents/05-devops-engineer
+    container_name: devops-engineer
+    
+    secrets:
+      - anthropic_api_key
+    
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://devops-engineer:8006/health
+      # NOTE: Docker socket removed for security. Consider using Docker-in-Docker
+      # or remote Docker API with TLS if container management is required.
+    
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      # SECURITY: Docker socket mount removed - use DinD or remote API instead
+      # - /var/run/docker.sock:/var/run/docker.sock
+    
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8006/health', timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    
+    networks:
+      - backend-net
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  security-engineer:
+    build:
+      context: ./agents/06-security-engineer
+    container_name: security-engineer
+    
+    secrets:
+      - anthropic_api_key
+    
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://security-engineer:8007/health
+    
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8007/health', timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    
+    networks:
+      - backend-net
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  system-architect:
+    build:
+      context: ./agents/07-system-architect
+    container_name: system-architect
+    
+    secrets:
+      - anthropic_api_key
+    
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://system-architect:8008/health
+    
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8008/health', timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    
+    networks:
+      - backend-net
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  project-strategist:
+    build:
+      context: ./agents/08-project-strategist
+    container_name: project-strategist
+    
+    secrets:
+      - anthropic_api_key
+    
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://project-strategist:8001/health
+    
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8001/health', timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    
+    networks:
+      - backend-net
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==================== AI MODEL SERVICE ====================
+  
+  llama:
+    image: ollama/ollama:0.1.48  # Pinned version
+    container_name: hypercode-llama
+    
+    security_opt:
+      - no-new-privileges:true
+    
+    ports:
+      - "127.0.0.1:11434:11434"
+    
+    volumes:
+      - ./data/ollama:/root/.ollama
+    
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_ORIGINS=http://localhost,http://hypercode-core:8000
+      - OLLAMA_MODEL=tinyllama
+    
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget --no-verbose --tries=1 --spider http://localhost:11434 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+    
+    networks:
+      - backend-net
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==================== INFRASTRUCTURE ====================
+  
+  redis:
+    image: redis:7.2-alpine  # Pinned version
+    container_name: redis
+    
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:-changeme_redis}
+    
+    volumes:
+      - redis-data:/data
+    
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    
+    networks:
+      - backend-net
+      - data-net
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  postgres:
+    image: postgres:16.2-alpine  # Pinned version
+    container_name: postgres
+    
+    secrets:
+      - postgres_password
+    
+    environment:
+      - POSTGRES_DB=hypercode
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+      - CHOWN
+      - FOWNER
+      - DAC_OVERRIDE
+    
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=1GB"
+      - "-c"
+      - "maintenance_work_mem=64MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "wal_buffers=16MB"
+      - "-c"
+      - "default_statistics_target=100"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "effective_io_concurrency=200"
+      - "-c"
+      - "work_mem=2621kB"
+      - "-c"
+      - "min_wal_size=1GB"
+      - "-c"
+      - "max_wal_size=4GB"
+      - "-c"
+      - "log_statement=mod"
+      - "-c"
+      - "log_duration=on"
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    
+    networks:
+      - data-net
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==================== OBSERVABILITY ====================
+  
+  prometheus:
+    image: prom/prometheus:v2.51.0  # Pinned version
+    container_name: prometheus
+    
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    
+    ports:
+      - "127.0.0.1:9090:9090"  # Localhost only - use reverse proxy with auth
+    
+    volumes:
+      - ./HyperCode-V2.0/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./HyperCode-V2.0/monitoring/prometheus:/etc/prometheus/monitoring:ro
+      - prometheus-data:/prometheus
+    
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    user: "65534:65534"  # nobody user
+    
+    networks:
+      - backend-net
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  grafana:
+    image: grafana/grafana:10.4.3  # Pinned version
+    container_name: grafana
+    
+    ports:
+      - "127.0.0.1:3001:3000"  # Localhost only - use reverse proxy with auth
+    
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_admin_password
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3001
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      - GF_LOG_LEVEL=warn
+    
+    secrets:
+      - grafana_admin_password
+    
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./HyperCode-V2.0/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./HyperCode-V2.0/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    user: "472:472"  # grafana user
+    
+    networks:
+      - backend-net
+    
+    depends_on:
+      - prometheus
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.56  # Pinned version
+    container_name: jaeger
+    
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+      - COLLECTOR_OTLP_ENABLED=true
+    
+    ports:
+      - "127.0.0.1:16686:16686"  # UI - localhost only
+      - "127.0.0.1:14268:14268"  # Collector HTTP
+    
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    
+    networks:
+      - backend-net
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Additional secret for Grafana
+  grafana_admin_password:
+    file: ./secrets/grafana_admin_password.txt
+  

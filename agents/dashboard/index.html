@@ -102,6 +102,39 @@
             color: #666;
             margin-top: 5px;
         }
+        
+        /* Hyperfocus Mode Styles */
+        body.hyperfocus {
+            background: #1a1a2e;
+            color: #e0e0e0;
+        }
+        body.hyperfocus .agent-card {
+            background: #16213e;
+            color: #fff;
+            box-shadow: none;
+            border: 1px solid #333;
+        }
+        body.hyperfocus .subtitle {
+            opacity: 0;
+            height: 0;
+            overflow: hidden;
+        }
+        body.hyperfocus .stat {
+            background: #0f3460;
+        }
+        body.hyperfocus .stat-value {
+            color: #4cc9f0;
+        }
+        body.hyperfocus .agent-name {
+            color: #4cc9f0;
+        }
+        body.hyperfocus .agent-role {
+            color: #a0a0a0;
+        }
+        body.hyperfocus .stat-label {
+            color: #a0a0a0;
+        }
+
         .orchestrator-section {
             background: white;
             border-radius: 12px;
@@ -154,8 +187,9 @@
 <body>
     <div class="container">
         <header>
-            <h1>🤖 HyperCode Agent Crew</h1>
-            <p class="subtitle">8 Specialized AI Agents Working Together</p>
+            <h1>HyperCode Agent Crew Dashboard</h1>
+            <p class="subtitle">Real-time status of your autonomous development squad</p>
+            <button onclick="document.body.classList.toggle('hyperfocus')" style="padding: 10px 20px; border-radius: 5px; background: #fff; color: #333; border: none; cursor: pointer; font-weight: bold; margin-top: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">Toggle Hyperfocus Mode 🧠</button>
         </header>
 
         <div class="orchestrator-section">

@@ -6,5 +6,8 @@
     "Pytest",
     "E2E Testing",
     "Quality Assurance"
-  ]
+  ],
+  "model": "tinyllama",
+  "ollama_host": "http://hypercode-llama:11434",
+  "temperature": 0.7
 }
