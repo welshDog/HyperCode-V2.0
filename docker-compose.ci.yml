@@ -1,0 +1,145 @@
+version: "3.9"
+
+# CI/CD pipeline docker-compose configuration
+
+networks:
+  ci-net:
+    driver: bridge
+
+services:
+  # Build verification
+  build-core:
+    build:
+      context: ./HyperCode-V2.0/THE HYPERCODE/hypercode-core
+      dockerfile: Dockerfile
+    image: ${CI_REGISTRY}/hypercode-core:${CI_COMMIT_SHA}
+    command: ["echo", "Build successful"]
+
+  build-orchestrator:
+    build:
+      context: ./agents/crew-orchestrator
+      dockerfile: Dockerfile
+    image: ${CI_REGISTRY}/crew-orchestrator:${CI_COMMIT_SHA}
+    command: ["echo", "Build successful"]
+
+  # Linting
+  lint-python:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: >
+      sh -c "
+        pip install -q ruff black mypy &&
+        echo 'Running ruff...' &&
+        ruff check . &&
+        echo 'Running black...' &&
+        black --check . &&
+        echo 'Running mypy...' &&
+        mypy --ignore-missing-imports .
+      "
+
+  # Security scanning
+  security-scan:
+    image: aquasec/trivy:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/app
+    command: >
+      sh -c "
+        trivy image --severity HIGH,CRITICAL ${CI_REGISTRY}/hypercode-core:${CI_COMMIT_SHA} &&
+        trivy fs --severity HIGH,CRITICAL /app
+      "
+
+  # Dependency check
+  dependency-check:
+    image: owasp/dependency-check:latest
+    volumes:
+      - ./:/src
+      - dependency-check-data:/usr/share/dependency-check/data
+    command: >
+      --scan /src
+      --format HTML
+      --format JSON
+      --project HyperCode
+      --out /src/dependency-check-report
+
+  # Database migration test
+  migration-test:
+    build:
+      context: ./HyperCode-V2.0/THE HYPERCODE/hypercode-core
+      dockerfile: Dockerfile
+    environment:
+      - HYPERCODE_DB_URL=postgresql://ci_user:ci_pass@postgres-ci:5432/hypercode_ci
+    depends_on:
+      postgres-ci:
+        condition: service_healthy
+    networks:
+      - ci-net
+    command: ["python", "-m", "prisma", "migrate", "deploy"]
+
+  postgres-ci:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=hypercode_ci
+      - POSTGRES_USER=ci_user
+      - POSTGRES_PASSWORD=ci_pass
+    tmpfs:
+      - /var/lib/postgresql/data
+    networks:
+      - ci-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ci_user"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # API contract testing
+  contract-tests:
+    image: pactfoundation/pact-cli:latest
+    volumes:
+      - ./tests/contracts:/contracts
+    command: ["pact-broker", "can-i-deploy", "--pacticipant", "HyperCode", "--version", "${CI_COMMIT_SHA}"]
+
+  # Performance benchmarking
+  performance-test:
+    image: grafana/k6:latest
+    volumes:
+      - ./tests/performance:/scripts
+      - ./test-results:/results
+    environment:
+      - K6_OUT=json=/results/k6-results.json
+    command: ["run", "/scripts/load-test.js"]
+    depends_on:
+      - hypercode-core-ci
+    networks:
+      - ci-net
+
+  hypercode-core-ci:
+    build:
+      context: ./HyperCode-V2.0/THE HYPERCODE/hypercode-core
+      dockerfile: Dockerfile
+    environment:
+      - ENVIRONMENT=ci
+      - HYPERCODE_DB_URL=postgresql://ci_user:ci_pass@postgres-ci:5432/hypercode_ci
+      - HYPERCODE_REDIS_URL=redis://redis-ci:6379
+    depends_on:
+      - postgres-ci
+      - redis-ci
+    networks:
+      - ci-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis-ci:
+    image: redis:7-alpine
+    tmpfs:
+      - /data
+    networks:
+      - ci-net
+
+volumes:
+  dependency-check-data:

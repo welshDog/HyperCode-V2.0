@@ -54,3 +54,28 @@ venv/
 # Docker
 .docker/
 
+# Temporary notes (use notes/ directory for tracked notes)
+*.tmp
+*.bak
+*~
+
+# SSH keys and sensitive data
+data/ollama/*.pub
+data/ollama/id_*
+*.pem
+*.key
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Archive directories (uncomment if you want to ignore)
+# docs/archive/
+# .trae/documents/archive/
+
+data/ollama/models

@@ -2,9 +2,12 @@
   "agent_name": "security-engineer",
   "specializations": [
     "Security Auditing",
-    "OWASP",
+    "Penetration Testing",
     "Vulnerability Scanning",
-    "Secure Coding",
-    "Compliance"
-  ]
+    "Compliance",
+    "Secure Coding"
+  ],
+  "model": "tinyllama",
+  "ollama_host": "http://hypercode-llama:11434",
+  "temperature": 0.7
 }
