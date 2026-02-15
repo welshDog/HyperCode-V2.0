@@ -29,9 +29,10 @@ jobs:
     
     - name: Start services for testing
       run: |
-        cp .env.agents.example .env.agents
-        echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> .env.agents
-        docker-compose -f docker-compose.agents.yml --env-file .env.agents up -d
+        cp .env.example .env
+        echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> .env
+        # Use main docker-compose with agents profile
+        docker-compose --profile agents up -d
         sleep 30  # Wait for services to be ready
     
     - name: Run tests
@@ -41,7 +42,7 @@ jobs:
     - name: Cleanup
       if: always()
       run: |
-        docker-compose -f docker-compose.agents.yml down -v
+        docker-compose --profile agents down -v
 
   security:
     name: Security Scan

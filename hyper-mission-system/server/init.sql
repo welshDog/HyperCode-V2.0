@@ -19,6 +19,11 @@ CREATE TABLE IF NOT EXISTS subtasks (
   is_done BOOLEAN DEFAULT FALSE
 );
 
+-- Performance Indexes
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_urgency ON tasks(urgency);
+CREATE INDEX IF NOT EXISTS idx_subtasks_parent ON subtasks(parent_id);
+
 -- Seed Data
 INSERT INTO tasks (title, description, impact, effort, urgency, status) VALUES
 ('Implement Login', 'Auth0 integration', 10, 5, 'critical', 'pending'),
@@ -40,4 +45,5 @@ INSERT INTO tasks (title, description, impact, effort, urgency, status) VALUES
 ('Unit Tests', 'Jest setup', 8, 5, 'high', 'pending'),
 ('Documentation', 'Swagger', 7, 4, 'medium', 'pending'),
 ('Load Testing', 'K6 scripts', 6, 5, 'low', 'pending'),
-('Deploy to Prod', 'AWS ECS', 10, 6, 'critical', 'pending');
+('Deploy to Prod', 'AWS ECS', 10, 6, 'critical', 'pending')
+ON CONFLICT DO NOTHING;

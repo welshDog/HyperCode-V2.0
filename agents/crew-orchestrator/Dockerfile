@@ -47,7 +47,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 # Copy application code
 COPY main.py .
-COPY app/ ./app/
 
 # Shared Hive Mind configuration mounted via docker-compose volume
 

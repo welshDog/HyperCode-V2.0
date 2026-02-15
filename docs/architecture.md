@@ -116,6 +116,13 @@ Specialists → Results → Orchestrator → Client
 3. Returns to user
 4. Archives in PostgreSQL for history
 
+## Revision History
+- **v2.0.0 (2026-02-15)**: 
+  - Standardized Coder Agent to FastAPI.
+  - Implemented RBAC for Agent Endpoints.
+  - Integrated Docker MCP for safe container management.
+- **v1.0.0 (Initial)**: Base architecture definition.
+
 ## Technology Stack
 
 ### Infrastructure

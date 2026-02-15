@@ -24,6 +24,7 @@ class AgentConfig:
         self.redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
         self.core_url = os.getenv("CORE_URL", "http://hypercode-core:8000")
         self.health_url = os.getenv("AGENT_HEALTH_URL", f"http://localhost:{self.port}/health")
+        self.api_key = os.getenv("HYPERCODE_API_KEY")
         
         # Load Hive Mind standards
         self.load_hive_mind()
@@ -228,8 +229,12 @@ Follow these standards strictly and leverage the skills library when applicable.
                 aid = self._agent_id
                 if aid:
                     payload = {"agent_id": aid, "status": "active", "load": 0.0}
+                    headers = {}
+                    if self.config.api_key:
+                        headers["X-API-Key"] = self.config.api_key
+
                     async with httpx.AsyncClient(timeout=3.0) as client:
-                        await client.post(f"{self.config.core_url}/agents/heartbeat", json=payload)
+                        await client.post(f"{self.config.core_url}/agents/heartbeat", json=payload, headers=headers)
                 await asyncio.sleep(30)
             except asyncio.CancelledError:
                 break
