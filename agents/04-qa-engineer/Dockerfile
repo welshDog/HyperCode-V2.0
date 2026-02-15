@@ -29,6 +29,14 @@ FROM python:3.11.8-slim
 
 WORKDIR /app
 
+# Install runtime dependencies (curl for healthcheck)
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     AGENT_NAME=qa-engineer \
@@ -52,6 +60,6 @@ VOLUME ["/app/hive_mind"]
 EXPOSE 8005
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \
-    CMD python -c "import httpx; httpx.get('http://localhost:8005/health', timeout=2)" || exit 1
+    CMD curl -f http://localhost:${AGENT_PORT}/health || exit 1
 
 CMD ["python", "agent.py"]

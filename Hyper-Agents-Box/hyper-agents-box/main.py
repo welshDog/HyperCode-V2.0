@@ -15,6 +15,10 @@ app = FastAPI()
 # Instrumentator
 Instrumentator().instrument(app).expose(app)
 
+@app.get("/health")
+def health_check_root():
+    return {"status": "healthy"}
+
 @app.get("/agents/health")
 def health_check():
     return {"status": "agents_healthy"}

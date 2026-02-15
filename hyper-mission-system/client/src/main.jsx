@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { CheckCircle, AlertCircle, Clock, BarChart2 } from 'lucide-react';
 import './index.css';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const App = () => {
   const [tasks, setTasks] = useState([]);

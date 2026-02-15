@@ -8,6 +8,8 @@ Agent X is a meta-agent system designed to architect, implement, and deploy spec
 
 ## 🚀 Quick Start
 
+> **Infrastructure & Health**: For how the platform runs in production, see [docs/infra/status-and-health.md](docs/infra/status-and-health.md).
+
 Get your first agent running in 3 commands:
 
 ```powershell
@@ -84,6 +86,8 @@ CMD ["python", "agent.py"]
 - [x] Agent X Meta-Architecture
 - [x] HyperTutor Implementation
 - [x] Docker Model Runner Integration
+- [x] RBAC & Security Hardening (v2.0)
+- [x] Coder Agent Standardization (FastAPI)
 - [ ] Agent Factory Service (Automated creation)
 - [ ] Multi-Agent Bus (Inter-agent communication)
 

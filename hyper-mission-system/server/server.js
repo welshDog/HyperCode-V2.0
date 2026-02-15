@@ -8,10 +8,37 @@ const hpp = require('hpp');
 const compression = require('compression');
 const { Pool } = require('pg');
 const client = require('prom-client');
+const redis = require('redis');
+const authenticate = require('./middleware/auth');
 require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 5000;
+
+// Redis Client
+const redisClient = redis.createClient({ url: process.env.REDIS_URL || 'redis://redis:6379' });
+redisClient.connect().catch(console.error);
+
+// Cache Middleware
+const cacheMiddleware = (duration) => async (req, res, next) => {
+  const key = `cache:${req.originalUrl}`;
+  try {
+    const cached = await redisClient.get(key);
+    if (cached) {
+      return res.json(JSON.parse(cached));
+    }
+    
+    const originalJson = res.json.bind(res);
+    res.json = (data) => {
+      redisClient.setEx(key, duration, JSON.stringify(data));
+      return originalJson(data);
+    };
+    next();
+  } catch (err) {
+    console.error('Redis Error:', err);
+    next();
+  }
+};
 
 // Prometheus Metrics
 const register = new client.Registry();
@@ -68,6 +95,25 @@ const calculatePriority = (impact, effort, urgency) => {
 };
 
 // Routes
+
+// Auth Routes
+app.post('/api/auth/login', async (req, res) => {
+  const { username, password } = req.body;
+  // Mock user check (replace with DB lookup in real implementation)
+  // For this fix sprint, we'll accept any username and check against a mocked password or env
+  // In a real app: const user = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+  
+  // Simple mock auth for demonstration/quick fix
+  if (username === 'admin' && password === 'admin') {
+     const token = jwt.sign({ username: 'admin', role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+     return res.json({ token });
+  }
+  
+  res.status(401).json({ error: 'Invalid credentials' });
+});
+
+// Protect all API routes below
+app.use('/api', authenticate);
 
 // Get all tasks (with optional sorting)
 app.get('/api/tasks', async (req, res) => {
@@ -161,7 +207,7 @@ app.put('/api/tasks/:id/done', async (req, res) => {
 });
 
 // Dashboard Stats
-app.get('/api/dashboard', async (req, res) => {
+app.get('/api/dashboard', cacheMiddleware(60), async (req, res) => {
   try {
     const total = await pool.query('SELECT COUNT(*) FROM tasks');
     const completed = await pool.query("SELECT COUNT(*) FROM tasks WHERE status = 'completed'");

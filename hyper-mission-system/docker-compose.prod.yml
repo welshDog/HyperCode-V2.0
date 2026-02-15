@@ -19,10 +19,8 @@ services:
   # Database Cluster (Simulated)
   postgres:
     image: postgres:15
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: secure_prod_password
-      POSTGRES_DB: hypermission
+    env_file:
+      - .env.prod
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./server/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -40,10 +38,8 @@ services:
   # API Server Cluster
   server:
     build: ./server
-    environment:
-      DATABASE_URL: postgres://user:secure_prod_password@postgres:5432/hypermission
-      NODE_ENV: production
-      PORT: 5000
+    env_file:
+      - .env.prod
     depends_on:
       - postgres
       - redis

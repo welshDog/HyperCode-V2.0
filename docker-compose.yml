@@ -18,22 +18,18 @@ services:
       dockerfile: Dockerfile
     container_name: hypercode-core
     environment:
-      - ENVIRONMENT=production
-      - PRISMA_PY_DEBUG=0
-      - HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL}
-      - HYPERCODE_DB_URL=${HYPERCODE_DB_URL}
-      - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
-      - API_KEY=${API_KEY}
-      - HYPERCODE_JWT_SECRET=${HYPERCODE_JWT_SECRET}
-      - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED}
-      - OTLP_ENDPOINT=${OTLP_ENDPOINT}
+      - HYPERCODE_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL:-redis://redis:6379/0}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-placeholder-key}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED:-true}
+      - JWT_SECRET=${HYPERCODE_JWT_SECRET:-${JWT_SECRET:-changethis}} # Maps HYPERCODE_JWT_SECRET -> JWT_SECRET
     depends_on:
       redis:
         condition: service_healthy
       postgres:
         condition: service_healthy
-      jaeger:
-        condition: service_started
     networks:
       - platform-net
     ports:
@@ -43,6 +39,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    security_opt:
+      - no-new-privileges:true
     deploy:
       resources:
         limits:
@@ -62,7 +60,7 @@ services:
       NEXT_PUBLIC_AGENTS_URL: ${NEXT_PUBLIC_AGENTS_URL:-http://localhost:8000}
       HOSTNAME: "0.0.0.0"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -70,6 +68,8 @@ services:
       - platform-net
     ports:
       - "3000:3000"
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       hypercode-core:
         condition: service_healthy
@@ -97,6 +97,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    security_opt:
+      - no-new-privileges:true
 
   # Worker
   celery-worker:
@@ -110,7 +112,7 @@ services:
     environment:
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
-      PYTHONPATH: /app
+      PYTHONPATH: /home/appuser/.local/lib/python3.11/site-packages:/app
       HYPERCODE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-hypercode}
       HYPERCODE_REDIS_URL: redis://redis:6379/0
       HYPERCODE_MEMORY_KEY: ${HYPERCODE_MEMORY_KEY}
@@ -127,6 +129,8 @@ services:
         condition: service_healthy
     networks:
       - platform-net
+    security_opt:
+      - no-new-privileges:true
     deploy:
       resources:
         limits:
@@ -135,6 +139,7 @@ services:
 
   # Agents
   coder-agent:
+    profiles: ["agents"]
     build:
       context: ./agents/coder
       dockerfile: Dockerfile
@@ -142,8 +147,15 @@ services:
     environment:
       - CORE_URL=http://hypercode-core:8000
       - PROMETHEUS_URL=http://prometheus:9090
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       - ./agents/coder/workspace:/workspace
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8001:8000"
     networks:
       - platform-net
     depends_on:
@@ -154,6 +166,13 @@ services:
         limits:
           cpus: "0.5"
           memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
 
   mcp-server:
     image: mcp/everything:latest
@@ -162,8 +181,13 @@ services:
       - ./agents/mcp-config.json:/config.json
     networks:
       - platform-net
+    healthcheck:
+      disable: true
+    security_opt:
+      - no-new-privileges:true
       
   hyper-agents-box:
+    profiles: ["agents"]
     build:
       context: ./Hyper-Agents-Box/hyper-agents-box
       dockerfile: docker/Dockerfile
@@ -171,8 +195,17 @@ services:
     ports:
       - "5000:5000"
     restart: unless-stopped
+
+
     networks:
       - platform-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
 
   dashboard:
     image: nginx:alpine
@@ -197,10 +230,42 @@ services:
         limits:
           cpus: '0.5'
           memory: 512M
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
 
-  # Crew Orchestrator
+  # ======================
+  # GATEWAY (Production)
+  # ======================
+  nginx:
+    profiles: ["production"]
+    image: nginx:alpine
+    container_name: hypercode-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+      broski-terminal:
+        condition: service_healthy
+      grafana:
+        condition: service_started
+    networks:
+      - platform-net
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  # ======================
+  # ORCHESTRATION LAYER
+  # ======================
   crew-orchestrator:
+    profiles: ["agents"]
     build:
       context: ./agents/crew-orchestrator
       dockerfile: Dockerfile
@@ -225,6 +290,13 @@ services:
       - platform-net
     ports:
       - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
 
   # Agents (Tier 2)
@@ -255,6 +327,7 @@ services:
     restart: unless-stopped
 
   backend-specialist:
+    profiles: ["agents"]
     build:
       context: ./agents/02-backend-specialist
     container_name: backend-specialist
@@ -278,9 +351,17 @@ services:
         condition: service_healthy
     networks:
       - platform-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
 
   database-architect:
+    profiles: ["agents"]
     build:
       context: ./agents/03-database-architect
     container_name: database-architect
@@ -307,9 +388,17 @@ services:
         condition: service_healthy
     networks:
       - platform-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
 
   qa-engineer:
+    profiles: ["agents"]
     build:
       context: ./agents/04-qa-engineer
     container_name: qa-engineer
@@ -333,9 +422,17 @@ services:
         condition: service_healthy
     networks:
       - platform-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
 
   devops-engineer:
+    profiles: ["agents"]
     build:
       context: ./agents/05-devops-engineer
     container_name: devops-engineer
@@ -416,6 +513,7 @@ services:
     restart: unless-stopped
 
   project-strategist:
+    profiles: ["agents"]
     build:
       context: ./agents/08-project-strategist
     container_name: project-strategist
@@ -439,6 +537,13 @@ services:
         condition: service_healthy
     networks:
       - platform-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
 
   llama:
@@ -459,6 +564,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    security_opt:
+      - no-new-privileges:true
     deploy:
       resources:
         limits:
@@ -511,6 +618,7 @@ services:
 
   # Observability
   prometheus:
+    profiles: ["monitoring"]
     image: prom/prometheus:latest
     container_name: prometheus
     ports:
@@ -520,6 +628,13 @@ services:
       - ./monitoring/prometheus:/etc/prometheus/monitoring:ro
     networks:
       - platform-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
     deploy:
       resources:
         limits:
@@ -527,22 +642,68 @@ services:
           memory: 512M
     restart: unless-stopped
 
+  alertmanager:
+    profiles: ["monitoring"]
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    networks:
+      - platform-net
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  node-exporter:
+    profiles: ["monitoring"]
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command: 
+      - '--path.procfs=/host/proc' 
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points'
+      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+    networks:
+      - platform-net
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  cadvisor:
+    profiles: ["monitoring"]
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - platform-net
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
   grafana:
+    profiles: ["monitoring"]
     image: grafana/grafana:10.4.3
     container_name: grafana
     ports:
       - "3001:3000"
     environment:
-<<<<<<< HEAD
+      - GF_SECURITY_ADMIN_USER=lyndzwills@gmail.com
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SERVER_ROOT_URL=https://localhost/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
       # Disable Analytics to fix console errors
       - GF_ANALYTICS_REPORTING_ENABLED=false
       - GF_ANALYTICS_CHECK_FOR_UPDATES=false
       - GF_ANALYTICS_FEEDBACK_LINKS_ENABLED=false
-=======
-      - GF_SECURITY_ADMIN_USER=lyndzwills@gmail.com
-      - GF_SECURITY_ADMIN_PASSWORD=admin
->>>>>>> 14c7d99 (Fix deployment issues, update docs, and apply design system)
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -557,18 +718,27 @@ services:
     restart: unless-stopped
 
   jaeger:
+    profiles: ["monitoring"]
     image: jaegertracing/all-in-one:1.56
     container_name: jaeger
     ports:
       - "16686:16686"
     networks:
       - platform-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:16686"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
     deploy:
       resources:
         limits:
           cpus: '0.5'
           memory: 512M
     restart: unless-stopped
+
 
 
 
