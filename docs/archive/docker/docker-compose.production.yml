@@ -1,9 +1,17 @@
 version: "3.9"
 
 networks:
-  platform-net:
+  frontend-net:
     driver: bridge
-    name: hypercode_platform_net
+    name: hypercode_frontend_net
+  backend-net:
+    driver: bridge
+    name: hypercode_backend_net
+    internal: true
+  data-net:
+    driver: bridge
+    name: hypercode_data_net
+    internal: true
 
 volumes:
   redis-data:
@@ -28,8 +36,14 @@ services:
       - broski-terminal
       - grafana
     networks:
-      - platform-net
+      - frontend-net
+      - backend-net
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
 
   # HyperCode Core
   hypercode-core:
@@ -58,7 +72,8 @@ services:
       jaeger:
         condition: service_started
     networks:
-      - platform-net
+      - backend-net
+      - data-net
     # Ports not exposed directly to host in production, only to Nginx
     # ports:
     #   - "8000:8000"
@@ -72,6 +87,11 @@ services:
     # volumes:
     #   - ./THE HYPERCODE/hypercode-core:/app
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
 
   # Frontend - Terminal
   broski-terminal:
@@ -82,14 +102,14 @@ services:
     environment:
       NEXT_PUBLIC_CORE_URL: https://hypercode.zone/api
       NEXT_PUBLIC_AGENTS_URL: https://hypercode.zone/api
-      # HOSTNAME: "0.0.0.0"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
     networks:
-      - platform-net
+      - frontend-net
+      - backend-net
     # Ports not exposed directly
     # ports:
     #   - "3000:3000"
@@ -99,6 +119,11 @@ services:
       hypercode-core:
         condition: service_healthy
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
 
   # Worker
   celery-worker:
@@ -111,33 +136,49 @@ services:
       - ./THE HYPERCODE/hypercode-core:/app
     environment:
       - ENVIRONMENT=production
+      - API_KEY=${API_KEY}
+      - HYPERCODE_JWT_SECRET=${HYPERCODE_JWT_SECRET}
+      - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
       - HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL}
       - HYPERCODE_DB_URL=${HYPERCODE_DB_URL}
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
     depends_on:
-      - redis
-      - postgres
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     networks:
-      - platform-net
+      - backend-net
+      - data-net
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
 
   # Infrastructure Services
   redis:
     image: redis:7-alpine
     container_name: redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis-data:/data
     networks:
-      - platform-net
+      - data-net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
 
   postgres:
     image: postgres:15-alpine
@@ -149,24 +190,35 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
-      - platform-net
+      - data-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
 
   jaeger:
     image: jaegertracing/all-in-one:1.56
     container_name: jaeger
     ports:
-      - "16686:16686"
-      - "4317:4317"
-      - "4318:4318"
+      - "127.0.0.1:16686:16686"
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
     networks:
-      - platform-net
+      - backend-net
+      - frontend-net
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
 
   # Monitoring
   prometheus:
@@ -180,10 +232,16 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=15d'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 1G
     ports:
       - "9090:9090"
     networks:
-      - platform-net
+      - backend-net
+      - frontend-net
     restart: always
 
   grafana:
@@ -202,7 +260,8 @@ services:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
     networks:
-      - platform-net
+      - frontend-net
+      - backend-net
     depends_on:
       - prometheus
     restart: always
@@ -217,7 +276,7 @@ services:
     volumes:
       - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
     networks:
-      - platform-net
+      - backend-net
     restart: always
 
   node-exporter:
@@ -233,7 +292,7 @@ services:
       - '--collector.filesystem.ignored-mount-points'
       - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
     networks:
-      - platform-net
+      - backend-net
     restart: always
 
   cadvisor:
@@ -246,6 +305,6 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     networks:
-      - platform-net
+      - backend-net
     restart: always
 
