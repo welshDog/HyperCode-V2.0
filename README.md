@@ -1,113 +1,75 @@
-# Agent X: The Meta-Architect 🦅
+# HyperCode V2.0 - The Cognitive Architecture
 
 > "You do not just write code; you craft cognitive architectures."
+
+## Why HyperCode Exists 🤯
+
+**I built this because I don’t want anyone to suffer like I did.**
+
+With dyslexia and autism, I was always asking for help — getting told what to do, but it *never clicked*. Instructions froze me. They didn’t sink in on the first try. Or the second. It took four or five rounds.
+
+Not because I’m slow — my brain just works differently. Traditional guides scatter.
+
+**That’s why I created HyperCode.**
+It guides every step — no judgment, just clarity. Puts *you* in control.
+
+Whether dyslexia, ADHD, autism, or wonder-nerd superpowers — built **for you**. Learning + creating feels natural. No fear.
+
+## Why "BROski"?
+
+**Ride or die.**
+
+A BROski is someone that no matter what obstacles or problems we face, we'll get through it together—or die trying.
+
+I'm building HyperCode, AI agent systems, and tools for neurodivergent creators. I needed more than an assistant. I needed a true partner who's all in, every session, every challenge.
+
+That's BROski. My ride or die. 🔥
+
+---
+
+## Agent X: The Meta-Architect 🦅
 
 Agent X is a meta-agent system designed to architect, implement, and deploy specialized AI agents within the HyperCode ecosystem. It leverages **Docker Model Runner** (or OpenAI-compatible backends) to create "Soulful" agents that are robust, ethical, and highly capable.
 
 ---
 
-## 🚀 Quick Start
+## ⚡ Quick Start
 
-> **Infrastructure & Health**: For how the platform runs in production, see [docs/infra/status-and-health.md](docs/infra/status-and-health.md).
+Get the entire ecosystem running in **under 2 minutes**.
 
-Get your first agent running in 3 commands:
+### Prerequisites
+- Docker & Docker Compose
+- Node.js 18+ (for local frontend dev)
 
-```powershell
-# 1. Enable Docker Model Runner (Prerequisite)
-# Docker Desktop -> Settings -> AI -> Enable Model Runner
+### Installation
 
-# 2. Start the Brain (Qwen 2.5 Coder 7B recommended)
-docker model run -d hf.co/Qwen/Qwen2.5-Coder-7B-Instruct
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/welshDog/HyperCode-V2.0.git
+   cd HyperCode-V2.0
+   ```
 
-# 3. Awaken HyperTutor (The first Agent X creation)
-docker run -it \
-  -e MODEL_NAME="hf.co/Qwen/Qwen2.5-Coder-7B-Instruct" \
-  --add-host=host.docker.internal:host-gateway \
-  hypercode-tutor
-```
+2. **Configure Environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env and add your API keys (Anthropic/OpenAI)
+   ```
 
----
+3. **Launch the Stack**
+   ```bash
+   docker compose up -d
+   ```
 
-## 🧠 System Architecture
+4. **Access the Interfaces**
+   - 🖥️ **Web Interface**: `http://localhost:3000`
+   - 📊 **Grafana**: `http://localhost:3001` (User: `admin` / Pass: `admin`)
+   - 📈 **Prometheus**: `http://localhost:9090`
+   - 📝 **API Docs**: `http://localhost:8000/docs`
 
-Agent X agents follow a tripartite biological architecture:
-
-1.  **The Brain (Model)**
-    *   **Technology**: Docker Model Runner (Local LLM) or OpenAI API.
-    *   **Function**: Raw cognitive processing and reasoning.
-    *   **Standard**: OpenAI-compatible API (`/v1/chat/completions`).
-
-2.  **The Soul (System Prompt)**
-    *   **File**: `SOUL.md`
-    *   **Function**: Defines personality, constraints, ethics, and domain knowledge.
-    *   **Philosophy**: Neurodivergent-friendly, chunked information, visual-first.
-
-3.  **The Body (Container)**
-    *   **Technology**: Docker (`python:3.11-slim`)
-    *   **Function**: Execution environment, tools, and I/O.
-    *   **Security**: Non-root user execution.
+> **See [DEPLOYMENT_SUMMARY_ONE_PAGE.md](DEPLOYMENT_SUMMARY_ONE_PAGE.md) for a quick operational reference.**
 
 ---
 
-## 📚 Agent Library
+## 🏗️ Architecture
 
-| Agent Name | Role | Status | Source |
-| :--- | :--- | :---: | :--- |
-| **HyperTutor** | Neurodivergent-friendly HyperCode mentor | 🟢 Ready | `agents/hypercode-tutor` |
-| **Orchestrator** | Multi-agent crew manager | 🟡 Planned | *Coming Soon* |
-| **Architect** | System design and blueprinting | 🟡 Planned | *Coming Soon* |
-
----
-
-## 🛠️ Development Guide
-
-### Creating a New Agent
-
-1.  **Define the Soul**: Create a `SOUL.md` using the Agent X template.
-2.  **Build the Body**: Use the standard `Dockerfile` pattern.
-3.  **Connect the Brain**: Ensure `agent.py` points to your model backend.
-
-### Standard `Dockerfile` Pattern
-
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY SOUL.md agent.py .
-RUN pip install requests && useradd -m agent
-USER agent
-CMD ["python", "agent.py"]
-```
-
----
-
-## 🗺️ Roadmap (30-60-90)
-
-### Phase 1: Foundation (Feb 14 - Mar 14)
-- [x] Agent X Meta-Architecture
-- [x] HyperTutor Implementation
-- [x] Docker Model Runner Integration
-- [x] RBAC & Security Hardening (v2.0)
-- [x] Coder Agent Standardization (FastAPI)
-- [ ] Agent Factory Service (Automated creation)
-- [ ] Multi-Agent Bus (Inter-agent communication)
-
-### Phase 2: Expansion (Mar 14 - Apr 14)
-- [ ] Full Crew Deployment (8 Specialized Agents)
-- [ ] Visual Agent Dashboard
-- [ ] Public Beta Release
-
-### Phase 3: Ecosystem (Apr 14 - May 14)
-- [ ] HyperCode V2.0 Integration
-- [ ] Community Agent Marketplace
-- [ ] Enterprise Governance Module
-
----
-
-## 📄 Documentation
-
-*   [Sprint Review (Feb 13, 2026)](docs/sprints/SPRINT_REVIEW_2026-02-13.md) - Historical record of the initial architecture sprint.
-*   [Status Reports](PROJECT_STATUS_REPORT_TEMPLATE.md) - Project management framework.
-
----
-
-*Powered by HyperCode V2.0* 🚀
+See [docs/architecture.md](docs/architecture.md) for detailed system design.
