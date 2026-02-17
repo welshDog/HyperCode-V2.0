@@ -2,7 +2,8 @@
 Base Agent Template for HyperCode Crew
 Each specialized agent extends this base
 """
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Security, Depends
+from fastapi.security.api_key import APIKeyHeader
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import os
@@ -76,6 +77,11 @@ class BaseAgent:
         self.setup_routes()
     
     def setup_routes(self):
+        async def verify_api_key(api_key: str = Security(APIKeyHeader(name="X-API-Key", auto_error=True))):
+            if self.config.api_key and api_key != self.config.api_key:
+                raise HTTPException(status_code=403, detail="Invalid API Key")
+            return api_key
+
         @self.app.get("/")
         async def root():
             return {
