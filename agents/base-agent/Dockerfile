@@ -19,20 +19,29 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 # Final stage
 FROM python:3.11-slim
 
+# Create non-root user
+RUN useradd -m -u 1000 appuser
+
 WORKDIR /app
 
 # Copy Python packages from builder
-COPY --from=builder /root/.local /root/.local
+COPY --from=builder /root/.local /home/appuser/.local
 
 # Update PATH
-ENV PATH=/root/.local/bin:$PATH
+ENV PATH=/home/appuser/.local/bin:$PATH
+
+# Fix permissions
+RUN chown -R appuser:appuser /home/appuser/.local
 
 # Copy agent code
-COPY agent.py .
-COPY config/ ./config/
+COPY --chown=appuser:appuser agent.py .
+COPY --chown=appuser:appuser config/ ./config/
 
 # Copy Hive Mind (shared memory/standards)
-COPY hive_mind/ ./hive_mind/
+COPY --chown=appuser:appuser hive_mind/ ./hive_mind/
+
+# Switch to non-root user
+USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \

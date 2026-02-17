@@ -29,6 +29,7 @@ playwright-report/
 test-results/
 .lighthouseci/
 *.tsbuildinfo
+health_check_report_*.json
 
 # Prisma
 prisma/*.log
