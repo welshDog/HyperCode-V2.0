@@ -24,6 +24,35 @@ We believe in:
 - Push to your branch: `git push origin feature/amazing-feature`
 - Open a Pull Request.
 
+## 📝 Commit Message Convention
+
+We follow the **Conventional Commits** specification to keep our history clean and readable.
+
+**Format**: `<type>(<scope>): <subject>`
+
+**Types**:
+- `feat`: A new feature
+- `fix`: A bug fix
+- `docs`: Documentation only changes
+- `style`: Changes that do not affect the meaning of the code (white-space, formatting, etc)
+- `refactor`: A code change that neither fixes a bug nor adds a feature
+- `perf`: A code change that improves performance
+- `test`: Adding missing tests or correcting existing tests
+- `chore`: Changes to the build process or auxiliary tools and libraries such as documentation generation
+
+**Example**:
+```bash
+feat(auth): add google oauth login
+fix(api): handle timeout in user service
+docs(readme): update deployment steps
+```
+
+## 🛡️ Branch Protection & Workflow
+
+- **Main Branch (`main`)**: Protected. Direct pushes are disabled. All changes must come via Pull Request.
+- **CI/CD Checks**: All PRs must pass the automated CI/CD pipeline (tests, linting, build) before merging.
+- **Code Review**: At least one approval is required from a maintainer.
+
 ## 🛠️ Development Setup
 
 1. **Fork & Clone**
