@@ -73,3 +73,25 @@ Get the entire ecosystem running in **under 2 minutes**.
 ## 🏗️ Architecture
 
 See [docs/architecture.md](docs/architecture.md) for detailed system design.
+
+## 📂 Project Structure
+
+- **THE HYPERCODE/**: Core application logic.
+  - `hypercode-core`: FastAPI backend service.
+  - `hyperflow-editor`: React/Vite frontend editor.
+- **BROski Business Agents/**: Autonomous agent system configurations.
+- **agents/**: Specialized AI agents (Frontend, Backend, QA, etc.).
+- **docker/**: Docker configuration and build scripts.
+- **docs/**: Comprehensive documentation.
+- **.github/workflows/**: CI/CD pipelines.
+
+## 🛡️ Development Workflow & Backup
+
+We enforce strict development practices to ensure stability:
+- **CI/CD Pipelines**: Automated testing, linting, and security scans on every push.
+- **Branch Protection**: Direct pushes to `main` are blocked. PRs require approval and passing checks.
+- **Backup Strategy**: Regular snapshots and GitHub mirroring. See [BACKUP_STRATEGY.md](BACKUP_STRATEGY.md) for details.
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](.github/CONTRIBUTING.md) for our code of conduct, commit message conventions, and pull request process.
