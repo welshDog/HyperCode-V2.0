@@ -1,0 +1,259 @@
+# HyperCode V2.0 - Project Context
+        
+**Last Updated:** 2026-02-18T00:48:06.754817
+**Total Files:** 7701
+
+## Layer Distribution
+- **other**: 430 files
+- **infra**: 113 files
+- **ui**: 146 files
+- **agents**: 252 files
+- **docs**: 4831 files
+- **core**: 1875 files
+- **scripts**: 54 files
+
+## Key Entry Points
+- `agents\coder\main.py`
+- `agents\crew-orchestrator\main.py`
+- `agents\dashboard\index.html`
+- `agents\dashboard\index_bds_demo.html`
+- `BROski Business Agents\broski-terminal\app\layout.tsx`
+- `BROski Business Agents\broski-terminal\app\page.tsx`
+- `BROski Business Agents\broski-terminal\app\api\health\route.ts`
+- `BROski Business Agents\broski-terminal\app\api\metrics\route.ts`
+- `BROski Business Agents\broski-terminal\app\api\support\stats\route.ts`
+- `BROski Business Agents\broski-terminal\app\bible\page.tsx`
+- `BROski Business Agents\broski-terminal\app\components\CodeRain.tsx`
+- `BROski Business Agents\broski-terminal\app\components\DashboardConnection.tsx`
+- `BROski Business Agents\broski-terminal\app\components\Providers.tsx`
+- `BROski Business Agents\broski-terminal\app\components\dashboard\AgentCard.tsx`
+- `BROski Business Agents\broski-terminal\app\components\dashboard\MemoryStats.tsx`
+- `BROski Business Agents\broski-terminal\app\components\dashboard\MissionFlow.tsx`
+- `BROski Business Agents\broski-terminal\app\components\dashboard\SwarmStatus.tsx`
+- `BROski Business Agents\broski-terminal\app\dashboard\page.tsx`
+- `BROski Business Agents\broski-terminal\app\hooks\useSwarmData.ts`
+- `BROski Business Agents\broski-terminal\app\hooks\useWebSocket.ts`
+- `BROski Business Agents\broski-terminal\app\store\store.ts`
+- `BROski Business Agents\broski-terminal\app\store\slices\dashboardSlice.ts`
+- `BROski Business Agents\broski-terminal\app\styles\hypercode.css`
+- `BROski Business Agents\broski-terminal\app\support\page.tsx`
+- `BROski Business Agents\broski-terminal\app\support\react\page.tsx`
+- `BROski Business Agents\broski-terminal\app\support\react\support.module.css`
+- `BROski Business Agents\broski-terminal\app\types\dashboard.ts`
+- `BROski Business Agents\broski-terminal\playwright-report\index.html`
+- `BROski Business Agents\broski-terminal\public\support\index.html`
+- `BROski Business Agents\broski-terminal\public\support\assets\apple-touch-icon.png`
+- `BROski Business Agents\broski-terminal\public\support\js\main.js`
+- `cli\main.py`
+- `docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\data\cli_main.py`
+- `docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\data\processed\knowledge_base\index (2).json`
+- `docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\data\processed\knowledge_base\index.json`
+- `docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\docs\hypercode-master-index.md`
+- `docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\docs\index.html`
+- `docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\docs\index.md`
+- `docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\docs\examples\sample-apps\taskmaster\README.md`
+- `docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\docs\hypercode\examples\sample-apps\taskmaster\README.md`
+- `docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\docs\sample-apps\taskmaster\README.md`
+- `docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\examples\todo_web_app.hc`
+- `docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\examples\creative-demos\fractal-explorer\index.html`
+- `docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\examples\sample-apps\taskmaster\README.md`
+- `docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\examples\sample-apps\taskmaster\src\task_manager.hc`
+- `docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\scripts\sync-space-to-main.py`
+- `docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\scripts\templates\index.html`
+- `docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\scripts\windows\maintenance\clean.bat`
+- `Hyper-Agents-Box\hyper-agents-box\main.py`
+- `hyper-mission-system\client\index.html`
+- `hyper-mission-system\client\src\index.css`
+- `hyper-mission-system\client\src\main.jsx`
+- `HyperCode-V2.0\agents\coder\main.py`
+- `HyperCode-V2.0\agents\crew-orchestrator\main.py`
+- `HyperCode-V2.0\agents\dashboard\index.html`
+- `HyperCode-V2.0\agents\dashboard\index_bds_demo.html`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\layout.tsx`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\page.tsx`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\api\health\route.ts`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\api\metrics\route.ts`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\api\support\stats\route.ts`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\bible\page.tsx`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\components\CodeRain.tsx`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\components\DashboardConnection.tsx`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\components\Providers.tsx`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\components\dashboard\AgentCard.tsx`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\components\dashboard\MemoryStats.tsx`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\components\dashboard\MissionFlow.tsx`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\dashboard\page.tsx`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\hooks\useWebSocket.ts`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\store\store.ts`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\store\slices\dashboardSlice.ts`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\styles\hypercode.css`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\support\page.tsx`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\support\react\page.tsx`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\support\react\support.module.css`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\app\types\dashboard.ts`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\playwright-report\index.html`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\public\support\index.html`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\public\support\assets\apple-touch-icon.png`
+- `HyperCode-V2.0\BROski Business Agents\broski-terminal\public\support\js\main.js`
+- `HyperCode-V2.0\cli\main.py`
+- `HyperCode-V2.0\docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\data\cli_main.py`
+- `HyperCode-V2.0\docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\data\processed\knowledge_base\index (2).json`
+- `HyperCode-V2.0\docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\data\processed\knowledge_base\index.json`
+- `HyperCode-V2.0\docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\docs\hypercode-master-index.md`
+- `HyperCode-V2.0\docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\docs\index.html`
+- `HyperCode-V2.0\docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\docs\index.md`
+- `HyperCode-V2.0\docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\docs\examples\sample-apps\taskmaster\README.md`
+- `HyperCode-V2.0\docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\docs\hypercode\examples\sample-apps\taskmaster\README.md`
+- `HyperCode-V2.0\docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\docs\sample-apps\taskmaster\README.md`
+- `HyperCode-V2.0\docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\examples\todo_web_app.hc`
+- `HyperCode-V2.0\docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\examples\creative-demos\fractal-explorer\index.html`
+- `HyperCode-V2.0\docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\examples\sample-apps\taskmaster\README.md`
+- `HyperCode-V2.0\docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\examples\sample-apps\taskmaster\src\task_manager.hc`
+- `HyperCode-V2.0\docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\scripts\sync-space-to-main.py`
+- `HyperCode-V2.0\docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\scripts\templates\index.html`
+- `HyperCode-V2.0\docs\archive\legacy\HYPERcode-V2\hypercode_organized_v2\scripts\windows\maintenance\clean.bat`
+- `HyperCode-V2.0\Hyper-Agents-Box\hyper-agents-box\main.py`
+- `HyperCode-V2.0\hyper-mission-system\client\index.html`
+- `HyperCode-V2.0\hyper-mission-system\client\src\index.css`
+- `HyperCode-V2.0\hyper-mission-system\client\src\main.jsx`
+- `HyperCode-V2.0\hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\DEPLOYMENT.md`
+- `HyperCode-V2.0\hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\index.html`
+- `HyperCode-V2.0\hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\manifest.json`
+- `HyperCode-V2.0\hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\README.md`
+- `HyperCode-V2.0\hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\robots.txt`
+- `HyperCode-V2.0\hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\sitemap.xml`
+- `HyperCode-V2.0\hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\sw.js`
+- `HyperCode-V2.0\hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\assets\725dbfcb-36e4-4682-833e-e56bc676fb14.png`
+- `HyperCode-V2.0\hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\assets\9c70989c-30a1-48b0-86bb-0191144fcf8c.png`
+- `HyperCode-V2.0\hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\assets\a00bee0c-4b7a-440e-bd64-6031543da27a.png`
+- `HyperCode-V2.0\hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\assets\Hyperfocus Zone Name logo.png`
+- `HyperCode-V2.0\hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\assets\icon-144x144.png`
+- `HyperCode-V2.0\hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\css\styles.css`
+- `HyperCode-V2.0\hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\js\main.js`
+- `HyperCode-V2.0\HyperStudio platform\api-main.py`
+- `HyperCode-V2.0\templates\agent-python\main.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\main.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\api\dashboard.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\core\auth.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\core\celery_app.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\core\config.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\core\db.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\core\event_bus.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\core\logging.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\engine\adapter.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\engine\cli.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\engine\interpreter.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\errors\nd_errors.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\middleware\rate_limit.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\parser\hc_parser.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\parser\__init__.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\routers\agents.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\routers\dashboard.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\routers\engine.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\routers\execution.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\routers\memory.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\routers\metrics.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\routers\orchestrator.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\routers\simulator.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\routers\voice.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\schemas\agent.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\schemas\execution.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\schemas\memory.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\schemas\message.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\schemas\mission.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\services\agent_registry.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\services\event_bus.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\services\execution_service.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\services\key_manager.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\services\llm_service.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\services\memory_service.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\services\metrics_registry.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\services\orchestrator.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\services\voice_service.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\services\__init__.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\services\llm\base.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\services\llm\factory.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\services\llm\ollama.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\services\llm\openai.py`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\app\static\css\bds-core.css`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\data\redis\appendonlydir\appendonly.aof.1.base.rdb`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\data\redis\appendonlydir\appendonly.aof.1.incr.aof`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\data\redis\appendonlydir\appendonly.aof.manifest`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\htmlcov\index.html`
+- `HyperCode-V2.0\THE HYPERCODE\hypercode-core\htmlcov\main_py.html`
+- `HyperCode-V2.0\THE HYPERCODE\hyperflow-editor\index.html`
+- `HyperCode-V2.0\THE HYPERCODE\hyperflow-editor\src\main.tsx`
+- `HyperCode-V2.0\tools\roundtrip-worker\main.go`
+- `hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\DEPLOYMENT.md`
+- `hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\index.html`
+- `hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\manifest.json`
+- `hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\README.md`
+- `hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\robots.txt`
+- `hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\sitemap.xml`
+- `hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\sw.js`
+- `hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\assets\725dbfcb-36e4-4682-833e-e56bc676fb14.png`
+- `hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\assets\9c70989c-30a1-48b0-86bb-0191144fcf8c.png`
+- `hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\assets\a00bee0c-4b7a-440e-bd64-6031543da27a.png`
+- `hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\assets\Hyperfocus Zone Name logo.png`
+- `hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\assets\icon-144x144.png`
+- `hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\css\styles.css`
+- `hyperfocus Zone Support-Hub--main\hyperfocuszone.com-Support-Hub--main\js\main.js`
+- `HyperStudio platform\api-main.py`
+- `scripts\hafs\indexer.py`
+- `templates\agent-python\main.py`
+- `THE HYPERCODE\hypercode-core\main.py`
+- `THE HYPERCODE\hypercode-core\app\api\dashboard.py`
+- `THE HYPERCODE\hypercode-core\app\api\deps.py`
+- `THE HYPERCODE\hypercode-core\app\core\auth.py`
+- `THE HYPERCODE\hypercode-core\app\core\celery_app.py`
+- `THE HYPERCODE\hypercode-core\app\core\config.py`
+- `THE HYPERCODE\hypercode-core\app\core\db.py`
+- `THE HYPERCODE\hypercode-core\app\core\event_bus.py`
+- `THE HYPERCODE\hypercode-core\app\core\logging.py`
+- `THE HYPERCODE\hypercode-core\app\core\security.py`
+- `THE HYPERCODE\hypercode-core\app\engine\adapter.py`
+- `THE HYPERCODE\hypercode-core\app\engine\cli.py`
+- `THE HYPERCODE\hypercode-core\app\engine\interpreter.py`
+- `THE HYPERCODE\hypercode-core\app\errors\nd_errors.py`
+- `THE HYPERCODE\hypercode-core\app\middleware\budget_guard.py`
+- `THE HYPERCODE\hypercode-core\app\middleware\rate_limit.py`
+- `THE HYPERCODE\hypercode-core\app\parser\hc_parser.py`
+- `THE HYPERCODE\hypercode-core\app\parser\__init__.py`
+- `THE HYPERCODE\hypercode-core\app\routers\agents.py`
+- `THE HYPERCODE\hypercode-core\app\routers\ai.py`
+- `THE HYPERCODE\hypercode-core\app\routers\crews.py`
+- `THE HYPERCODE\hypercode-core\app\routers\dashboard.py`
+- `THE HYPERCODE\hypercode-core\app\routers\engine.py`
+- `THE HYPERCODE\hypercode-core\app\routers\execution.py`
+- `THE HYPERCODE\hypercode-core\app\routers\memory.py`
+- `THE HYPERCODE\hypercode-core\app\routers\metrics.py`
+- `THE HYPERCODE\hypercode-core\app\routers\orchestrator.py`
+- `THE HYPERCODE\hypercode-core\app\routers\simulator.py`
+- `THE HYPERCODE\hypercode-core\app\routers\voice.py`
+- `THE HYPERCODE\hypercode-core\app\schemas\agent.py`
+- `THE HYPERCODE\hypercode-core\app\schemas\crew.py`
+- `THE HYPERCODE\hypercode-core\app\schemas\execution.py`
+- `THE HYPERCODE\hypercode-core\app\schemas\memory.py`
+- `THE HYPERCODE\hypercode-core\app\schemas\message.py`
+- `THE HYPERCODE\hypercode-core\app\schemas\mission.py`
+- `THE HYPERCODE\hypercode-core\app\services\agent_registry.py`
+- `THE HYPERCODE\hypercode-core\app\services\event_bus.py`
+- `THE HYPERCODE\hypercode-core\app\services\execution_service.py`
+- `THE HYPERCODE\hypercode-core\app\services\key_manager.py`
+- `THE HYPERCODE\hypercode-core\app\services\llm_service.py`
+- `THE HYPERCODE\hypercode-core\app\services\memory_service.py`
+- `THE HYPERCODE\hypercode-core\app\services\metrics_registry.py`
+- `THE HYPERCODE\hypercode-core\app\services\orchestrator.py`
+- `THE HYPERCODE\hypercode-core\app\services\voice_service.py`
+- `THE HYPERCODE\hypercode-core\app\services\watchdog.py`
+- `THE HYPERCODE\hypercode-core\app\services\__init__.py`
+- `THE HYPERCODE\hypercode-core\app\services\llm\base.py`
+- `THE HYPERCODE\hypercode-core\app\services\llm\factory.py`
+- `THE HYPERCODE\hypercode-core\app\services\llm\ollama.py`
+- `THE HYPERCODE\hypercode-core\app\services\llm\openai.py`
+- `THE HYPERCODE\hypercode-core\app\services\orchestration\agent_nodes.py`
+- `THE HYPERCODE\hypercode-core\app\static\css\bds-core.css`
+- `THE HYPERCODE\hypercode-core\htmlcov\index.html`
+- `THE HYPERCODE\hypercode-core\htmlcov\main_py.html`
+- `THE HYPERCODE\hyperflow-editor\index.html`
+- `THE HYPERCODE\hyperflow-editor\src\main.tsx`
+- `tools\roundtrip-worker\main.go`
