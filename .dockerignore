@@ -39,6 +39,7 @@ ENV/
 *.swo
 *~
 *.sublime-*
+.trae/
 
 # OS files
 .DS_Store
@@ -91,39 +92,15 @@ CHANGELOG.md
 *.backup
 *_backup/
 *-backup/
+legacy/
 
 # Database files (should be in volumes)
 *.db
 *.sqlite
 *.sqlite3
+data/
+**/data/
 
 # Environment files
 .env*
-secrets/
-*.key
-*.pem
-*.crt
-
-# NPM
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.npm/
-
-# Monitoring data
-grafana/data/
-prometheus/data/
-
-# Project specific large folders
-data/
-models/
-checkpoints/
-HyperCode-V2.0/
-BROski Business Agents/
-HyperStudio platform/
-Configuration_Kit/
-examples/
-tools/
-k8s/
-.husky/
-.trae/
+!*.env.example
