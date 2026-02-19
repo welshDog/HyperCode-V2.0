@@ -87,14 +87,19 @@ HyperCode V2.0 features a revolutionary **Cognitive File System** that turns the
 
 ## 📂 Project Structure
 
-- **THE HYPERCODE/**: Core application logic.
+- **src/**: Source code for all services.
   - `hypercode-core`: FastAPI backend service.
   - `hyperflow-editor`: React/Vite frontend editor.
-- **BROski Business Agents/**: Autonomous agent system configurations.
-- **agents/**: Specialized AI agents (Frontend, Backend, QA, etc.).
-- **docker/**: Docker configuration and build scripts.
+  - `hypercode-engine`: Core execution engine.
+  - `broski-terminal`: Frontend terminal interface.
+  - `agents`: Autonomous agent system and specialized agents.
+- **config/**: Configuration files.
+  - `docker`: Docker configuration and build scripts.
+  - `monitoring`: Prometheus and Grafana configs.
+  - `nginx`: Nginx configuration.
 - **docs/**: Comprehensive documentation.
-- **.github/workflows/**: CI/CD pipelines.
+- **scripts/**: Utility scripts for deployment and maintenance.
+- **tests/**: Test suites.
 
 ## 🛡️ Development Workflow & Backup
 
