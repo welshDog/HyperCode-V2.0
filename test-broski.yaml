@@ -1,0 +1,4 @@
+# BROski Test Configuration
+agents:
+  broski-test:
+    model: "dmr/smollm2"
