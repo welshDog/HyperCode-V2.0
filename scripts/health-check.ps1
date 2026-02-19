@@ -1,32 +1,38 @@
-#!/usr/bin/env pwsh
 # Docker Health Check Script for HyperCode V2.0
 # Checks status of all containers and reports issues
 
-Write-Host "🏥 HyperCode Docker Health Check" -ForegroundColor Cyan
+Write-Host "[HyperCode Docker Health Check]" -ForegroundColor Cyan
 Write-Host "================================`n" -ForegroundColor Cyan
 
 # Check if Docker is running
 try {
     docker ps > $null 2>&1
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "❌ Docker is not running. Please start Docker Desktop." -ForegroundColor Red
+        Write-Host "[ERROR] Docker is not running. Please start Docker Desktop." -ForegroundColor Red
         exit 1
     }
 } catch {
-    Write-Host "❌ Docker is not installed or not accessible." -ForegroundColor Red
+    Write-Host "[ERROR] Docker is not installed or not accessible." -ForegroundColor Red
     exit 1
 }
 
 # Get all containers
-$containers = docker ps -a --format "json" | ConvertFrom-Json
+# Using --format "{{json .}}" to ensure valid JSON lines, then slurp them into an array
+$containersRaw = docker ps -a --format "{{json .}}"
+$containers = $containersRaw | ForEach-Object { $_ | ConvertFrom-Json }
 
-Write-Host "📊 Container Status Summary:" -ForegroundColor Yellow
+if (-not $containers) {
+    Write-Host "No containers found." -ForegroundColor Yellow
+    exit 0
+}
+
+Write-Host "Container Status Summary:" -ForegroundColor Yellow
 Write-Host ""
 
-$running = 0
-$healthy = 0
-$unhealthy = 0
-$exited = 0
+$runningCount = 0
+$healthyCount = 0
+$unhealthyCount = 0
+$exitedCount = 0
 
 foreach ($container in $containers) {
     $name = $container.Names
@@ -35,25 +41,25 @@ foreach ($container in $containers) {
     
     # Determine icon and color
     if ($state -eq "running") {
-        $running++
-        if ($status -match "healthy") {
-            $healthy++
-            $icon = "✅"
+        $runningCount++
+        if ($status -match "\(healthy\)") {
+            $healthyCount++
+            $icon = "[OK]"
             $color = "Green"
-        } elseif ($status -match "unhealthy") {
-            $unhealthy++
-            $icon = "❌"
+        } elseif ($status -match "\(unhealthy\)") {
+            $unhealthyCount++
+            $icon = "[FAIL]"
             $color = "Red"
         } else {
-            $icon = "🟢"
+            $icon = "[RUN]"
             $color = "Green"
         }
     } elseif ($state -eq "exited") {
-        $exited++
-        $icon = "🔴"
+        $exitedCount++
+        $icon = "[EXIT]"
         $color = "Red"
     } else {
-        $icon = "⚠️ "
+        $icon = "[WARN]"
         $color = "Yellow"
     }
     
@@ -63,32 +69,32 @@ foreach ($container in $containers) {
 
 Write-Host ""
 Write-Host "Summary:" -ForegroundColor Cyan
-Write-Host "  🟢 Running: $running" -ForegroundColor Green
-Write-Host "  ✅ Healthy: $healthy" -ForegroundColor Green
-if ($unhealthy -gt 0) {
-    Write-Host "  ❌ Unhealthy: $unhealthy" -ForegroundColor Red
+Write-Host "  Running: $runningCount" -ForegroundColor Green
+Write-Host "  Healthy: $healthyCount" -ForegroundColor Green
+if ($unhealthyCount -gt 0) {
+    Write-Host "  Unhealthy: $unhealthyCount" -ForegroundColor Red
 }
-if ($exited -gt 0) {
-    Write-Host "  🔴 Exited: $exited" -ForegroundColor Red
+if ($exitedCount -gt 0) {
+    Write-Host "  Exited: $exitedCount" -ForegroundColor Red
 }
 
 Write-Host ""
 
 # Check disk usage
-Write-Host "💾 Docker Disk Usage:" -ForegroundColor Yellow
+Write-Host "Docker Disk Usage:" -ForegroundColor Yellow
 docker system df
 
 Write-Host ""
 
 # Check unhealthy containers in detail
-if ($unhealthy -gt 0) {
-    Write-Host "🔍 Investigating Unhealthy Containers:" -ForegroundColor Yellow
+if ($unhealthyCount -gt 0) {
+    Write-Host "Investigating Unhealthy Containers:" -ForegroundColor Yellow
     Write-Host ""
     
     foreach ($container in $containers) {
         if ($container.Status -match "unhealthy") {
             $name = $container.Names
-            Write-Host "📋 Logs for $name (last 20 lines):" -ForegroundColor Red
+            Write-Host "Logs for $name (last 20 lines):" -ForegroundColor Red
             docker logs --tail 20 $name
             Write-Host ""
         }
@@ -96,21 +102,21 @@ if ($unhealthy -gt 0) {
 }
 
 # Check exited containers
-if ($exited -gt 0) {
-    Write-Host "🔍 Exited Containers:" -ForegroundColor Yellow
+if ($exitedCount -gt 0) {
+    Write-Host "Exited Containers:" -ForegroundColor Yellow
     Write-Host ""
     
     foreach ($container in $containers) {
         if ($container.State -eq "exited") {
             $name = $container.Names
-            Write-Host "📋 Last logs for $name:" -ForegroundColor Gray
+            Write-Host "Last logs for ${name}:" -ForegroundColor Gray
             docker logs --tail 10 $name
             Write-Host ""
         }
     }
     
-    Write-Host "💡 Tip: Run './scripts/cleanup-docker.ps1' to remove exited containers" -ForegroundColor Cyan
+    Write-Host "Tip: Run './scripts/cleanup-docker.ps1' to remove exited containers" -ForegroundColor Cyan
 }
 
 Write-Host ""
-Write-Host "✅ Health Check Complete!" -ForegroundColor Green
+Write-Host "Health Check Complete!" -ForegroundColor Green

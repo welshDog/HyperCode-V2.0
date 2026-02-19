@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hypercode-core
+  namespace: hypercode
+  labels:
+    app: hypercode-core
+spec:
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http
+  selector:
+    app: hypercode-core
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hypercode-core
+  namespace: hypercode
+spec:
+  replicas: 2  # Scale as needed
+  selector:
+    matchLabels:
+      app: hypercode-core
+  template:
+    metadata:
+      labels:
+        app: hypercode-core
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: hypercode-core
+        image: hypercode-core:latest  # Build and push your image
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: ENVIRONMENT
+        - name: PRISMA_PY_DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: PRISMA_PY_DEBUG
+        - name: HYPERCODE_REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: HYPERCODE_REDIS_URL
+        - name: HYPERCODE_DB_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: HYPERCODE_DB_URL
+        - name: OTLP_EXPORTER_DISABLED
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: OTLP_EXPORTER_DISABLED
+        - name: OTLP_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: OTLP_ENDPOINT
+        - name: HYPERCODE_MEMORY_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-keys
+              key: memory-key
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-keys
+              key: api-key
+        - name: HYPERCODE_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: hypercode-jwt-secret
+        ports:
+        - containerPort: 8000
+          name: http
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 40
+          periodSeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5

@@ -1,0 +1,937 @@
+version: "3.9"
+
+networks:
+  frontend-net:
+    driver: bridge
+    name: hypercode_frontend_net
+  backend-net:
+    driver: bridge
+    name: hypercode_backend_net
+    internal: true
+  data-net:
+    driver: bridge
+    name: hypercode_data_net
+    internal: true
+
+volumes:
+  redis-data:
+  postgres-data:
+  grafana-data:
+  prometheus-data:
+  ollama-data:
+
+services:
+  # ====================
+  # CORE SERVICES
+  # ====================
+  hypercode-core:
+    build:
+      context: ./THE HYPERCODE/hypercode-core
+      dockerfile: Dockerfile
+    container_name: hypercode-core
+    environment:
+      - ENVIRONMENT=production
+      - PRISMA_PY_DEBUG=0
+      - HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL}
+      - HYPERCODE_DB_URL=${HYPERCODE_DB_URL}
+      - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
+      - API_KEY=${API_KEY}
+      - HYPERCODE_JWT_SECRET=${HYPERCODE_JWT_SECRET}
+      - JWT_SECRET=${HYPERCODE_JWT_SECRET} # Ensure backward compatibility
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED}
+      - OTLP_ENDPOINT=${OTLP_ENDPOINT}
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    ports:
+      - "127.0.0.1:8000:8000" # Localhost only for security
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - ./THE HYPERCODE/hypercode-core:/app
+
+  # Frontend - Terminal
+  broski-terminal:
+    build:
+      context: ./BROski Business Agents/broski-terminal
+      dockerfile: Dockerfile
+    container_name: broski-terminal
+    environment:
+      NEXT_PUBLIC_CORE_URL: ${NEXT_PUBLIC_CORE_URL:-http://localhost:8000}
+      NEXT_PUBLIC_AGENTS_URL: ${NEXT_PUBLIC_AGENTS_URL:-http://localhost:8000}
+      HOSTNAME: "0.0.0.0"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {if (r.statusCode !== 200) process.exit(1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - frontend-net
+      - backend-net
+    ports:
+      - "3000:3000" # Public facing
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  # Frontend - Editor
+  hyperflow-editor:
+    build:
+      context: ./THE HYPERCODE/hyperflow-editor
+      dockerfile: Dockerfile
+    container_name: hyperflow-editor
+    ports:
+      - "5173:4173" # Public facing
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    networks:
+      - frontend-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4173/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  # Worker
+  celery-worker:
+    build:
+      context: ./THE HYPERCODE/hypercode-core
+      dockerfile: Dockerfile
+    container_name: celery-worker
+    command: ["python", "-m", "celery", "-A", "app.core.celery_app", "worker", "--loglevel=info"]
+    volumes:
+      - ./THE HYPERCODE/hypercode-core:/app
+    environment:
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      PYTHONPATH: /home/appuser/.local/lib/python3.11/site-packages:/app
+      HYPERCODE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-hypercode}
+      HYPERCODE_REDIS_URL: redis://redis:6379/0
+      HYPERCODE_MEMORY_KEY: ${HYPERCODE_MEMORY_KEY}
+    healthcheck:
+      test: ["CMD-SHELL", "python -m celery -A app.core.celery_app inspect ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  # ====================
+  # AGENTS
+  # ====================
+  coder-agent:
+    profiles: ["agents"]
+    build:
+      context: ./agents/coder
+      dockerfile: Dockerfile
+    container_name: coder-agent
+    environment:
+      - CORE_URL=http://hypercode-core:8000
+      - PROMETHEUS_URL=http://prometheus:9090
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - ./agents/coder/workspace:/workspace
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8001:8000"
+    networks:
+      - backend-net
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  mcp-server:
+    image: mcp/everything:latest
+    container_name: mcp-server
+    volumes:
+      - ./agents/mcp-config.json:/config.json
+    networks:
+      - backend-net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+      
+  hyper-agents-box:
+    profiles: ["agents"]
+    build:
+      context: ./Hyper-Agents-Box/hyper-agents-box
+      dockerfile: docker/Dockerfile
+    container_name: hyper-agents-box
+    ports:
+      - "127.0.0.1:5000:5000"
+    restart: unless-stopped
+    networks:
+      - backend-net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  dashboard:
+    image: nginx:alpine
+    container_name: hypercode-dashboard
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      - "8088:80" # Public facing dashboard
+    volumes:
+      - ./agents/dashboard:/usr/share/nginx/html:ro
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - frontend-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  crew-orchestrator:
+    profiles: ["agents"]
+    build:
+      context: ./agents/crew-orchestrator
+      dockerfile: Dockerfile
+    container_name: crew-orchestrator
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - CORE_URL=http://hypercode-core:8000
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    ports:
+      - "127.0.0.1:8080:8080"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # Agents (Tier 2)
+  frontend-specialist:
+    build:
+      context: ./agents/01-frontend-specialist
+    container_name: frontend-specialist
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://frontend-specialist:8002/health
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8002/health', timeout=5).raise_for_status()"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  backend-specialist:
+    profiles: ["agents"]
+    build:
+      context: ./agents/02-backend-specialist
+    container_name: backend-specialist
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://backend-specialist:8003/health
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8003/health', timeout=5).raise_for_status()"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  database-architect:
+    profiles: ["agents"]
+    build:
+      context: ./agents/03-database-architect
+    container_name: database-architect
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://database-architect:8004/health
+      - POSTGRES_URL=postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/hypercode
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8004/health', timeout=5).raise_for_status()"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  qa-engineer:
+    profiles: ["agents"]
+    build:
+      context: ./agents/04-qa-engineer
+    container_name: qa-engineer
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://qa-engineer:8005/health
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8005/health', timeout=5).raise_for_status()"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  devops-engineer:
+    profiles: ["agents"]
+    build:
+      context: ./agents/05-devops-engineer
+    container_name: devops-engineer
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_PORT=8006
+      - AGENT_HEALTH_URL=http://devops-engineer:8006/health
+      # DOCKER_HOST removed for security hardening
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      # Docker socket mount removed for security hardening
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8006/health', timeout=5).raise_for_status()"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  security-engineer:
+    build:
+      context: ./agents/06-security-engineer
+    container_name: security-engineer
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://security-engineer:8007/health
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8007/health', timeout=5).raise_for_status()"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  system-architect:
+    build:
+      context: ./agents/07-system-architect
+    container_name: system-architect
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_PORT=8008
+      - AGENT_HEALTH_URL=http://system-architect:8008/health
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8008/health', timeout=5).raise_for_status()"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  project-strategist:
+    profiles: ["agents"]
+    build:
+      context: ./agents/08-project-strategist
+    container_name: project-strategist
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://project-strategist:8001/health
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8001/health', timeout=5).raise_for_status()"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: hypercode-ollama
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ./data/ollama:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_ORIGINS=*
+      - OLLAMA_MODEL=tinyllama
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/11434'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 4G
+        reservations:
+          cpus: "0.5"
+          memory: 2G
+    networks:
+      - backend-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  # Infrastructure
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - data-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-hypercode}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - data-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "127.0.0.1:9090:9090"
+    networks:
+      - backend-net
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3001:3000"
+    networks:
+      - backend-net
+    depends_on:
+      prometheus:
+        condition: service_started
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14268:14268"
+      - "14250:14250"
+      - "9411:9411"
+    networks:
+      - backend-net
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true

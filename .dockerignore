@@ -1,30 +1,23 @@
 # Root .dockerignore for HyperCode project
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-.venv/
-ENV/
-.pytest_cache/
-.mypy_cache/
-.coverage
-htmlcov/
-*.egg-info/
-
-# Node
+# Node modules (huge!)
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-dist/
-build/
-.next/
-out/
+**/node_modules/
+
+# Python cache
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.venv_test/
 
 # Git
 .git/
@@ -32,76 +25,105 @@ out/
 .gitattributes
 .github/
 
+# AI/Vector data (rebuild on container)
+.ai/
+.ai/vectors/
+**/.ai/vectors/
+*.faiss
+*.chroma
+
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 *.sublime-*
 
+# OS files
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+
+# Logs
+*.log
+logs/
+**/*.log
+*.out
+*.err
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+.next/
+out/
+
 # Docker
+.dockerignore
 Dockerfile*
 docker-compose*.yml
-.dockerignore
 
-# Documentation
+# Documentation (not needed in container)
+docs/
 README.md
 CHANGELOG.md
 *.md
-docs/
 
-# Tests
-tests/
-test/
-*.test.js
-*.test.py
-*.spec.js
-*.spec.py
+# Large files
+*.mp4
+*.mov
+*.avi
+*.zip
+*.tar.gz
+*.rar
+*.7z
 
-# CI/CD
-.github/
-.gitlab-ci.yml
-.travis.yml
-.circleci/
+# Backup files
+*.bak
+*.backup
+*_backup/
+*-backup/
 
-# Secrets & Environment
+# Database files (should be in volumes)
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files
 .env*
 secrets/
 *.key
 *.pem
 *.crt
 
-# Logs
-*.log
-logs/
-*.out
-*.err
+# NPM
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
 
-# Data & Models
+# Monitoring data
+grafana/data/
+prometheus/data/
+
+# Project specific large folders
 data/
 models/
 checkpoints/
-*.bin
-*.gguf
-*.safetensors
-*.pt
-*.pth
-*.h5
-*.pkl
-*.joblib
-
-# OS
-.DS_Store
-Thumbs.db
-*.tmp
-*.temp
-
-# Project specific
-notes/
+HyperCode-V2.0/
+BROski Business Agents/
+HyperStudio platform/
+Configuration_Kit/
 examples/
 tools/
-monitoring/prometheus/
-monitoring/grafana/
 k8s/
 .husky/
 .trae/

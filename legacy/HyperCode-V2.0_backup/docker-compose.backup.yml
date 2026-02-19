@@ -1,0 +1,609 @@
+version: "3.9"
+
+networks:
+  frontend-net:
+    driver: bridge
+    name: hypercode_frontend_net
+  backend-net:
+    driver: bridge
+    name: hypercode_backend_net
+    internal: true
+  data-net:
+    driver: bridge
+    name: hypercode_data_net
+    internal: true
+
+volumes:
+  redis-data:
+  postgres-data:
+  grafana-data:
+
+services:
+  # HyperCode Core
+  hypercode-core:
+    build:
+      context: ./THE HYPERCODE/hypercode-core
+      dockerfile: Dockerfile
+    container_name: hypercode-core
+    environment:
+      - ENVIRONMENT=production
+      - PRISMA_PY_DEBUG=0
+      - HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL}
+      - HYPERCODE_DB_URL=${HYPERCODE_DB_URL}
+      - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
+      - API_KEY=${API_KEY}
+      - HYPERCODE_JWT_SECRET=${HYPERCODE_JWT_SECRET}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED}
+      - OTLP_ENDPOINT=${OTLP_ENDPOINT}
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+    networks:
+      - backend-net
+      - data-net
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+    volumes:
+      - ./THE HYPERCODE/hypercode-core:/app
+
+  # Frontend - Terminal
+  broski-terminal:
+    build:
+      context: ./BROski Business Agents/broski-terminal
+      dockerfile: Dockerfile
+    container_name: broski-terminal
+    environment:
+      NEXT_PUBLIC_CORE_URL: ${NEXT_PUBLIC_CORE_URL:-http://localhost:8000}
+      NEXT_PUBLIC_AGENTS_URL: ${NEXT_PUBLIC_AGENTS_URL:-http://localhost:8000}
+      HOSTNAME: "0.0.0.0"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {if (r.statusCode !== 200) process.exit(1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - frontend-net
+      - backend-net
+    ports:
+      - "3000:3000"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+
+  # Frontend - Editor
+  hyperflow-editor:
+    build:
+      context: ./THE HYPERCODE/hyperflow-editor
+      dockerfile: Dockerfile
+    container_name: hyperflow-editor
+    ports:
+      - "5173:4173"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    networks:
+      - frontend-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4173/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Worker
+  celery-worker:
+    build:
+      context: ./THE HYPERCODE/hypercode-core
+      dockerfile: Dockerfile
+    container_name: celery-worker
+    command: ["python", "-m", "celery", "-A", "app.core.celery_app", "worker", "--loglevel=info"]
+    volumes:
+      - ./THE HYPERCODE/hypercode-core:/app
+    environment:
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      PYTHONPATH: /app
+      HYPERCODE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-hypercode}
+      HYPERCODE_REDIS_URL: redis://redis:6379/0
+      HYPERCODE_MEMORY_KEY: ${HYPERCODE_MEMORY_KEY}
+    healthcheck:
+      test: ["CMD-SHELL", "python -m celery -A app.core.celery_app inspect ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+
+  # Agents
+  coder-agent:
+    build:
+      context: ./agents/coder
+      dockerfile: Dockerfile
+    container_name: coder-agent
+    environment:
+      - CORE_URL=http://hypercode-core:8000
+      - PROMETHEUS_URL=http://prometheus:9090
+    volumes:
+      - ./agents/coder/workspace:/workspace
+    networks:
+      - backend-net
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  mcp-server:
+    image: mcp/everything:latest
+    container_name: mcp-server
+    volumes:
+      - ./agents/mcp-config.json:/config.json
+    networks:
+      - backend-net
+      
+  hyper-agents-box:
+    build:
+      context: ./Hyper-Agents-Box/hyper-agents-box
+      dockerfile: docker/Dockerfile
+    container_name: hyper-agents-box
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    networks:
+      - backend-net
+
+  dashboard:
+    image: nginx:alpine
+    container_name: hypercode-dashboard
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      - "8088:80"
+    volumes:
+      - ./agents/dashboard:/usr/share/nginx/html:ro
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - frontend-net
+    restart: unless-stopped
+
+  # Crew Orchestrator
+  crew-orchestrator:
+    build:
+      context: ./agents/crew-orchestrator
+      dockerfile: Dockerfile
+    container_name: crew-orchestrator
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - CORE_URL=http://hypercode-core:8000
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  # Agents (Tier 2)
+  frontend-specialist:
+    build:
+      context: ./agents/01-frontend-specialist
+    container_name: frontend-specialist
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://frontend-specialist:8002/health
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8002/health', timeout=5).raise_for_status()"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+    restart: unless-stopped
+
+  backend-specialist:
+    build:
+      context: ./agents/02-backend-specialist
+    container_name: backend-specialist
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://backend-specialist:8003/health
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8003/health', timeout=5).raise_for_status()"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+    restart: unless-stopped
+
+  database-architect:
+    build:
+      context: ./agents/03-database-architect
+    container_name: database-architect
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://database-architect:8004/health
+      - POSTGRES_URL=postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/hypercode
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8004/health', timeout=5).raise_for_status()"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+    restart: unless-stopped
+
+  qa-engineer:
+    build:
+      context: ./agents/04-qa-engineer
+    container_name: qa-engineer
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://qa-engineer:8005/health
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8005/health', timeout=5).raise_for_status()"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+    restart: unless-stopped
+
+  devops-engineer:
+    build:
+      context: ./agents/05-devops-engineer
+    container_name: devops-engineer
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_PORT=8006
+      - AGENT_HEALTH_URL=http://devops-engineer:8006/health
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8006/health', timeout=5).raise_for_status()"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+    restart: unless-stopped
+
+  security-engineer:
+    build:
+      context: ./agents/06-security-engineer
+    container_name: security-engineer
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://security-engineer:8007/health
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8007/health', timeout=5).raise_for_status()"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+    restart: unless-stopped
+
+  system-architect:
+    build:
+      context: ./agents/07-system-architect
+    container_name: system-architect
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_PORT=8008
+      - AGENT_HEALTH_URL=http://system-architect:8008/health
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8008/health', timeout=5).raise_for_status()"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+    restart: unless-stopped
+
+  project-strategist:
+    build:
+      context: ./agents/08-project-strategist
+    container_name: project-strategist
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_HEALTH_URL=http://project-strategist:8001/health
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8001/health', timeout=5).raise_for_status()"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+    restart: unless-stopped
+
+  # End of agents
+
+  llama:
+    image: ollama/ollama:latest
+    container_name: hypercode-llama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./data/ollama:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_ORIGINS=*
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/11434'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 4G
+    networks:
+      - backend-net
+
+  # Infrastructure
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - data-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - data-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Observability
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus:/etc/prometheus/monitoring:ro
+    networks:
+      - backend-net
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.4.3
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      # Disable Analytics to fix console errors
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      - GF_ANALYTICS_FEEDBACK_LINKS_ENABLED=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - frontend-net
+      - backend-net
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.56
+    container_name: jaeger
+    ports:
+      - "16686:16686" # UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    networks:
+      - backend-net
+      - frontend-net
+    restart: unless-stopped

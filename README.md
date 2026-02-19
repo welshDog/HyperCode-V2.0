@@ -74,6 +74,17 @@ Get the entire ecosystem running in **under 2 minutes**.
 
 See [docs/architecture.md](docs/architecture.md) for detailed system design.
 
+## 🧠 Hyper AI File System (HAFS)
+
+HyperCode V2.0 features a revolutionary **Cognitive File System** that turns the codebase into a living, intelligent entity.
+
+-   **Semantic Search**: Find code by meaning, not just filename.
+-   **Predictive Context**: The system guesses what files you need next.
+-   **Self-Healing**: Agents can diagnose and fix their own errors using HAFS.
+-   **Neural Visualization**: See your codebase as a connected graph.
+
+👉 **[Read the HAFS User Guide](docs/guides/HAFS_USER_GUIDE.md)** to get started.
+
 ## 📂 Project Structure
 
 - **THE HYPERCODE/**: Core application logic.
@@ -91,6 +102,35 @@ We enforce strict development practices to ensure stability:
 - **CI/CD Pipelines**: Automated testing, linting, and security scans on every push.
 - **Branch Protection**: Direct pushes to `main` are blocked. PRs require approval and passing checks.
 - **Backup Strategy**: Regular snapshots and GitHub mirroring. See [BACKUP_STRATEGY.md](BACKUP_STRATEGY.md) for details.
+
+## 1️⃣ README snippet – “Status + Proof”
+
+You can paste this under something like `## Status` or `## Operational Proof`.
+
+```md
+## 🧪 Status & Operational Proof
+
+HyperCode V2.0 is not just a concept – it’s running as a real multi-agent swarm.
+
+- 15/15 containers healthy: `hypercode-core`, `hafs-service`, `crew-orchestrator`, and all specialist agents. [file:16]
+- Core endpoints live:
+  - `GET /health` → `{"status":"healthy"}` [file:16]
+  - `GET /ready` → `{"database":"connected","redis":"connected"}` [file:16]
+- Key specialist agents (backend, QA, project strategy, database) have been running **stably for 40–60+ minutes** with:
+  - No `ModuleNotFoundError`
+  - No 401 auth errors
+  - Passing healthchecks (HTTP 200) [file:16]
+
+Recent recovery work included:
+- Fixing a crash in `/agents/bible` via robust, Docker-safe path resolution. [file:16]
+- Wiring agent authentication with `HYPERCODE_API_KEY` / `API_KEY` and consistent headers. [file:16]
+- Increasing DB connection capacity and mounting shared `event_bus.py` into all agents. [file:16]
+- Extending `hypercode-core` healthcheck `start_period` to allow clean startup. [file:16]
+
+👉 See `FIXES_FOR_UNHEALTHY_AGENTS.md` for the full incident + recovery timeline. [file:16]
+```
+
+***
 
 ## 🤝 Contributing
 

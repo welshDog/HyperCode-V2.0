@@ -1,0 +1,62 @@
+{
+  "mcpServers": {
+    "docker": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-v",
+        "/var/run/docker.sock:/var/run/docker.sock",
+        "docker/cagent-mcp-server:latest"
+      ],
+      "env": {
+        "DOCKER_HOST": "unix:///var/run/docker.sock"
+      }
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      }
+    },
+    "hypercode": {
+      "command": "python",
+      "args": [
+        "./agents/mcp-servers/hypercode-mcp-server.py"
+      ],
+      "env": {
+        "HYPERCODE_ENGINE_PATH": "./THE HYPERCODE/hypercode-engine",
+        "MCP_LOG_LEVEL": "INFO"
+      }
+    },
+    "hyperflow-editor": {
+      "command": "python",
+      "args": [
+        "./agents/mcp-servers/hyperflow-editor-mcp-server.py"
+      ],
+      "env": {
+        "EDITOR_PORT": "5173",
+        "EDITOR_HOST": "localhost",
+        "API_BASE_URL": "http://localhost:8000",
+        "MCP_LOG_LEVEL": "INFO"
+      }
+    },
+    "broski-terminal": {
+      "command": "python",
+      "args": [
+        "./agents/mcp-servers/broski-terminal-mcp-server.py"
+      ],
+      "env": {
+        "TERMINAL_PORT": "3000",
+        "TERMINAL_HOST": "localhost",
+        "API_BASE_URL": "http://localhost:8000",
+        "MCP_LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}

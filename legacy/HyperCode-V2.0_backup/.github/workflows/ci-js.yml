@@ -1,0 +1,71 @@
+name: JS CI
+
+on:
+  push:
+    branches: [ "main", "production", "feature/**", "fix/**" ]
+  pull_request:
+    branches: [ "main", "production" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: [ "THE HYPERCODE/hyperflow-editor", "BROski Business Agents/broski-terminal" ]
+        node: [ 20 ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install deps
+        working-directory: ${{ matrix.project }}
+        run: npm ci
+
+      - name: Lint
+        working-directory: ${{ matrix.project }}
+        run: npm run lint
+
+      - name: Typecheck
+        working-directory: ${{ matrix.project }}
+        run: |
+          if [ -f tsconfig.json ]; then npx tsc -b || npx tsc --noEmit; fi
+
+      - name: Unit tests with coverage
+        working-directory: ${{ matrix.project }}
+        run: npx vitest run --coverage --reporter=text --coverage.reporter=text-summary
+
+      - name: Enforce coverage thresholds
+        working-directory: ${{ matrix.project }}
+        run: |
+          SUMMARY=$(cat coverage/coverage-summary.json 2>/dev/null || echo "{}")
+          LINES=$(node -e "console.log(JSON.parse(process.argv[1]).total?.lines?.pct||0)" "$SUMMARY")
+          STATEMENTS=$(node -e "console.log(JSON.parse(process.argv[1]).total?.statements?.pct||0)" "$SUMMARY")
+          echo "Lines: $LINES% Statements: $STATEMENTS%"
+          MIN=80
+          node -e "process.exit((${LINES} < ${MIN} || ${STATEMENTS} < ${MIN})?1:0)"
+
+      - name: E2E tests (Playwright)
+        if: contains(matrix.project, 'broski-terminal')
+        working-directory: ${{ matrix.project }}
+        run: |
+          npx playwright install --with-deps
+          # Run E2E tests. Note: Requires backend for full integration, but mocks should be used for CI stability.
+          npx playwright test
+
+      - name: Upload Playwright Report
+        if: failure() && contains(matrix.project, 'broski-terminal')
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: ${{ matrix.project }}/playwright-report/
+          retention-days: 30
+
+      - name: npm audit (block on high)
+        working-directory: ${{ matrix.project }}
+        run: |
+          npm audit --audit-level=high || (echo "High vulnerabilities found" && exit 1)

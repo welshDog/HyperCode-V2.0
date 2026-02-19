@@ -1,0 +1,1 @@
+C:\Users\lyndz\AppData\Local\Programs\Python\Python312\python.exe test_db.py
