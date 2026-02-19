@@ -1,0 +1,8 @@
+{
+  "task": "Phase 2: Implement the Task Chunking Engine. 1. Analyze requirements for breaking epics into 15m tasks. 2. Create Pydantic models for TaskChunkingRequest and Response. 3. Implement the splitting logic in a new service. 4. Expose via FastAPI router.",
+  "context": {
+    "phase": "neurodivergent_empowerment",
+    "priority": "high"
+  },
+  "priority": "high"
+}

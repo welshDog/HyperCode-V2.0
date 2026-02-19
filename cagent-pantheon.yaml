@@ -1,0 +1,21 @@
+# 🔥 BROski Pantheon 2.0 - cagent Framework
+# Translating HYPER AGENT BIBLE principles into cagent YAML
+# Authority: Lyndz Williams (welshDog) + Crew
+# Version: 2.0 - cagent Evolution
+# Mission: Neurodivergent-first, experimentally bold, energy-aware AI orchestration
+
+agents:
+  # 🕶️ ORCHESTRATOR TIER
+  broski-orchestrator:
+    model: "openai/sonar-pro" 
+    
+  # ⚛️ CORE ENGINEERING SPECIALISTS
+  language-specialist:
+    model: "openai/sonar-pro"
+
+  frontend-specialist:
+    model: "openai/sonar-pro"
+
+  # 🔮 RESEARCH & STRATEGY
+  research-oracle:
+    model: "openai/sonar-pro"

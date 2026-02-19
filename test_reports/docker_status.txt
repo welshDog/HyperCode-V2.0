@@ -1,0 +1,23 @@
+NAMES                 STATUS                       PORTS
+hypercode-core        Up 45 minutes (healthy)      0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+system-architect      Up 41 minutes (healthy)      8008/tcp
+security-engineer     Up 41 minutes (healthy)      8007/tcp
+frontend-specialist   Up 40 minutes (healthy)      8002/tcp
+celery-worker         Up 41 minutes (healthy)      8000/tcp
+grafana               Up About an hour             0.0.0.0:3001->3000/tcp, [::]:3001->3000/tcp
+postgres              Up About an hour (healthy)   0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp
+mcp-server            Up About an hour             
+jaeger                Up About an hour             0.0.0.0:5775->5775/udp, [::]:5775->5775/udp, 0.0.0.0:5778->5778/tcp, [::]:5778->5778/tcp, 0.0.0.0:9411->9411/tcp, [::]:9411->9411/tcp, 0.0.0.0:14250->14250/tcp, [::]:14250->14250/tcp, 0.0.0.0:14268->14268/tcp, [::]:14268->14268/tcp, 0.0.0.0:6831-6832->6831-6832/udp, [::]:6831-6832->6831-6832/udp, 0.0.0.0:16686->16686/tcp, [::]:16686->16686/tcp
+prometheus            Up About an hour             127.0.0.1:9090->9090/tcp
+hypercode-ollama      Up About an hour (healthy)   127.0.0.1:11434->11434/tcp
+backend-specialist    Up 7 hours (healthy)         8003/tcp
+coder-agent           Up 7 hours (healthy)         0.0.0.0:8001->8000/tcp, [::]:8001->8000/tcp
+database-architect    Up 7 hours (healthy)         8004/tcp
+devops-engineer       Up 7 hours (healthy)         8006/tcp
+project-strategist    Up 7 hours (healthy)         8001/tcp
+qa-engineer           Up 7 hours (healthy)         8005/tcp
+crew-orchestrator     Up 4 hours (healthy)         127.0.0.1:8080->8080/tcp
+hafs-service          Up 7 hours                   8001/tcp
+broski-terminal       Up 9 hours (healthy)         0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp
+redis                 Up 13 hours (healthy)        0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp
+hyper-agents-box      Up 13 hours (healthy)        127.0.0.1:5000->5000/tcp
