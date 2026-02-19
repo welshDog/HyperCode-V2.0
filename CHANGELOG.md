@@ -1,7 +1,5 @@
 # Changelog
 
-> **built with WelshDog + BROski 🚀🌙**
-
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
@@ -10,29 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **MCP Integration:** Full support for Model Context Protocol to enable standardized agent tooling.
-- **Autonomous Operations:** Agents can now deploy and manage Docker containers dynamically.
-- **Observability Stack:** Integrated Prometheus, Grafana, and AlertManager for real-time monitoring.
-- **Documentation:** Comprehensive architecture, security, and onboarding guides.
-- **Traceability:** Matrix mapping requirements to code and tests.
-- **New Quickstart:** Added `docs/QUICKSTART.md` and updated `.env.example`.
+- **Hyper AI File System (HAFS)**: A comprehensive, neurodivergent-friendly file system architecture.
+    - **Reactive Watcher**: `scripts/hafs/watcher.py` monitors file changes in real-time.
+    - **Context Walker**: `scripts/hafs/walker.py` provides context-aware navigation and predictive file suggestions.
+    - **Semantic Search**: Integrated ChromaDB and `sentence-transformers` for vector-based code search (`scripts/hafs/embeddings.py`).
+    - **API Server**: FastAPI service (`scripts/hafs/server.py`) exposing HAFS capabilities to agents.
+    - **Self-Correction**: `scripts/hafs/corrector.py` allows agents to diagnose errors using semantic search.
+    - **Auto-Documentation**: `scripts/hafs/documenter.py` generates markdown docs based on code analysis.
+    - **Visualization**: Interactive D3.js graph of the codebase (`docs/design/hafs_graph.html`).
+- **Scripts**:
+    - `scripts/organize_repo.py`: Utility to reorganize the repository into the new taxonomy.
+    - `scripts/start_hafs.py`: Entry point for the HAFS watcher.
+    - `scripts/query_hafs.py`: CLI tool for querying context and semantic search.
+    - `scripts/view_graph.py`: Simple server to view the neural graph.
+- **Documentation**:
+    - `docs/design/HYPER_AI_FILE_SYSTEM.md`: Comprehensive design document.
+    - `docs/guides/HAFS_USER_GUIDE.md`: User guide for HAFS tools.
+    - `.ai/MASTER_INDEX.json`: Real-time index of the repository.
+    - `.ai/PROJECT_CONTEXT.md`: System prompt context for LLMs.
 
 ### Changed
-- **Documentation Overhaul:** Synchronized all `docs/` files with Main `README.md` (Docker Compose syntax, ports, env setup).
-- **Agent Architecture:** Refactored `Coder Agent` to use MCP clients instead of direct shell execution.
-- **Docker Compose:** Updated service definitions to support new microservices structure.
+- **Repository Structure**: Reorganized root directory to reduce entropy.
+    - Moved reports to `docs/reports/`.
+    - Moved design docs to `docs/design/`.
+    - Moved guides to `docs/guides/`.
+    - Archived deprecated files in `archive/`.
+- **Frontend Configuration**: Updated `broski-terminal/tsconfig.json` to include `node` types, resolving linter errors.
 
 ### Fixed
-- **Docker Socket Mounting:** Resolved permission issues on Windows/Linux cross-compatibility.
-- **Database Migrations:** Fixed race conditions during initial startup.
-- **Ollama Health Check:** Fixed health check failure by switching to TCP probe.
-
-## [2.0.0] - 2026-01-15
-
-### Initial Release
-- Core microservices architecture.
-- Basic Coder Agent capabilities.
-- Next.js Frontend and FastAPI Backend.
-
----
-> **built with WelshDog + BROski 🚀🌙**
+- **Linter Errors**: Resolved `Cannot find name 'process'` in `useSwarmData.ts`, `useWebSocket.ts`, and `page.tsx` by updating TypeScript configuration.

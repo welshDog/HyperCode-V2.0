@@ -1,0 +1,9 @@
+apiVersion: 1
+providers:
+  - name: roundtrip-dashboards
+    orgId: 1
+    folder: HyperCode
+    type: file
+    disableDeletion: false
+    options:
+      path: /var/lib/grafana/dashboards

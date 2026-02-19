@@ -1,0 +1,306 @@
+version: "3.9"
+
+networks:
+  agent-network:
+    driver: bridge
+    name: hypercode_agent_network
+
+volumes:
+  agent-redis-data:
+  agent-postgres-data:
+  hive-mind-data:
+
+services:
+  # ======================
+  # ORCHESTRATION LAYER
+  # ======================
+  crew-orchestrator:
+    build:
+      context: ./agents/crew-orchestrator
+      dockerfile: Dockerfile
+    container_name: crew-orchestrator
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_URL=redis://agent-redis:6379
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+    depends_on:
+      - agent-redis
+      - agent-postgres
+    networks:
+      - agent-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+
+  # ======================
+  # TIER 1: STRATEGIST
+  # ======================
+  project-strategist:
+    build:
+      context: ./agents/08-project-strategist
+      dockerfile: Dockerfile
+    container_name: project-strategist
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://agent-redis:6379
+      - AGENT_NAME=project-strategist
+      - AGENT_MODEL=claude-3-opus-20240229
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    networks:
+      - agent-network
+    depends_on:
+      - agent-redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 768M
+
+  # ======================
+  # TIER 2: SPECIALISTS
+  # ======================
+  frontend-specialist:
+    build:
+      context: ./agents/01-frontend-specialist
+      dockerfile: Dockerfile
+    container_name: frontend-specialist
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://agent-redis:6379
+      - AGENT_NAME=frontend-specialist
+      - AGENT_MODEL=claude-3-5-sonnet-20241022
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    networks:
+      - agent-network
+    depends_on:
+      - agent-redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  backend-specialist:
+    build:
+      context: ./agents/02-backend-specialist
+      dockerfile: Dockerfile
+    container_name: backend-specialist
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://agent-redis:6379
+      - AGENT_NAME=backend-specialist
+      - AGENT_MODEL=claude-3-5-sonnet-20241022
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    networks:
+      - agent-network
+    depends_on:
+      - agent-redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  database-architect:
+    build:
+      context: ./agents/03-database-architect
+      dockerfile: Dockerfile
+    container_name: database-architect
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://agent-redis:6379
+      - AGENT_NAME=database-architect
+      - AGENT_MODEL=claude-3-5-sonnet-20241022
+      - POSTGRES_URL=postgresql://postgres:${POSTGRES_PASSWORD}@agent-postgres:5432/hypercode
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    networks:
+      - agent-network
+    depends_on:
+      - agent-redis
+      - agent-postgres
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  qa-engineer:
+    build:
+      context: ./agents/04-qa-engineer
+      dockerfile: Dockerfile
+    container_name: qa-engineer
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://agent-redis:6379
+      - AGENT_NAME=qa-engineer
+      - AGENT_MODEL=claude-3-5-sonnet-20241022
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    networks:
+      - agent-network
+    depends_on:
+      - agent-redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  devops-engineer:
+    build:
+      context: ./agents/05-devops-engineer
+      dockerfile: Dockerfile
+    container_name: devops-engineer
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://agent-redis:6379
+      - AGENT_NAME=devops-engineer
+      - AGENT_MODEL=claude-3-5-sonnet-20241022
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - agent-network
+    depends_on:
+      - agent-redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  security-engineer:
+    build:
+      context: ./agents/06-security-engineer
+      dockerfile: Dockerfile
+    container_name: security-engineer
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://agent-redis:6379
+      - AGENT_NAME=security-engineer
+      - AGENT_MODEL=claude-3-5-sonnet-20241022
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    networks:
+      - agent-network
+    depends_on:
+      - agent-redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  system-architect:
+    build:
+      context: ./agents/07-system-architect
+      dockerfile: Dockerfile
+    container_name: system-architect
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REDIS_URL=redis://agent-redis:6379
+      - AGENT_NAME=system-architect
+      - AGENT_MODEL=claude-3-opus-20240229
+    volumes:
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+    networks:
+      - agent-network
+    depends_on:
+      - agent-redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 768M
+
+  # ======================
+  # INFRASTRUCTURE
+  # ======================
+  agent-redis:
+    image: redis:7-alpine
+    container_name: agent-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - agent-redis-data:/data
+    networks:
+      - agent-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+
+  agent-postgres:
+    image: postgres:15-alpine
+    container_name: agent-postgres
+    environment:
+      - POSTGRES_DB=hypercode
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - agent-postgres-data:/var/lib/postgresql/data
+    networks:
+      - agent-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  # ======================
+  # MONITORING (Optional)
+  # ======================
+  agent-dashboard:
+    image: nginx:alpine
+    container_name: agent-dashboard
+    ports:
+      - "8090:80"
+    volumes:
+      - ./agents/dashboard:/usr/share/nginx/html:ro
+    networks:
+      - agent-network
+    restart: unless-stopped

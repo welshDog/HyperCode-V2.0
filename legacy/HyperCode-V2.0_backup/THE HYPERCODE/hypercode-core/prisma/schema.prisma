@@ -1,0 +1,107 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("HYPERCODE_DB_URL")
+}
+
+generator client {
+  provider = "prisma-client-py"
+  interface = "asyncio"
+  recursive_type_depth = 5
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String?
+  role      String    @default("user")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  missions  Mission[]
+}
+
+model Mission {
+  id          String    @id @default(uuid())
+  title       String
+  status      String    @default("pending") // queued, assigned, executing, verifying, completed, failed
+  agentId     String?
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+  retryCount  Int       @default(0)
+  maxRetries  Int       @default(3)
+  payload     Json?
+  metadata    Json?
+  memories    Memory[]
+  tokenUsages TokenUsage[]
+  auditLogs   AuditLog[]
+
+  @@index([status, createdAt])
+  @@index([agentId, status])
+}
+
+model Memory {
+  id        String   @id @default(uuid())
+  content   String
+  type      String   // short-term, long-term, knowledge
+  userId    String?
+  sessionId String?
+  metadata  Json?
+  keywords  String[]
+  embedding Json?    // Vector embedding (simulated as JSON array)
+  missionId String?
+  mission   Mission? @relation(fields: [missionId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime?
+
+  @@index([type])
+  @@index([userId])
+  @@index([sessionId])
+}
+
+model TokenUsage {
+  id               String   @id @default(uuid())
+  missionId        String?
+  mission          Mission? @relation(fields: [missionId], references: [id])
+  model            String
+  promptTokens     Int
+  completionTokens Int
+  totalTokens      Int
+  cost             Float
+  createdAt        DateTime @default(now())
+}
+
+model Agent {
+  id             String   @id @default(uuid())
+  name           String
+  role           String
+  version        String
+  capabilities   String[]
+  topics         String[]
+  healthUrl      String?
+  status         String   @default("offline")
+  lastHeartbeat  DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  dedupKey       String?  @unique
+
+  @@index([role])
+  @@index([status])
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  missionId     String
+  mission       Mission  @relation(fields: [missionId], references: [id])
+  transition    String
+  previousState String
+  newState      String
+  actor         String
+  timestamp     DateTime @default(now())
+  reason        String?
+  diff          Json?
+
+  @@index([missionId])
+}

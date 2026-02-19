@@ -33,8 +33,9 @@ services:
       - ENVIRONMENT=production
       - PRISMA_PY_DEBUG=0
       - HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL}
-      - HYPERCODE_DB_URL=${HYPERCODE_DB_URL}
+      - HYPERCODE_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-hypercode}
       - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
+      - DATABASE_CONNECTION_LIMIT=20
       - API_KEY=${API_KEY}
       - HYPERCODE_JWT_SECRET=${HYPERCODE_JWT_SECRET}
       - JWT_SECRET=${HYPERCODE_JWT_SECRET} # Ensure backward compatibility
@@ -43,6 +44,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-dummy} # Required by config but unused if Anthropic is primary
       - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED}
       - OTLP_ENDPOINT=${OTLP_ENDPOINT}
+      - LLM_PROVIDER=${LLM_PROVIDER}
     depends_on:
       redis:
         condition: service_healthy
@@ -58,6 +60,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 120s
     security_opt:
       - no-new-privileges:true
     deploy:
@@ -85,6 +88,7 @@ services:
     environment:
       NEXT_PUBLIC_CORE_URL: ${NEXT_PUBLIC_CORE_URL:-http://localhost:8000}
       NEXT_PUBLIC_AGENTS_URL: ${NEXT_PUBLIC_AGENTS_URL:-http://localhost:8000}
+      INTERNAL_CORE_URL: http://hypercode-core:8000
       HOSTNAME: "0.0.0.0"
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {if (r.statusCode !== 200) process.exit(1)})"]
@@ -137,7 +141,7 @@ services:
     networks:
       - frontend-net
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:4173/"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4173/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -208,12 +212,14 @@ services:
     container_name: coder-agent
     environment:
       - CORE_URL=http://hypercode-core:8000
+      - LLM_PROVIDER=remote
       - PROMETHEUS_URL=http://prometheus:9090
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       - ./agents/coder/workspace:/workspace
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./agents/base-agent/event_bus.py:/app/event_bus.py:ro
       - ./Configuration_Kit:/app/hive_mind:ro
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
@@ -328,13 +334,17 @@ services:
       - REDIS_URL=redis://redis:6379
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - CORE_URL=http://hypercode-core:8000
+      - HAFS_URL=http://hafs-service:8001
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/crew-orchestrator:/app
     depends_on:
       redis:
         condition: service_healthy
       hypercode-core:
         condition: service_healthy
+      hafs-service:
+        condition: service_started
     networks:
       - backend-net
       - data-net
@@ -359,6 +369,34 @@ services:
     cap_drop:
       - ALL
 
+  hafs-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+      target: runtime
+    container_name: hafs-service
+    command: ["python", "scripts/hafs/server.py"]
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./.ai:/app/.ai
+    networks:
+      - backend-net
+    expose:
+      - "8001"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+
   # Agents (Tier 2)
   frontend-specialist:
     build:
@@ -366,12 +404,15 @@ services:
     container_name: frontend-specialist
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - HYPERCODE_API_KEY=${API_KEY}
       - REDIS_URL=redis://redis:6379
       - CORE_URL=http://hypercode-core:8000
+      - LLM_PROVIDER=remote
       - AGENT_HEALTH_URL=http://frontend-specialist:8002/health
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./agents/base-agent/event_bus.py:/app/event_bus.py:ro
     deploy:
       resources:
         limits:
@@ -409,12 +450,15 @@ services:
     container_name: backend-specialist
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - HYPERCODE_API_KEY=${API_KEY}
       - REDIS_URL=redis://redis:6379
       - CORE_URL=http://hypercode-core:8000
+      - LLM_PROVIDER=remote
       - AGENT_HEALTH_URL=http://backend-specialist:8003/health
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./agents/base-agent/event_bus.py:/app/event_bus.py:ro
     depends_on:
       redis:
         condition: service_healthy
@@ -455,13 +499,16 @@ services:
     container_name: database-architect
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - HYPERCODE_API_KEY=${API_KEY}
       - REDIS_URL=redis://redis:6379
       - CORE_URL=http://hypercode-core:8000
+      - LLM_PROVIDER=remote
       - AGENT_HEALTH_URL=http://database-architect:8004/health
       - POSTGRES_URL=postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/hypercode
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./agents/base-agent/event_bus.py:/app/event_bus.py:ro
     depends_on:
       redis:
         condition: service_healthy
@@ -504,12 +551,15 @@ services:
     container_name: qa-engineer
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - HYPERCODE_API_KEY=${API_KEY}
       - REDIS_URL=redis://redis:6379
       - CORE_URL=http://hypercode-core:8000
+      - LLM_PROVIDER=remote
       - AGENT_HEALTH_URL=http://qa-engineer:8005/health
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./agents/base-agent/event_bus.py:/app/event_bus.py:ro
     depends_on:
       redis:
         condition: service_healthy
@@ -550,6 +600,7 @@ services:
     container_name: devops-engineer
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - HYPERCODE_API_KEY=${API_KEY}
       - REDIS_URL=redis://redis:6379
       - CORE_URL=http://hypercode-core:8000
       - AGENT_PORT=8006
@@ -558,6 +609,7 @@ services:
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./agents/base-agent/event_bus.py:/app/event_bus.py:ro
       # Docker socket mount removed for security hardening
     depends_on:
       redis:
@@ -598,12 +650,14 @@ services:
     container_name: security-engineer
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - HYPERCODE_API_KEY=${API_KEY}
       - REDIS_URL=redis://redis:6379
       - CORE_URL=http://hypercode-core:8000
       - AGENT_HEALTH_URL=http://security-engineer:8007/health
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./agents/base-agent/event_bus.py:/app/event_bus.py:ro
     depends_on:
       redis:
         condition: service_healthy
@@ -643,6 +697,7 @@ services:
     container_name: system-architect
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - HYPERCODE_API_KEY=${API_KEY}
       - REDIS_URL=redis://redis:6379
       - CORE_URL=http://hypercode-core:8000
       - AGENT_PORT=8008
@@ -650,6 +705,7 @@ services:
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./agents/base-agent/event_bus.py:/app/event_bus.py:ro
     depends_on:
       redis:
         condition: service_healthy
@@ -690,12 +746,14 @@ services:
     container_name: project-strategist
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - HYPERCODE_API_KEY=${API_KEY}
       - REDIS_URL=redis://redis:6379
       - CORE_URL=http://hypercode-core:8000
       - AGENT_HEALTH_URL=http://project-strategist:8001/health
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./agents/base-agent/event_bus.py:/app/event_bus.py:ro
     depends_on:
       redis:
         condition: service_healthy

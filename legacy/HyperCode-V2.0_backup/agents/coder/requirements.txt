@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+httpx
+redis
+anthropic
+structlog
+aiohttp
+prometheus-api-client
+docker
+mcp
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp
+opentelemetry-distro
+opentelemetry-instrumentation-fastapi
