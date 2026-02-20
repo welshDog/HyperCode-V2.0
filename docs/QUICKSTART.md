@@ -29,6 +29,14 @@ Start all services including the Agent Swarm, Core API, and Observability stack.
 docker compose up -d
 ```
 
+### 3b. Start Nexus Bridge (Required for Real-time Features)
+The WebSocket Bridge Server currently runs as a standalone Python process.
+```bash
+# In a new terminal
+python src/agents/nexus/bridge/server.py
+```
+*Note: Ensure `uvicorn`, `fastapi`, and `chromadb` are installed in your Python environment.*
+
 ### 4. Verify Services
 Check that all 23+ containers are healthy.
 ```bash

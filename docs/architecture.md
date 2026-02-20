@@ -8,9 +8,15 @@ graph TD
     API -->|Delegation| Strat[Project Strategist]
     API -->|Coordination| Arch[System Architect]
     
+    subgraph "Nexus Agents (New)"
+        Bridge[Bridge Server]
+        Weaver[Context Manager]
+    end
+
     subgraph "Data Layer"
         Redis[(Redis Cache & Queue)]
         DB[(PostgreSQL History)]
+        Chroma[(ChromaDB Vector Store)]
     end
     
     subgraph "Specialist Swarm (Tier 2)"
@@ -20,6 +26,11 @@ graph TD
         DevOps[DevOps Engineer]
         Sec[Security Engineer]
     end
+
+    User -->|WS| Bridge
+    Bridge -->|Ingest| Weaver
+    Weaver -->|Store/Retrieve| Chroma
+
     
     subgraph "Observability"
         Prom[Prometheus]

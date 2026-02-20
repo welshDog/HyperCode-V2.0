@@ -27,6 +27,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Database Migrations:** Fixed race conditions during initial startup.
 - **Ollama Health Check:** Fixed health check failure by switching to TCP probe.
 
+## [2.1.0] - 2026-02-20
+
+### Added
+- **Bridge Server:** Dedicated WebSocket server (`ws://localhost:8001/ws/bridge`) for real-time agent communication.
+- **Weaver Agent:** Advanced context ingestion system using ChromaDB for semantic search and knowledge management.
+- **Batch Ingestion:** Weaver now supports `ingest_batch` with rate limiting and error handling.
+- **WebSocket Protocol:** New `ingest` message type for direct documentation/context submission from clients.
+- **Frontend Integration:** `broski-terminal` now connects to Bridge Server with automatic reconnection.
+- **Documentation Utility:** Added `ingest_docs.py` script for bulk documentation processing.
+
+### Changed
+- **Architecture:** Decoupled WebSocket logic into standalone Bridge Server for better scalability.
+- **API Reference:** Updated with WebSocket protocol details and message formats.
+- **Nexus Integration:** Enhanced documentation for Weaver's vector database capabilities.
+
 ## [2.0.0] - 2026-01-15
 
 ### Initial Release
