@@ -10,7 +10,8 @@ class OpenAIProvider(LLMProvider):
     def __init__(self, api_key: str, model: str = "gpt-4-turbo"):
         self.api_key = api_key
         self.model = model
-        self.base_url = "https://api.openai.com/v1"
+        import os
+        self.base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
         
     async def generate(self, prompt: str, **kwargs) -> Optional[str]:
         try:

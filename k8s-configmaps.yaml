@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hypercode-config
+  namespace: hypercode
+data:
+  ENVIRONMENT: "production"
+  PRISMA_PY_DEBUG: "0"
+  LLM_PROVIDER: "remote"
+  PYTHONUNBUFFERED: "1"
+  NEXT_PUBLIC_CORE_URL: "http://hypercode-core:8000"
+  NEXT_PUBLIC_AGENTS_URL: "http://hypercode-core:8000"
+  INTERNAL_CORE_URL: "http://hypercode-core:8000"
+  OLLAMA_HOST: "http://ollama:11434"
+  OLLAMA_ORIGINS: "*"
+  GF_USERS_ALLOW_SIGN_UP: "false"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: hypercode
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    scrape_configs:
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+      - job_name: 'hypercode-core'
+        static_configs:
+          - targets: ['hypercode-core:8000']
+      - job_name: 'redis'
+        static_configs:
+          - targets: ['redis:6379']
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning
+  namespace: hypercode
+data:
+  datasource-prometheus.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus:9090
+        isDefault: true
+        editable: true

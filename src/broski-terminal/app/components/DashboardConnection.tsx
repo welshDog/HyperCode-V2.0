@@ -16,8 +16,8 @@ export const DashboardConnection = () => {
 
   useEffect(() => {
     dispatch(setConnectionStatus(isConnected));
-    if (data) {
-      dispatch(setDashboardData(data));
+    if (data && data.payload) {
+      dispatch(setDashboardData(data.payload));
     }
   }, [data, isConnected, dispatch]);
 

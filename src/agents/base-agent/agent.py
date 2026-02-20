@@ -14,6 +14,11 @@ from anthropic import Anthropic
 from datetime import datetime
 import json
 from event_bus import AgentEventBus
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("base-agent")
 
 class AgentConfig:
     """Base configuration for all agents"""
@@ -226,6 +231,33 @@ class BaseAgent:
                     response.raise_for_status()
                     result = response.json()["content"]
             
+            elif self.config.llm_provider == "docker":
+                # Call Docker Model Runner
+                docker_url = os.getenv("OPENAI_BASE_URL", "http://host.docker.internal:11435/v1")
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        f"{docker_url}/chat/completions",
+                        json={
+                            "model": "hf.co/qwen/qwen2.5-coder-7b-instruct",
+                            "messages": [
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": f"Task: {request.task}\n\nContext: {json.dumps(request.context or {})}"}
+                            ],
+                            "max_tokens": 4096,
+                            "temperature": 0.7
+                        },
+                        timeout=120.0
+                    )
+                    if response.status_code != 200:
+                         logger.error(f"Docker LLM Error: {response.text}")
+                         response.raise_for_status()
+                    
+                    data = response.json()
+                    if "choices" in data and len(data["choices"]) > 0:
+                        result = data["choices"][0]["message"]["content"]
+                    else:
+                        raise Exception(f"Invalid Docker LLM response: {data}")
+
             elif self.config.llm_provider == "anthropic" and self.client:
                 message = self.client.messages.create(
                     model=self.config.model,

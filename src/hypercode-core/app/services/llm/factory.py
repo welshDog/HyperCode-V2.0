@@ -19,6 +19,15 @@ class LLMFactory:
             key = os.getenv("OPENAI_API_KEY", "")
             model = os.getenv("OPENAI_MODEL", "gpt-4-turbo")
             return OpenAIProvider(key, model)
+        elif name == "docker":
+            # Reuse OpenAI provider structure but with Docker Model Runner URL
+            key = "unused" # Docker Model Runner doesn't require a key
+            model = "hf.co/qwen/qwen2.5-coder-7b-instruct" # Default docker model
+            # Override base URL env var for OpenAI provider
+            # This is a bit of a hack, but OpenAIProvider likely uses OPENAI_BASE_URL env var or we need to pass it
+            # Let's see how OpenAIProvider is implemented.
+            # Assuming OpenAIProvider uses standard openai client which respects OPENAI_BASE_URL
+            return OpenAIProvider(key, model)
         else:
             raise ValueError(f"Unknown LLM provider: {name}")
 

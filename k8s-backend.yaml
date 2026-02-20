@@ -1,0 +1,271 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hypercode-core
+  namespace: hypercode
+  labels:
+    app: hypercode-core
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hypercode-core
+  template:
+    metadata:
+      labels:
+        app: hypercode-core
+    spec:
+      serviceAccountName: hypercode-core
+      containers:
+      - name: hypercode-core
+        image: hypercode-core:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: ENVIRONMENT
+        - name: PRISMA_PY_DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: PRISMA_PY_DEBUG
+        - name: HYPERCODE_REDIS_URL
+          value: "redis://redis:6379/0"
+        - name: HYPERCODE_DB_URL
+          value: "postgresql://postgres:5432/hypercode"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: POSTGRES_PASSWORD
+        - name: HYPERCODE_MEMORY_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: HYPERCODE_MEMORY_KEY
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: API_KEY
+        - name: HYPERCODE_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: HYPERCODE_JWT_SECRET
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: JWT_SECRET
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: ANTHROPIC_API_KEY
+        - name: PERPLEXITY_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: PERPLEXITY_API_KEY
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: OPENAI_API_KEY
+        - name: LLM_PROVIDER
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: LLM_PROVIDER
+        - name: DATABASE_CONNECTION_LIMIT
+          value: "20"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - hypercode-core
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+  namespace: hypercode
+  labels:
+    app: celery-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: celery-worker
+  template:
+    metadata:
+      labels:
+        app: celery-worker
+    spec:
+      containers:
+      - name: celery-worker
+        image: hypercode-core:latest
+        imagePullPolicy: Always
+        command:
+        - python
+        - -m
+        - celery
+        - -A
+        - app.core.celery_app
+        - worker
+        - --loglevel=info
+        env:
+        - name: CELERY_BROKER_URL
+          value: "redis://redis:6379/0"
+        - name: CELERY_RESULT_BACKEND
+          value: "redis://redis:6379/1"
+        - name: HYPERCODE_DB_URL
+          value: "postgresql://postgres:5432/hypercode"
+        - name: HYPERCODE_REDIS_URL
+          value: "redis://redis:6379/0"
+        - name: HYPERCODE_MEMORY_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: HYPERCODE_MEMORY_KEY
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: POSTGRES_PASSWORD
+        - name: PERPLEXITY_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: PERPLEXITY_API_KEY
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: OPENAI_API_KEY
+        - name: PYTHONPATH
+          value: "/home/appuser/.local/lib/python3.11/site-packages:/app"
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -m
+            - celery
+            - -A
+            - app.core.celery_app
+            - inspect
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hafs-service
+  namespace: hypercode
+  labels:
+    app: hafs-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hafs-service
+  template:
+    metadata:
+      labels:
+        app: hafs-service
+    spec:
+      containers:
+      - name: hafs-service
+        image: hypercode-core:latest
+        imagePullPolicy: Always
+        command:
+        - python
+        - scripts/hafs/server.py
+        ports:
+        - containerPort: 8001
+          name: http
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+        volumeMounts:
+        - name: ai-data
+          mountPath: /app/.ai
+      volumes:
+      - name: ai-data
+        emptyDir: {}
