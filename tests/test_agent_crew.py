@@ -30,8 +30,8 @@ async def test_agents_status():
         
         # Check critical agents are online
         agent_names = [a["agent"] for a in agents]
-        assert "project-strategist" in str(agent_names)
-        assert "frontend-specialist" in str(agent_names)
+        assert "project_strategist" in str(agent_names)
+        assert "frontend_specialist" in str(agent_names)
 
 @pytest.mark.asyncio
 async def test_plan_feature():
@@ -71,9 +71,9 @@ async def test_agent_direct_execution():
     """Test direct agent execution"""
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(
-            f"{ORCHESTRATOR_URL}/agent/frontend-specialist/execute",
+            f"{ORCHESTRATOR_URL}/agent/frontend_specialist/execute",
             json={
-                "agent": "frontend-specialist",
+                "agent": "frontend_specialist",
                 "message": "Create a button component",
                 "context": {}
             }

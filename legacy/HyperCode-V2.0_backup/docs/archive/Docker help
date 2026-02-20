@@ -1,0 +1,192 @@
+Let me check the current directory and create secrets properly:
+
+Let me create the secrets directory and generate all required secrets:
+
+Let me create a pre-deployment script instead:
+
+Let me provide you with manual deployment steps instead:
+
+Here's your **step-by-step production deployment checklist**:
+
+## 1️⃣ Create Secrets Directory & Files
+
+```bash
+# Create secrets directory with proper permissions
+mkdir -p secrets
+chmod 700 secrets
+
+# Create secret files (replace placeholders with real values)
+echo "YOUR_ACTUAL_ANTHROPIC_API_KEY" > secrets/anthropic_api_key.txt
+chmod 600 secrets/anthropic_api_key.txt
+
+# Generate random passwords
+openssl rand -base64 32 > secrets/hypercode_jwt_secret.txt
+chmod 600 secrets/hypercode_jwt_secret.txt
+
+openssl rand -base64 32 > secrets/postgres_password.txt
+chmod 600 secrets/postgres_password.txt
+
+openssl rand -base64 32 > secrets/grafana_admin_password.txt
+chmod 600 secrets/grafana_admin_password.txt
+```
+
+## 2️⃣ Update .gitignore
+
+```bash
+cat >> .gitignore << 'EOF'
+
+# Secrets - NEVER commit to git
+secrets/*.txt
+!secrets/.gitkeep
+.env.local
+.env.*.local
+EOF
+```
+
+## 3️⃣ Pre-flight Checks
+
+```bash
+# Check Docker installation
+docker --version
+docker compose version
+
+# Check disk space (need at least 5GB)
+df -h
+
+# Check port availability
+netstat -tuln | grep -E ':(8000|8080|8088|3001|9090|16686)'
+
+# Verify docker-compose.prod.yml exists
+ls -la docker-compose.prod.yml
+```
+
+## 4️⃣ Deploy Production Stack
+
+```bash
+# Pull latest images
+docker compose -f docker-compose.prod.yml pull
+
+# Start all services
+docker compose -f docker-compose.prod.yml up -d
+
+# Wait 30 seconds for services to start
+sleep 30
+
+# Check service status
+docker compose -f docker-compose.prod.yml ps
+```
+
+## 5️⃣ Verify All Services Are Healthy
+
+```bash
+# Check health of all containers
+docker ps --format "table {{.Names}}\t{{.Status}}"
+
+# View detailed health status
+docker inspect --format='{{.Name}}: {{.State.Health.Status}}' \
+  $(docker ps -q)
+
+# Check logs for any errors
+docker compose -f docker-compose.prod.yml logs --tail=50
+```
+
+## 6️⃣ Access Services
+
+```bash
+# HyperCode Core API
+curl http://localhost:8000/health
+
+# Dashboard
+curl http://localhost:8088
+
+# Grafana
+curl http://localhost:3001
+
+# Prometheus
+curl http://localhost:9090
+
+# Jaeger UI
+curl http://localhost:16686
+```
+
+## 7️⃣ Setup Monitoring & Access Control
+
+```bash
+# Create backup directory
+mkdir -p /backups/postgres
+chmod 700 /backups/postgres
+
+# Create nginx reverse proxy config (paste the config from the guide)
+# Recommended: Use traefik or nginx as reverse proxy with TLS
+
+# Example: Let's Encrypt with nginx
+sudo certbot certonly --standalone -d hypercode.example.com
+```
+
+## 8️⃣ Verify Persistent Data
+
+```bash
+# Check volumes were created
+docker volume ls | grep hypercode
+
+# Verify data is persisting
+docker exec postgres psql -U postgres -c "SELECT version();"
+docker exec redis redis-cli ping
+```
+
+## ✅ Post-Deployment Checklist
+
+- [ ] All services show `healthy` status
+- [ ] No errors in logs
+- [ ] API responds at `http://localhost:8000/health`
+- [ ] Dashboard accessible at `http://localhost:8088`
+- [ ] Grafana accessible at `http://localhost:3001`
+- [ ] Database connected and working
+- [ ] Redis connected and working
+- [ ] Secrets files created and secured (600 permissions)
+- [ ] `.gitignore` updated with secrets
+- [ ] Backup script scheduled via cron
+- [ ] Reverse proxy configured with TLS
+- [ ] Monitoring dashboards configured
+
+## 🆘 Troubleshooting During Deployment
+
+```bash
+# If a service fails to start
+docker compose -f docker-compose.prod.yml logs service-name
+
+# Check resource usage
+docker stats
+
+# Restart a specific service
+docker compose -f docker-compose.prod.yml restart service-name
+
+# Restart entire stack
+docker compose -f docker-compose.prod.yml restart
+
+# Stop stack (graceful)
+docker compose -f docker-compose.prod.yml stop
+
+# View resource limits
+docker inspect service-name | grep -A 10 "Memory"
+```
+
+## 🔐 Security Verification
+
+```bash
+# Verify secrets are NOT in logs
+docker compose -f docker-compose.prod.yml logs | grep -i "key\|password\|secret"
+
+# Verify services run with limited capabilities
+docker inspect service-name | grep -A 5 "CapAdd\|CapDrop"
+
+# Verify read-only filesystem
+docker inspect service-name | grep "ReadonlyRootfs"
+
+# Verify no new privileges
+docker inspect service-name | grep "SecurityOpt"
+```
+
+---
+
+**Ready? Start with step 1 and run the commands.** Share any errors and I'll help troubleshoot!

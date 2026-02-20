@@ -1,0 +1,143 @@
+version: "3.9"
+
+# Test environment with isolated containers
+
+networks:
+  test-net:
+    driver: bridge
+    name: hypercode_test_net
+
+services:
+  # Test database - ephemeral
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: postgres-test
+    environment:
+      - POSTGRES_DB=hypercode_test
+      - POSTGRES_USER=test_user
+      - POSTGRES_PASSWORD=test_password
+    tmpfs:
+      - /var/lib/postgresql/data
+    networks:
+      - test-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # Test Redis - ephemeral
+  redis-test:
+    image: redis:7-alpine
+    container_name: redis-test
+    command: ["redis-server", "--save", ""]
+    tmpfs:
+      - /data
+    networks:
+      - test-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # Run unit tests
+  unit-tests:
+    build:
+      context: ./HyperCode-V2.0/THE HYPERCODE/hypercode-core
+      dockerfile: Dockerfile.test
+      target: test
+    container_name: unit-tests
+    environment:
+      - TEST_ENV=true
+      - HYPERCODE_DB_URL=postgresql://test_user:test_password@postgres-test:5432/hypercode_test
+      - HYPERCODE_REDIS_URL=redis://redis-test:6379
+    volumes:
+      - ./HyperCode-V2.0/THE HYPERCODE/hypercode-core:/app
+      - ./tests:/tests
+      - test-results:/test-results
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    networks:
+      - test-net
+    command: ["pytest", "-v", "--cov=.", "--cov-report=html:/test-results/coverage", "--junitxml=/test-results/junit.xml"]
+
+  # Integration tests
+  integration-tests:
+    build:
+      context: .
+      dockerfile: tests/Dockerfile.integration
+    container_name: integration-tests
+    environment:
+      - TEST_ENV=integration
+      - CORE_URL=http://hypercode-core-test:8000
+      - REDIS_URL=redis://redis-test:6379
+    volumes:
+      - ./tests:/tests
+      - test-results:/test-results
+    depends_on:
+      - hypercode-core-test
+      - redis-test
+      - postgres-test
+    networks:
+      - test-net
+    command: ["pytest", "tests/integration/", "-v", "--junitxml=/test-results/integration-junit.xml"]
+
+  # Test instance of core
+  hypercode-core-test:
+    build:
+      context: ./HyperCode-V2.0/THE HYPERCODE/hypercode-core
+      dockerfile: Dockerfile
+    container_name: hypercode-core-test
+    environment:
+      - ENVIRONMENT=test
+      - HYPERCODE_DB_URL=postgresql://test_user:test_password@postgres-test:5432/hypercode_test
+      - HYPERCODE_REDIS_URL=redis://redis-test:6379
+      - HYPERCODE_JWT_SECRET=test-secret
+      - API_KEY=test-api-key
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    networks:
+      - test-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # E2E Tests with Playwright
+  e2e-tests:
+    build:
+      context: ./tests/e2e
+      dockerfile: Dockerfile.e2e
+    container_name: e2e-tests
+    environment:
+      - BASE_URL=http://hypercode-core-test:8000
+      - DASHBOARD_URL=http://dashboard-test:80
+    volumes:
+      - ./tests/e2e:/tests
+      - test-results:/test-results
+    depends_on:
+      - hypercode-core-test
+      - dashboard-test
+    networks:
+      - test-net
+    command: ["npx", "playwright", "test", "--reporter=html:/test-results/playwright-report"]
+
+  # Dashboard for testing
+  dashboard-test:
+    image: nginx:alpine
+    container_name: dashboard-test
+    volumes:
+      - ./agents/dashboard:/usr/share/nginx/html:ro
+    networks:
+      - test-net
+
+volumes:
+  test-results:

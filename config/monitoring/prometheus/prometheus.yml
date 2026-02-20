@@ -1,0 +1,30 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alert.rules.yml"
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "hypercode-core"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["hypercode-core:8000"]
+
+  - job_name: "agents"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets:
+        - "coder-agent:8000"
+        - "frontend-specialist:8002"
+        - "backend-specialist:8003"
+        - "database-architect:8004"
+        - "qa-engineer:8005"
+        - "devops-engineer:8006"
+        - "security-engineer:8007"
+        - "system-architect:8008"
+        - "project-strategist:8001"

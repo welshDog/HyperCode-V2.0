@@ -29,6 +29,7 @@ playwright-report/
 test-results/
 .lighthouseci/
 *.tsbuildinfo
+health_check_report_*.json
 
 # Prisma
 prisma/*.log
@@ -78,4 +79,25 @@ Thumbs.db
 # docs/archive/
 # .trae/documents/archive/
 
-data/ollama/models
+# Ignore all data directories with models or DBs
+**/data/ollama/
+**/data/pg15/
+**/data/redis/
+**/.ai/
+**/*.sqlite3
+**/*.db
+
+# Ignore node_modules everywhere
+**/node_modules/
+
+# Ignore venv everywhere
+**/.venv/
+**/venv/
+
+# Ignore pycache everywhere
+**/__pycache__/
+**/*.pyc
+
+# Ignore backup artifacts if they contain binaries
+legacy/HyperCode-V2.0_backup/.venv/
+legacy/HyperCode-V2.0_backup/node_modules/

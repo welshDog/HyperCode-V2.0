@@ -1,0 +1,121 @@
+# ========================================
+# Stage 1: Base
+# ========================================
+FROM python:3.11.8-slim AS base
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# ========================================
+# Stage 2: Dependencies (Builder)
+# ========================================
+FROM base AS dependencies
+
+# Install build dependencies
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Copy requirements and install
+COPY requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip wheel --no-cache-dir --no-deps --wheel-dir /wheels -r requirements.txt
+
+# Generate Prisma Client
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir prisma
+COPY prisma ./prisma
+RUN prisma generate
+
+# ========================================
+# Stage 3: Development
+# ========================================
+FROM base AS development
+
+# Install dev tools
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install dependencies directly
+COPY requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
+
+# Install dev dependencies (if any, e.g., pytest, black)
+# RUN pip install pytest black ...
+
+COPY . .
+# Run as root in dev or configure user as needed
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+# ========================================
+# Stage 4: Testing
+# ========================================
+FROM development AS testing
+# Install test dependencies
+RUN pip install pytest pytest-asyncio httpx coverage
+CMD ["pytest"]
+
+# ========================================
+# Stage 5: CI (Security Scanning & Linting)
+# ========================================
+FROM testing AS ci
+RUN pip install safety bandit flake8
+CMD ["sh", "-c", "safety check && bandit -r . && flake8 ."]
+
+# ========================================
+# Stage 6: Runtime (Production)
+# ========================================
+FROM base AS runtime
+
+# Create non-root user
+RUN groupadd -g 1000 hypercode && \
+    useradd -u 1000 -g hypercode -s /bin/bash -m hypercode
+
+# Install minimal runtime dependencies
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    libatomic1 \
+    openssl \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Copy wheels and install
+COPY --from=dependencies /wheels /wheels
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir /wheels/* && \
+    rm -rf /wheels
+
+# Copy Prisma client
+COPY --from=dependencies /usr/local/lib/python3.11/site-packages/prisma /usr/local/lib/python3.11/site-packages/prisma
+
+# Copy application code
+COPY --chown=hypercode:hypercode prisma ./prisma
+COPY --chown=hypercode:hypercode main.py .
+COPY --chown=hypercode:hypercode app/ ./app/
+
+# Switch to non-root user
+USER hypercode
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=10s \
+    CMD curl -sf http://localhost:8000/health || exit 1
+
+CMD ["gunicorn", "main:app", "-k", "uvicorn.workers.UvicornWorker", "--workers", "4", "--bind", "0.0.0.0:8000"]

@@ -1,0 +1,594 @@
+---
+# Frontend Specialist
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-specialist
+  namespace: hypercode
+spec:
+  ports:
+    - port: 8002
+      targetPort: 8002
+  selector:
+    app: frontend-specialist
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-specialist
+  namespace: hypercode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend-specialist
+  template:
+    metadata:
+      labels:
+        app: frontend-specialist
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: frontend-specialist
+        image: frontend-specialist:latest
+        env:
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: REDIS_URL
+        - name: CORE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: CORE_URL
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: anthropic-api-key
+        - name: AGENT_HEALTH_URL
+          value: "http://frontend-specialist:8002/health"
+        ports:
+        - containerPort: 8002
+        resources:
+          requests:
+            cpu: 125m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+# Backend Specialist
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-specialist
+  namespace: hypercode
+spec:
+  ports:
+    - port: 8003
+      targetPort: 8003
+  selector:
+    app: backend-specialist
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-specialist
+  namespace: hypercode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend-specialist
+  template:
+    metadata:
+      labels:
+        app: backend-specialist
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: backend-specialist
+        image: backend-specialist:latest
+        env:
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: REDIS_URL
+        - name: CORE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: CORE_URL
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: anthropic-api-key
+        - name: AGENT_HEALTH_URL
+          value: "http://backend-specialist:8003/health"
+        ports:
+        - containerPort: 8003
+        resources:
+          requests:
+            cpu: 125m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8003
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8003
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+# Database Architect
+apiVersion: v1
+kind: Service
+metadata:
+  name: database-architect
+  namespace: hypercode
+spec:
+  ports:
+    - port: 8004
+      targetPort: 8004
+  selector:
+    app: database-architect
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database-architect
+  namespace: hypercode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database-architect
+  template:
+    metadata:
+      labels:
+        app: database-architect
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: database-architect
+        image: database-architect:latest
+        env:
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: REDIS_URL
+        - name: CORE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: CORE_URL
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: anthropic-api-key
+        - name: AGENT_HEALTH_URL
+          value: "http://database-architect:8004/health"
+        - name: POSTGRES_URL
+          value: "postgresql://postgres@postgres:5432/hypercode"
+        ports:
+        - containerPort: 8004
+        resources:
+          requests:
+            cpu: 125m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8004
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8004
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+# QA Engineer
+apiVersion: v1
+kind: Service
+metadata:
+  name: qa-engineer
+  namespace: hypercode
+spec:
+  ports:
+    - port: 8005
+      targetPort: 8005
+  selector:
+    app: qa-engineer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qa-engineer
+  namespace: hypercode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qa-engineer
+  template:
+    metadata:
+      labels:
+        app: qa-engineer
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: qa-engineer
+        image: qa-engineer:latest
+        env:
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: REDIS_URL
+        - name: CORE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: CORE_URL
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: anthropic-api-key
+        - name: AGENT_HEALTH_URL
+          value: "http://qa-engineer:8005/health"
+        ports:
+        - containerPort: 8005
+        resources:
+          requests:
+            cpu: 125m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8005
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8005
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+# DevOps Engineer
+apiVersion: v1
+kind: Service
+metadata:
+  name: devops-engineer
+  namespace: hypercode
+spec:
+  ports:
+    - port: 8006
+      targetPort: 8006
+  selector:
+    app: devops-engineer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-engineer
+  namespace: hypercode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devops-engineer
+  template:
+    metadata:
+      labels:
+        app: devops-engineer
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: devops-engineer
+        image: devops-engineer:latest
+        env:
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: REDIS_URL
+        - name: CORE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: CORE_URL
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: anthropic-api-key
+        - name: AGENT_HEALTH_URL
+          value: "http://devops-engineer:8006/health"
+        ports:
+        - containerPort: 8006
+        resources:
+          requests:
+            cpu: 125m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8006
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8006
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+# Security Engineer
+apiVersion: v1
+kind: Service
+metadata:
+  name: security-engineer
+  namespace: hypercode
+spec:
+  ports:
+    - port: 8007
+      targetPort: 8007
+  selector:
+    app: security-engineer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: security-engineer
+  namespace: hypercode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: security-engineer
+  template:
+    metadata:
+      labels:
+        app: security-engineer
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: security-engineer
+        image: security-engineer:latest
+        env:
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: REDIS_URL
+        - name: CORE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: CORE_URL
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: anthropic-api-key
+        - name: AGENT_HEALTH_URL
+          value: "http://security-engineer:8007/health"
+        ports:
+        - containerPort: 8007
+        resources:
+          requests:
+            cpu: 125m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8007
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8007
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+# System Architect
+apiVersion: v1
+kind: Service
+metadata:
+  name: system-architect
+  namespace: hypercode
+spec:
+  ports:
+    - port: 8008
+      targetPort: 8008
+  selector:
+    app: system-architect
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: system-architect
+  namespace: hypercode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: system-architect
+  template:
+    metadata:
+      labels:
+        app: system-architect
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: system-architect
+        image: system-architect:latest
+        env:
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: REDIS_URL
+        - name: CORE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: CORE_URL
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: anthropic-api-key
+        - name: AGENT_HEALTH_URL
+          value: "http://system-architect:8008/health"
+        ports:
+        - containerPort: 8008
+        resources:
+          requests:
+            cpu: 125m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8008
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8008
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+# Project Strategist
+apiVersion: v1
+kind: Service
+metadata:
+  name: project-strategist
+  namespace: hypercode
+spec:
+  ports:
+    - port: 8001
+      targetPort: 8001
+  selector:
+    app: project-strategist
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: project-strategist
+  namespace: hypercode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: project-strategist
+  template:
+    metadata:
+      labels:
+        app: project-strategist
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: project-strategist
+        image: project-strategist:latest
+        env:
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: REDIS_URL
+        - name: CORE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: hypercode-config
+              key: CORE_URL
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: anthropic-api-key
+        - name: AGENT_HEALTH_URL
+          value: "http://project-strategist:8001/health"
+        ports:
+        - containerPort: 8001
+        resources:
+          requests:
+            cpu: 125m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 10
+          periodSeconds: 10

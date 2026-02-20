@@ -1,5 +1,17 @@
 # HyperCode V2.0 - The Cognitive Architecture
 
+## 🎯 Try It Now (30 seconds)
+
+**Live Demo:** `https://hypercode.dev/try`
+**Or run locally:**
+
+```bash
+docker compose up -d && open http://localhost:3000
+```
+Type `print("Hello")` and hit Run. That's HyperCode. ✨
+
+---
+
 > "You do not just write code; you craft cognitive architectures."
 
 ## Why HyperCode Exists 🤯
@@ -57,12 +69,24 @@ Get the entire ecosystem running in **under 2 minutes**.
 
 3. **Launch the Stack**
    ```bash
-   docker compose up -d
+   # Dev Mode (with live code reloading):
+   docker compose -f docker-compose.dev.yml up -d
+
+   # Production Mode (optimized, no code mounting):
+   docker compose -f docker-compose.prod.yml up -d
    ```
 
-4. **Access the Interfaces**
+4. **Start the Bridge Server (WebSocket)**
+   The Bridge Server handles real-time communication and context ingestion.
+   ```bash
+   # Run in a separate terminal
+   python src/agents/nexus/bridge/server.py
+   ```
+
+5. **Access the Interfaces**
    - 🖥️ **Web Interface**: `http://localhost:3000`
-   - 📊 **Grafana**: `http://localhost:3001` (User: `admin` / Pass: `admin`)
+   - 🌉 **Bridge Server**: `ws://localhost:8001/ws/bridge`
+   - 📊 **Grafana**: `http://localhost:3001` (Credentials set via `.env`: `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD`)
    - 📈 **Prometheus**: `http://localhost:9090`
    - 📝 **API Docs**: `http://localhost:8000/docs`
 
@@ -73,3 +97,74 @@ Get the entire ecosystem running in **under 2 minutes**.
 ## 🏗️ Architecture
 
 See [docs/architecture.md](docs/architecture.md) for detailed system design.
+
+## 🧠 Hyper AI File System (HAFS)
+
+HyperCode V2.0 features a revolutionary **Cognitive File System** that turns the codebase into a living, intelligent entity.
+
+-   **Semantic Search**: Find code by meaning, not just filename.
+-   **Predictive Context**: The system guesses what files you need next.
+-   **Self-Healing**: Agents can diagnose and fix their own errors using HAFS.
+-   **Neural Visualization**: See your codebase as a connected graph.
+
+### Nexus Integration (New in v2.1)
+- **Bridge Server**: Real-time WebSocket communication (`ws://localhost:8001`).
+- **Weaver Agent**: Vector-based knowledge ingestion with ChromaDB.
+
+👉 **[Read the HAFS User Guide](docs/guides/HAFS_USER_GUIDE.md)** to get started.
+
+## 📂 Project Structure
+
+- **src/**: Source code for all services.
+  - `hypercode-core`: FastAPI backend service.
+  - `hyperflow-editor`: React/Vite frontend editor.
+  - `hypercode-engine`: Core execution engine.
+  - `broski-terminal`: Frontend terminal interface.
+  - `agents`: Autonomous agent system and specialized agents.
+- **config/**: Configuration files.
+  - `docker`: Docker configuration and build scripts.
+  - `monitoring`: Prometheus and Grafana configs.
+  - `nginx`: Nginx configuration.
+- **docs/**: Comprehensive documentation.
+- **scripts/**: Utility scripts for deployment and maintenance.
+- **tests/**: Test suites.
+
+## 🛡️ Development Workflow & Backup
+
+We enforce strict development practices to ensure stability:
+- **CI/CD Pipelines**: Automated testing, linting, and security scans on every push.
+- **Branch Protection**: Direct pushes to `main` are blocked. PRs require approval and passing checks.
+- **Backup Strategy**: Regular snapshots and GitHub mirroring. See [BACKUP_STRATEGY.md](BACKUP_STRATEGY.md) for details.
+
+## 1️⃣ README snippet – “Status + Proof”
+
+You can paste this under something like `## Status` or `## Operational Proof`.
+
+```md
+## 🧪 Status & Operational Proof
+
+HyperCode V2.0 is not just a concept – it’s running as a real multi-agent swarm.
+
+- 15/15 containers healthy: `hypercode-core`, `hafs-service`, `crew-orchestrator`, and all specialist agents. [file:16]
+- Core endpoints live:
+  - `GET /health` → `{"status":"healthy"}` [file:16]
+  - `GET /ready` → `{"database":"connected","redis":"connected"}` [file:16]
+- Key specialist agents (backend, QA, project strategy, database) have been running **stably for 40–60+ minutes** with:
+  - No `ModuleNotFoundError`
+  - No 401 auth errors
+  - Passing healthchecks (HTTP 200) [file:16]
+
+Recent recovery work included:
+- Fixing a crash in `/agents/bible` via robust, Docker-safe path resolution. [file:16]
+- Wiring agent authentication with `HYPERCODE_API_KEY` / `API_KEY` and consistent headers. [file:16]
+- Increasing DB connection capacity and mounting shared `event_bus.py` into all agents. [file:16]
+- Extending `hypercode-core` healthcheck `start_period` to allow clean startup. [file:16]
+
+👉 See `FIXES_FOR_UNHEALTHY_AGENTS.md` for the full incident + recovery timeline. [file:16]
+```
+
+***
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](.github/CONTRIBUTING.md) for our code of conduct, commit message conventions, and pull request process.

@@ -20,7 +20,7 @@ For real-time testing and schema details, visit the Swagger UI:
   ```json
   {
     "status": "healthy",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "services": {
       "database": "up",
       "redis": "up"
@@ -48,6 +48,53 @@ For real-time testing and schema details, visit the Swagger UI:
 - **Response:** `202 Accepted` - Task ID.
 
 ### Execution
+
+## WebSocket API (Bridge Server)
+
+The Bridge Server provides a real-time WebSocket interface for agents and clients.
+
+**Endpoint:** `ws://localhost:8001/ws/bridge`
+
+### Message Types
+
+#### 1. Ping/Pong (Heartbeat)
+Keep connections alive.
+- **Client:** `{"type": "ping"}`
+- **Server:** `{"type": "pong"}`
+
+#### 2. Context Ingestion
+Submit documentation or code context to the Weaver Agent.
+- **Client Request:**
+  ```json
+  {
+    "type": "ingest",
+    "id": "req_123",
+    "context_type": "documentation",
+    "content": "# Markdown Content..."
+  }
+  ```
+- **Server Response (Ack):**
+  ```json
+  {
+    "type": "ack",
+    "request_id": "req_123",
+    "status": "success",
+    "entry_id": "uuid-entry-id",
+    "message": "Optional status message"
+  }
+  ```
+
+#### 3. Task Updates (Broadcast)
+Real-time updates from agents.
+- **Server Broadcast:**
+  ```json
+  {
+    "type": "task_update",
+    "payload": { ... },
+    "timestamp": "2026-02-20T10:00:00Z"
+  }
+  ```
+
 
 #### Get Execution Status
 **GET** `/executions/{execution_id}`

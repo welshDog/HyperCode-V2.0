@@ -1,0 +1,6 @@
+# Loop Example
+# Print "Hello" 5 times
+
+loop(5) {
+  print "Hello, HyperCode!";
+}

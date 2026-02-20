@@ -1,0 +1,85 @@
+name: Deploy Validation (Temp Namespace)
+
+on:
+  pull_request:
+    paths:
+      - 'THE HYPERCODE/DEPLOYMENT.md'
+      - 'THE HYPERCODE/hypercode-core/**'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker
+        uses: crazy-max/ghaction-setup-docker@v3
+
+      - name: Build hypercode-core image
+        run: |
+          docker build -t hypercode-core:ci ./THE HYPERCODE/hypercode-core
+
+      - name: Start Redis (no TLS for CI)
+        run: |
+          docker run -d --name redis -p 6379:6379 redis:7-alpine redis-server --appendonly yes
+
+      - name: Start hypercode-core
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          : "${JWT_SECRET:?JWT_SECRET is required}"
+          docker run -d --name core -p 8000:8000 \
+            -e HYPERCODE_REDIS_URL=redis://host.docker.internal:6379/0 \
+            -e HYPERCODE_JWT_SECRET="$JWT_SECRET" \
+            -e OTLP_EXPORTER_DISABLED=true \
+            hypercode-core:ci
+
+      - name: Wait for readiness
+        run: |
+          for i in {1..30}; do curl -sf http://localhost:8000/ready && break || sleep 2; done
+
+      - name: Verify x-ratelimit-limit header
+        run: |
+          curl -s -D - http://localhost:8000/ready -o /dev/null | grep -i 'x-ratelimit-limit'
+
+      - name: Generate synthetic SSE load and verify metrics
+        run: |
+          for i in {1..20}; do curl -sf \"http://localhost:8000/agents/watch?one_shot=true\" >/dev/null || true; done
+          curl -sf -X POST http://localhost:8000/agents/register -H \"Content-Type: application/json\" \
+            --data '{\"name\":\"CI Agent\",\"role\":\"worker\",\"version\":\"0.1.0\",\"capabilities\":[],\"topics\":[],\"health_url\":null,\"dedup_key\":\"00000000-0000-0000-0000-00000000CI\"}' >/dev/null
+          curl -sf http://localhost:8000/metrics | grep -E \"agent_stream_latency_ms(_count)?\"
+
+      - name: Generate JWT
+        id: jwt
+        run: |
+          python - <<'PY'
+          import os, time, jwt
+          secret = os.environ['JWT_SECRET']
+          now = int(time.time())
+          token = jwt.encode({
+            'sub':'ci-smoke',
+            'scopes':['workflows:write'],
+            'iat': now,
+            'exp': now + 900
+          }, secret, algorithm='HS256')
+          print(token)
+          PY
+
+      - name: Handshake on protected endpoint (expect 201)
+        run: |
+          TOKEN=$(python - <<'PY'
+          import os, time, jwt
+          secret = os.environ['JWT_SECRET']
+          now = int(time.time())
+          print(jwt.encode({'sub':'ci-smoke','scopes':['workflows:write'],'iat':now,'exp':now+900}, secret, algorithm='HS256'))
+          PY)
+          curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/workflows \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            --data '{"name":"ci-check","flow":{"nodes":[],"edges":[]}}' | grep 201
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f core redis || true

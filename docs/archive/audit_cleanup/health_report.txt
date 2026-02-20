@@ -1,0 +1,11 @@
+hafs-service	Up 2 seconds
+database-architect	Up 38 minutes (healthy)
+backend-specialist	Up 38 minutes (healthy)
+qa-engineer	Up 38 minutes (healthy)
+project-strategist	Up 38 minutes (healthy)
+crew-orchestrator	Up 43 minutes (healthy)
+hypercode-core	Up 44 minutes (healthy)
+postgres	Up 48 minutes (healthy)
+redis	Up 48 minutes (healthy)
+devops-engineer	Up About an hour (healthy)
+hyper-agents-box	Up About an hour (healthy)

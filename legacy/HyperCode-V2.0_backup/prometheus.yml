@@ -1,0 +1,41 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Grafana Cloud Remote Write - Placeholder (Disabled for Local Production)
+# remote_write:
+#   - url: <Your Prometheus Remote Write Endpoint>
+#     basic_auth:
+#       username: <Your Prometheus Username / Instance ID>
+#       password: <Your Grafana Cloud Access Policy Token>
+
+rule_files:
+  - "/etc/prometheus/monitoring/rules/*.yml"
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "hypercode-core"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["hypercode-core:8000"]
+
+  - job_name: "coder-agent"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["coder-agent:8000"]
+
+  # Disabled: Not in docker-compose
+  # - job_name: "node"
+  #   static_configs:
+  #     - targets: ["node-exporter:9100"]
+  #
+  # - job_name: "cadvisor"
+  #   static_configs:
+  #     - targets: ["cadvisor:8080"]
+  #
+  # - job_name: "roundtrip-worker"
+  #   static_configs:
+  #     - targets: ["roundtrip-worker:9100"]

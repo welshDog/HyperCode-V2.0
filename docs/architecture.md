@@ -8,9 +8,15 @@ graph TD
     API -->|Delegation| Strat[Project Strategist]
     API -->|Coordination| Arch[System Architect]
     
+    subgraph "Nexus Agents (New)"
+        Bridge[Bridge Server]
+        Weaver[Context Manager]
+    end
+
     subgraph "Data Layer"
         Redis[(Redis Cache & Queue)]
         DB[(PostgreSQL History)]
+        Chroma[(ChromaDB Vector Store)]
     end
     
     subgraph "Specialist Swarm (Tier 2)"
@@ -20,11 +26,20 @@ graph TD
         DevOps[DevOps Engineer]
         Sec[Security Engineer]
     end
+
+    User -->|WS| Bridge
+    Bridge -->|Ingest| Weaver
+    Weaver -->|Store/Retrieve| Chroma
+
     
     subgraph "Observability"
         Prom[Prometheus]
         Graf[Grafana]
         Jaeger[Jaeger Tracing]
+    end
+
+    subgraph "Background Processing"
+        Celery[Celery Worker]
     end
 
     Strat -->|Task| Redis
@@ -35,6 +50,9 @@ graph TD
     
     API -->|Metrics| Prom
     Prom --> Graf
+    
+    Celery -->|Tasks| Redis
+    Redis -->|Results| Celery
 ```
 
 ## Agent Hierarchy
@@ -97,3 +115,65 @@ Specialists → Results → Orchestrator → Client
 ### Result Collection
 1. Orchestrator monitors Redis for completions
 2. Aggregates specialist results
+
+## Background Processing
+
+### Celery Worker
+- **Role**: Asynchronous task execution for long-running operations.
+- **Responsibilities**:
+  - Complex code analysis
+  - Large-scale refactoring
+  - Batch data processing
+  - Mission execution management
+- **Dependencies**:
+  - Redis (Broker & Backend)
+  - **OpenAI API Key**: Required for LLM-based operations (Critical dependency).
+  - PostgreSQL (Data persistence)
+
+### Auto-Restart Policy
+- All services are configured with `restart: always` or `unless-stopped` to ensure high availability.
+- `health_check.py` verifies the status of all containers and critical endpoints.
+
+## Observability Stack
+- **Prometheus**: Metrics collection
+- **Grafana**: Visual dashboards (http://localhost:3001)
+- **Jaeger**: Distributed tracing
+
+### Logging
+- Structured JSON logs
+- Centralized via ELK/Loki (optional)
+- Correlation IDs for tracing
+
+## Hive Mind (Shared Knowledge)
+
+### Team Memory Standards
+- Coding conventions
+- Best practices
+- Project-specific rules
+- Updated by all agents
+
+### Skills Library
+- Reusable functions
+- Common patterns
+- Tested solutions
+- Version controlled
+
+## Integration Points
+
+### Trae Integration
+```yaml
+volumes:
+  - ${TRAE_WORKSPACE}:/workspace:ro
+environment:
+  - TRAE_MCP_ENABLED=true
+```
+
+### GitHub Integration
+- Webhooks for issues → tasks
+- PR review by agents
+- Commit on completion
+
+## Future Enhancements
+1. **Learning Loop**: Fine-tune on project-specific patterns
+2. **Multi-project**: Separate workspaces per project
+3. **Human-in-the-Loop**: Approval workflow for changes
