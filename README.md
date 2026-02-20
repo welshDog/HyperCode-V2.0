@@ -69,12 +69,24 @@ Get the entire ecosystem running in **under 2 minutes**.
 
 3. **Launch the Stack**
    ```bash
-   docker compose up -d
+   # Dev Mode (with live code reloading):
+   docker compose -f docker-compose.dev.yml up -d
+
+   # Production Mode (optimized, no code mounting):
+   docker compose -f docker-compose.prod.yml up -d
    ```
 
-4. **Access the Interfaces**
+4. **Start the Bridge Server (WebSocket)**
+   The Bridge Server handles real-time communication and context ingestion.
+   ```bash
+   # Run in a separate terminal
+   python src/agents/nexus/bridge/server.py
+   ```
+
+5. **Access the Interfaces**
    - 🖥️ **Web Interface**: `http://localhost:3000`
-   - 📊 **Grafana**: `http://localhost:3001` (User: `admin` / Pass: `admin`)
+   - 🌉 **Bridge Server**: `ws://localhost:8001/ws/bridge`
+   - 📊 **Grafana**: `http://localhost:3001` (Credentials set via `.env`: `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD`)
    - 📈 **Prometheus**: `http://localhost:9090`
    - 📝 **API Docs**: `http://localhost:8000/docs`
 
