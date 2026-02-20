@@ -1,5 +1,17 @@
 # HyperCode V2.0 - The Cognitive Architecture
 
+## 🎯 Try It Now (30 seconds)
+
+**Live Demo:** `https://hypercode.dev/try`
+**Or run locally:**
+
+```bash
+docker compose up -d && open http://localhost:3000
+```
+Type `print("Hello")` and hit Run. That's HyperCode. ✨
+
+---
+
 > "You do not just write code; you craft cognitive architectures."
 
 ## Why HyperCode Exists 🤯
