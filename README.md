@@ -95,6 +95,10 @@ HyperCode V2.0 features a revolutionary **Cognitive File System** that turns the
 -   **Self-Healing**: Agents can diagnose and fix their own errors using HAFS.
 -   **Neural Visualization**: See your codebase as a connected graph.
 
+### Nexus Integration (New in v2.1)
+- **Bridge Server**: Real-time WebSocket communication (`ws://localhost:8001`).
+- **Weaver Agent**: Vector-based knowledge ingestion with ChromaDB.
+
 👉 **[Read the HAFS User Guide](docs/guides/HAFS_USER_GUIDE.md)** to get started.
 
 ## 📂 Project Structure
