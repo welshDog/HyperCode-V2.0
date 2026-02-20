@@ -36,7 +36,8 @@ async def sse_event_generator(one_shot: bool = False, max_failures: int | None =
                                     yield payload
                                     dt = (asyncio.get_event_loop().time() - t0) * 1000.0
                                     STREAM_LATENCY_MS.labels("GET", "200", ENV_LABEL, VER_LABEL).observe(dt)
-                                except Exception:
+                                except Exception as e:
+                                    logger.error(f"Stream processing error: {e}", exc_info=True)
                                     continue
                     else:
                         while True:
@@ -48,7 +49,8 @@ async def sse_event_generator(one_shot: bool = False, max_failures: int | None =
                                     yield payload
                                     dt = (asyncio.get_event_loop().time() - t0) * 1000.0
                                     STREAM_LATENCY_MS.labels("GET", "200", ENV_LABEL, VER_LABEL).observe(dt)
-                                except Exception:
+                                except Exception as e:
+                                    logger.error(f"Stream processing error: {e}", exc_info=True)
                                     continue
                             await asyncio.sleep(idle_sleep)
                 except asyncio.CancelledError:

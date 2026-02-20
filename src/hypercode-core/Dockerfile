@@ -76,4 +76,8 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --retries=5 --start-period=20s \
     CMD curl -sf http://localhost:8000/health || exit 1
 
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Install gunicorn
+RUN pip install gunicorn
+
+# Use gunicorn for production
+CMD ["gunicorn", "main:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]

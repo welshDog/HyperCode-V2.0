@@ -31,7 +31,7 @@ services:
       - ENVIRONMENT=production
       - PRISMA_PY_DEBUG=0
       - HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL}
-      - HYPERCODE_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - HYPERCODE_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/${POSTGRES_DB:-hypercode}
       - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
       - DATABASE_CONNECTION_LIMIT=20
       - API_KEY=${API_KEY}
@@ -39,7 +39,7 @@ services:
       - JWT_SECRET=${HYPERCODE_JWT_SECRET}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-dummy}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:?OPENAI_API_KEY must be set}
       - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED}
       - OTLP_ENDPOINT=${OTLP_ENDPOINT}
       - LLM_PROVIDER=${LLM_PROVIDER}
@@ -74,8 +74,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    volumes:
-      - ./src/hypercode-core:/app
+    # No volume mount for source code in prod
 
   # Frontend - Terminal
   broski-terminal:
@@ -158,17 +157,16 @@ services:
       dockerfile: Dockerfile
     container_name: celery-worker
     command: ["python", "-m", "celery", "-A", "app.core.celery_app", "worker", "--loglevel=info"]
-    volumes:
-      - ./src/hypercode-core:/app
+    # No volume mount for source code in prod
     environment:
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
       PYTHONPATH: /home/appuser/.local/lib/python3.11/site-packages:/app
-      HYPERCODE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-hypercode}
+      HYPERCODE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/${POSTGRES_DB:-hypercode}
       HYPERCODE_REDIS_URL: redis://redis:6379/0
       HYPERCODE_MEMORY_KEY: ${HYPERCODE_MEMORY_KEY}
       PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-dummy}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY must be set}
     healthcheck:
       test: ["CMD-SHELL", "python -m celery -A app.core.celery_app inspect ping || exit 1"]
       interval: 30s
@@ -214,12 +212,16 @@ services:
       - PROMETHEUS_URL=http://prometheus:9090
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    # No workspace mount in prod? Agents might need persistence. 
+    # But code says "remove source code mounts". Workspace is data, not code.
+    # However, for prod, we should be careful. I'll remove code mounts (agent.py, event_bus.py) 
+    # but keep workspace if needed. Wait, mounting ./src/agents/base-agent/agent.py is definitely code mount.
+    # I will remove the code mounts. Workspace should probably be a named volume in prod.
+    # For now, I'll remove code mounts.
     volumes:
       - ./src/agents/coder/workspace:/workspace
-      - ./src/agents/base-agent/agent.py:/app/base_agent.py:ro
-      - ./src/agents/base-agent/event_bus.py:/app/event_bus.py:ro
       - ./docs/configuration-kit:/app/hive_mind:ro
-      - /var/run/docker.sock:/var/run/docker.sock
+      # Removed code mounts and docker socket
     ports:
       - "8001:8000"
     networks:
@@ -247,7 +249,7 @@ services:
       - ALL
 
   mcp-server:
-    image: mcp/everything:latest
+    image: mcp/everything:0.1.0
     container_name: mcp-server
     volumes:
       - ./src/agents/mcp-config.json:/config.json
@@ -266,30 +268,6 @@ services:
     security_opt:
       - no-new-privileges:true
       
-  # hyper-agents-box:
-  #   profiles: ["agents"]
-  #   build:
-  #     context: ./Hyper-Agents-Box/hyper-agents-box
-  #     dockerfile: docker/Dockerfile
-  #   container_name: hyper-agents-box
-  #   ports:
-  #     - "127.0.0.1:5000:5000"
-  #   restart: unless-stopped
-  #   networks:
-  #     - backend-net
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "0.5"
-  #         memory: 512M
-  #   logging:
-  #     driver: "json-file"
-  #     options:
-  #       max-size: "10m"
-  #       max-file: "3"
-  #   security_opt:
-  #     - no-new-privileges:true
-
   dashboard:
     image: nginx:alpine
     container_name: hypercode-dashboard
@@ -335,7 +313,7 @@ services:
       - HAFS_URL=http://hafs-service:8001
     volumes:
       - ./docs/configuration-kit:/app/hive_mind:ro
-      - ./src/agents/crew-orchestrator:/app
+      # Removed source code mount
     depends_on:
       redis:
         condition: service_healthy
@@ -394,7 +372,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-
   # Agents (Tier 2)
   frontend-specialist:
     build:
@@ -409,8 +386,7 @@ services:
       - AGENT_HEALTH_URL=http://frontend-specialist:8002/health
     volumes:
       - ./docs/configuration-kit:/app/hive_mind:ro
-      - ./src/agents/base-agent/agent.py:/app/base_agent.py:ro
-      - ./src/agents/base-agent/event_bus.py:/app/event_bus.py:ro
+      # Removed code mounts
     deploy:
       resources:
         limits:
@@ -455,8 +431,7 @@ services:
       - AGENT_HEALTH_URL=http://backend-specialist:8003/health
     volumes:
       - ./docs/configuration-kit:/app/hive_mind:ro
-      - ./src/agents/base-agent/agent.py:/app/base_agent.py:ro
-      - ./src/agents/base-agent/event_bus.py:/app/event_bus.py:ro
+      # Removed code mounts
     depends_on:
       redis:
         condition: service_healthy
@@ -502,11 +477,10 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - LLM_PROVIDER=remote
       - AGENT_HEALTH_URL=http://database-architect:8004/health
-      - POSTGRES_URL=postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/hypercode
+      - POSTGRES_URL=postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/hypercode
     volumes:
       - ./docs/configuration-kit:/app/hive_mind:ro
-      - ./src/agents/base-agent/agent.py:/app/base_agent.py:ro
-      - ./src/agents/base-agent/event_bus.py:/app/event_bus.py:ro
+      # Removed code mounts
     depends_on:
       redis:
         condition: service_healthy
@@ -556,8 +530,7 @@ services:
       - AGENT_HEALTH_URL=http://qa-engineer:8005/health
     volumes:
       - ./docs/configuration-kit:/app/hive_mind:ro
-      - ./src/agents/base-agent/agent.py:/app/base_agent.py:ro
-      - ./src/agents/base-agent/event_bus.py:/app/event_bus.py:ro
+      # Removed code mounts
     depends_on:
       redis:
         condition: service_healthy
@@ -605,8 +578,7 @@ services:
       - AGENT_HEALTH_URL=http://devops-engineer:8006/health
     volumes:
       - ./docs/configuration-kit:/app/hive_mind:ro
-      - ./src/agents/base-agent/agent.py:/app/base_agent.py:ro
-      - ./src/agents/base-agent/event_bus.py:/app/event_bus.py:ro
+      # Removed code mounts
     depends_on:
       redis:
         condition: service_healthy
@@ -652,8 +624,7 @@ services:
       - AGENT_HEALTH_URL=http://security-engineer:8007/health
     volumes:
       - ./docs/configuration-kit:/app/hive_mind:ro
-      - ./src/agents/base-agent/agent.py:/app/base_agent.py:ro
-      - ./src/agents/base-agent/event_bus.py:/app/event_bus.py:ro
+      # Removed code mounts
     depends_on:
       redis:
         condition: service_healthy
@@ -700,8 +671,7 @@ services:
       - AGENT_HEALTH_URL=http://system-architect:8008/health
     volumes:
       - ./docs/configuration-kit:/app/hive_mind:ro
-      - ./src/agents/base-agent/agent.py:/app/base_agent.py:ro
-      - ./src/agents/base-agent/event_bus.py:/app/event_bus.py:ro
+      # Removed code mounts
     depends_on:
       redis:
         condition: service_healthy
@@ -748,8 +718,7 @@ services:
       - AGENT_HEALTH_URL=http://project-strategist:8001/health
     volumes:
       - ./docs/configuration-kit:/app/hive_mind:ro
-      - ./src/agents/base-agent/agent.py:/app/base_agent.py:ro
-      - ./src/agents/base-agent/event_bus.py:/app/event_bus.py:ro
+      # Removed code mounts
     depends_on:
       redis:
         condition: service_healthy
@@ -784,7 +753,7 @@ services:
       - ALL
 
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.1.32
     container_name: hypercode-ollama
     restart: unless-stopped
     ports:
@@ -855,7 +824,7 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       POSTGRES_DB: ${POSTGRES_DB:-hypercode}
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -880,7 +849,7 @@ services:
       - no-new-privileges:true
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.51.0
     container_name: prometheus
     volumes:
       - ./config/monitoring/prometheus:/etc/prometheus
@@ -904,11 +873,11 @@ services:
       - no-new-privileges:true
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:10.4.2
     container_name: grafana
     environment:
       - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:?GF_SECURITY_ADMIN_PASSWORD must be set}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana-data:/var/lib/grafana
@@ -930,7 +899,7 @@ services:
       - no-new-privileges:true
 
   jaeger:
-    image: jaegertracing/all-in-one:latest
+    image: jaegertracing/all-in-one:1.56
     container_name: jaeger
     environment:
       - COLLECTOR_ZIPKIN_HOST_PORT=:9411

@@ -52,6 +52,6 @@ def get_settings():
     if (os.getenv("PYTEST_CURRENT_TEST") or ("pytest" in sys.modules)) and not os.getenv("KEEP_API_KEY_FOR_TESTS"):
         try:
             s.API_KEY = None
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Warning: Failed to clear API_KEY for tests: {e}")
     return s
