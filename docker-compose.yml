@@ -5,9 +5,8 @@ networks:
     driver: bridge
     name: hypercode_frontend_net
   backend-net:
-    driver: bridge
-    name: hypercode_backend_net
-    internal: true
+    name: hypercode_public_net
+    external: true
   data-net:
     driver: bridge
     name: hypercode_data_net
@@ -26,7 +25,7 @@ services:
   # ====================
   hypercode-core:
     build:
-      context: ./THE HYPERCODE/hypercode-core
+      context: ./backend
       dockerfile: Dockerfile
     container_name: hypercode-core
     environment:
@@ -40,7 +39,7 @@ services:
       - JWT_SECRET=${HYPERCODE_JWT_SECRET} # Ensure backward compatibility
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED}
-      - OTLP_ENDPOINT=${OTLP_ENDPOINT}
+      - OTLP_ENDPOINT=http://tempo:4317
     depends_on:
       redis:
         condition: service_healthy
@@ -72,7 +71,7 @@ services:
         max-size: "10m"
         max-file: "3"
     volumes:
-      - ./THE HYPERCODE/hypercode-core:/app
+      - ./backend:/app
 
   # Frontend - Terminal
   broski-terminal:
@@ -113,6 +112,62 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
+    networks:
+      - backend-net
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml
+    networks:
+      - backend-net
+    restart: unless-stopped
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./monitoring/tempo/tempo.yaml:/etc/tempo.yaml
+    ports:
+      - "3200:3200"   # tempo
+      - "4317:4317"  # otlp grpc
+      - "4318:4318"  # otlp http
+      - "9411:9411"   # zipkin
+    networks:
+      - backend-net
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml
+    command: -config.file=/etc/promtail/promtail-config.yml
+    networks:
+      - backend-net
+    restart: unless-stopped
+
   # Frontend - Editor
   hyperflow-editor:
     build:
@@ -150,17 +205,17 @@ services:
   # Worker
   celery-worker:
     build:
-      context: ./THE HYPERCODE/hypercode-core
+      context: ./backend
       dockerfile: Dockerfile
     container_name: celery-worker
     command: ["python", "-m", "celery", "-A", "app.core.celery_app", "worker", "--loglevel=info"]
     volumes:
-      - ./THE HYPERCODE/hypercode-core:/app
+      - ./backend:/app
     environment:
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
       PYTHONPATH: /home/appuser/.local/lib/python3.11/site-packages:/app
-      HYPERCODE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-hypercode}
+      HYPERCODE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-hypercode}
       HYPERCODE_REDIS_URL: redis://redis:6379/0
       HYPERCODE_MEMORY_KEY: ${HYPERCODE_MEMORY_KEY}
     healthcheck:
@@ -325,11 +380,6 @@ services:
       - CORE_URL=http://hypercode-core:8000
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
     depends_on:
       redis:
         condition: service_healthy
@@ -361,6 +411,7 @@ services:
 
   # Agents (Tier 2)
   frontend-specialist:
+    profiles: ["agents"]
     build:
       context: ./agents/01-frontend-specialist
     container_name: frontend-specialist
@@ -372,11 +423,6 @@ services:
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -423,11 +469,6 @@ services:
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -471,15 +512,10 @@ services:
       - REDIS_URL=redis://redis:6379
       - CORE_URL=http://hypercode-core:8000
       - AGENT_HEALTH_URL=http://database-architect:8004/health
-      - POSTGRES_URL=postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@postgres:5432/hypercode
+      - POSTGRES_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/hypercode
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -528,11 +564,6 @@ services:
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -616,6 +647,7 @@ services:
       - ALL
 
   security-engineer:
+    profiles: ["agents"]
     build:
       context: ./agents/06-security-engineer
     container_name: security-engineer
@@ -627,11 +659,6 @@ services:
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -666,6 +693,7 @@ services:
       - ALL
 
   system-architect:
+    profiles: ["agents"]
     build:
       context: ./agents/07-system-architect
     container_name: system-architect
@@ -678,11 +706,6 @@ services:
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -729,11 +752,6 @@ services:
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -802,8 +820,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    security_opt:
-      - no-new-privileges:true
 
   # Infrastructure
   redis:
@@ -837,7 +853,7 @@ services:
     container_name: postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-hypercode}
     volumes:
       - postgres-data:/var/lib/postgresql/data

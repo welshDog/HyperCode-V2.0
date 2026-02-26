@@ -29,6 +29,6 @@ ENV PYTHONPATH=/app
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD python -c "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()" || exit 1
 
 CMD ["python", "main.py"]
