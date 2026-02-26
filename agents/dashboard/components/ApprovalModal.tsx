@@ -23,7 +23,9 @@ export function ApprovalModal() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     // Use API_BASE_URL but replace http/https with ws/wss
     // If API_BASE_URL is "http://localhost:8080", we want "ws://localhost:8080"
-    let wsUrl = API_BASE_URL.replace(/^http/, 'ws');
+    // Handle the case where API_BASE_URL might be undefined or empty
+    const baseUrl = API_BASE_URL || "http://localhost:8080";
+    let wsUrl = baseUrl.replace(/^http/, 'ws');
     
     // Fallback if replace didn't work (e.g. relative path)
     if (wsUrl.startsWith('/')) {

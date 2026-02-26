@@ -22,6 +22,7 @@ import clsx from "clsx";
 import { fetchAgents, fetchLogs, fetchTasks, checkHealth, sendCommand, API_BASE_URL } from "@/lib/api";
 import { Clock } from "@/components/Clock";
 import { ApprovalModal } from "@/components/ApprovalModal";
+import { SystemHealth } from "@/components/SystemHealth";
 
 // --- Components ---
 
@@ -314,6 +315,8 @@ export default function Dashboard() {
         {/* Right Panel: Telemetry */}
         <aside className="w-72 border-l border-zinc-800 bg-black/20 p-4 flex flex-col gap-6 overflow-y-auto shrink-0 hidden xl:flex">
           
+          <SystemHealth />
+
           <div>
             <h2 className="text-xs font-bold text-zinc-600 uppercase tracking-widest mb-4 flex items-center gap-2">
                <Zap size={12} /> Resource Usage

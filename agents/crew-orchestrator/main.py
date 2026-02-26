@@ -316,11 +316,84 @@ async def execute_task(request: ExecuteRequest, background_tasks: BackgroundTask
 # --- LIFECYCLE ---
 
 @app.on_event("startup")
-async def startup():
+async def startup_event():
     global redis_client
-    redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
-    redis_client = await redis.from_url(redis_url, decode_responses=True)
-    logger.info("✅ Agent Crew Orchestrator started")
+    redis_client = await get_redis_pool()
+    logger.info("Redis connected")
+    
+    # Start background health monitoring
+    asyncio.create_task(monitor_agent_health())
+
+async def monitor_agent_health():
+    """Background task to monitor agent health status"""
+    while True:
+        try:
+            if not redis_client:
+                await asyncio.sleep(5)
+                continue
+                
+            failed_agents = []
+            results = {}
+            
+            for agent_name, url in AGENTS.items():
+                try:
+                    async with httpx.AsyncClient(timeout=5.0) as client:
+                        start_time = datetime.now()
+                        response = await client.get(f"{url}/health")
+                        latency = (datetime.now() - start_time).total_seconds() * 1000
+                        
+                        if response.status_code == 200:
+                            results[agent_name] = {
+                                "status": "healthy",
+                                "latency_ms": latency,
+                                "last_checked": datetime.now().isoformat()
+                            }
+                        else:
+                            failed_agents.append(agent_name)
+                            results[agent_name] = {
+                                "status": "unhealthy",
+                                "error": f"Status {response.status_code}",
+                                "last_checked": datetime.now().isoformat()
+                            }
+                except Exception as e:
+                    failed_agents.append(agent_name)
+                    results[agent_name] = {
+                        "status": "down",
+                        "error": str(e),
+                        "last_checked": datetime.now().isoformat()
+                    }
+            
+            # Store health results in Redis for dashboard
+            await redis_client.set("system:health", json.dumps(results))
+            
+            # Alert if threshold reached
+            if len(failed_agents) >= 4:
+                alert_msg = {
+                    "type": "CRITICAL_ALERT",
+                    "message": f"CRITICAL: {len(failed_agents)} agents are DOWN!",
+                    "failed_agents": failed_agents,
+                    "timestamp": datetime.now().isoformat()
+                }
+                # Publish to dashboard via existing approval channel or new alert channel
+                await redis_client.publish("approval_requests", json.dumps(alert_msg))
+                logger.critical(f"HEALTH ALERT: {len(failed_agents)} agents down: {failed_agents}")
+                
+        except Exception as e:
+            logger.error(f"Health monitor error: {e}")
+            
+        await asyncio.sleep(30) # Run every 30 seconds
+
+@app.get("/system/health")
+async def get_system_health():
+    """Get the current health status of all agents"""
+    if not redis_client:
+        raise HTTPException(status_code=503, detail="Redis not connected")
+        
+    health_data = await redis_client.get("system:health")
+    if not health_data:
+        return {"status": "initializing", "agents": {}}
+        
+    return json.loads(health_data)
 
 @app.on_event("shutdown")
 async def shutdown():
