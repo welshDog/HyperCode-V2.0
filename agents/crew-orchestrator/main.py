@@ -112,6 +112,19 @@ class TaskDefinition(BaseModel):
 class ExecuteRequest(BaseModel):
     task: TaskDefinition
 
+# Helper to log to Redis
+async def log_event(agent: str, level: str, msg: str):
+    if redis_client:
+        entry = {
+            "id": datetime.now().timestamp(),
+            "time": datetime.now().strftime("%H:%M:%S"),
+            "agent": agent,
+            "level": level,
+            "msg": msg
+        }
+        await redis_client.lpush("logs:global", json.dumps(entry))
+        await redis_client.ltrim("logs:global", 0, 99) # Keep last 100
+
 @app.post("/execute")
 async def execute_task(request: ExecuteRequest, background_tasks: BackgroundTasks):
     task = request.task
@@ -122,6 +135,19 @@ async def execute_task(request: ExecuteRequest, background_tasks: BackgroundTask
         "task_id": task.id,
         "agent": task.agent or task.agents
     }))
+    
+    # Store Task in Redis
+    if redis_client:
+        task_data = task.dict()
+        task_data["status"] = "in_progress"
+        task_data["started_at"] = datetime.now().isoformat()
+        task_data["progress"] = 0
+        task_data["steps"] = task.agents or [task.agent]
+        await redis_client.set(f"task:{task.id}:details", json.dumps(task_data))
+        await redis_client.lpush("tasks:history", task.id)
+        await redis_client.ltrim("tasks:history", 0, 99)
+        
+        await log_event("orchestrator", "info", f"Received task: {task.id}")
 
     # 2. RAG Query (Simulated for Test 1)
     logger.info(json.dumps({
@@ -152,24 +178,18 @@ async def execute_task(request: ExecuteRequest, background_tasks: BackgroundTask
         # Publish to Redis for Dashboard
         if redis_client:
             await redis_client.publish("approval_requests", json.dumps(approval_request))
-            logger.info(json.dumps({
-                "event": "approval_requested", 
-                "approval_id": approval_id
-            }))
+            await log_event("orchestrator", "warn", f"Approval requested for task {task.id}")
         else:
             logger.error("Redis not connected, cannot request approval")
             return {"status": "error", "message": "Redis disconnected"}
         
-        # Wait for approval (Poll Redis)
-        # In a real async system, we might return a 'pending' status and let the client poll,
-        # but for this test flow we'll block (with timeout) to simulate the 'watch logs' experience.
         status = "pending"
-        timeout = 60 # 60 seconds to approve
+        timeout = 60
         start_time = datetime.now()
         
         while status == "pending":
             if (datetime.now() - start_time).seconds > timeout:
-                logger.error(f"Approval timeout for {approval_id}")
+                await log_event("orchestrator", "error", f"Approval timeout for {task.id}")
                 return {"status": "timeout"}
                 
             response = await redis_client.get(f"approval:{approval_id}:response")
@@ -177,12 +197,9 @@ async def execute_task(request: ExecuteRequest, background_tasks: BackgroundTask
                 data = json.loads(response)
                 status = data.get("status")
             else:
-                await asyncio.sleep(1) # Poll every second
+                await asyncio.sleep(1)
         
-        logger.info(json.dumps({
-            "event": "approval_received",
-            "status": status
-        }))
+        await log_event("orchestrator", "success", f"Approval received: {status}")
         
         if status != "approved":
             return {"status": "rejected"}
@@ -196,16 +213,25 @@ async def execute_task(request: ExecuteRequest, background_tasks: BackgroundTask
         
     results = {}
     
-    for agent_name in agents_to_run:
-        logger.info(json.dumps({
-            "event": "task_executing",
-            "agent": agent_name
-        }))
+    # Update progress
+    if redis_client:
+        task_data = json.loads(await redis_client.get(f"task:{task.id}:details"))
+        task_data["progress"] = 10
+        await redis_client.set(f"task:{task.id}:details", json.dumps(task_data))
+    
+    for i, agent_name in enumerate(agents_to_run):
+        await log_event(agent_name, "info", f"Starting execution phase {i+1}/{len(agents_to_run)}")
         
+        # Mark agent as busy
+        if redis_client:
+            await redis_client.set(f"agent:{agent_name}:current_task", task.id)
+            
+            # Update progress
+            task_data = json.loads(await redis_client.get(f"task:{task.id}:details"))
+            task_data["progress"] = 10 + int((i / len(agents_to_run)) * 80)
+            await redis_client.set(f"task:{task.id}:details", json.dumps(task_data))
+
         # Approval for multi-agent (Test 2/3)
-        # If we have multiple agents, we might want to approve each step or just the whole plan
-        # The test description implies "Backend... You approve... Frontend... You approve"
-        # So we should probably request approval *per agent* if it's a multi-agent task
         if len(agents_to_run) > 1 and task.requires_approval:
              approval_id = f"approval-{task.id}-{agent_name}"
              approval_request = {
@@ -220,19 +246,14 @@ async def execute_task(request: ExecuteRequest, background_tasks: BackgroundTask
              
              if redis_client:
                 await redis_client.publish("approval_requests", json.dumps(approval_request))
-                logger.info(json.dumps({
-                    "event": "approval_requested", 
-                    "approval_id": approval_id
-                }))
+                await log_event("orchestrator", "warn", f"Approval requested for {agent_name}")
                 
-                # Wait for approval
                 status = "pending"
                 timeout = 60
                 start_time = datetime.now()
                 
                 while status == "pending":
                     if (datetime.now() - start_time).seconds > timeout:
-                        logger.error(f"Approval timeout for {approval_id}")
                         return {"status": "timeout"}
                     
                     response = await redis_client.get(f"approval:{approval_id}:response")
@@ -242,55 +263,53 @@ async def execute_task(request: ExecuteRequest, background_tasks: BackgroundTask
                     else:
                         await asyncio.sleep(1)
                 
-                logger.info(json.dumps({
-                    "event": "approval_received",
-                    "status": status
-                }))
-                
                 if status != "approved":
                     return {"status": "rejected", "agent": agent_name}
+                
+                await log_event("orchestrator", "success", f"Approved {agent_name}")
 
         # Determine agent URL
-        # AGENTS keys are snake_case, task.agent is kebab-case
         agent_key = agent_name.replace("-", "_")
         agent_url = AGENTS.get(agent_key)
         
         if not agent_url:
-            # Fallback if not in map
             agent_url = f"http://{agent_name}:8000"
 
         # Call the agent
         try:
             async with httpx.AsyncClient() as client:
-                # The agent expects a TaskRequest structure
-                # We need to map our TaskDefinition to the Agent's TaskRequest
                 agent_payload = {
                     "id": task.id,
                     "task": task.description,
                     "type": task.type,
-                    "requires_approval": False # Already approved by Orchestrator
+                    "requires_approval": False
                 }
                 
-                # Increase timeout for complex tasks
                 response = await client.post(f"{agent_url}/execute", json=agent_payload, timeout=120.0)
                 if response.status_code == 200:
                     result = response.json()
-                    logger.info(json.dumps({
-                        "event": "task_completed",
-                        "task_id": task.id,
-                        "agent": agent_name,
-                        "duration": "3.2s", # Mock
-                        "result": result
-                    }))
+                    await log_event(agent_name, "success", "Task completed successfully")
                     results[agent_name] = result
                 else:
-                    logger.error(f"Agent {agent_name} returned {response.status_code}: {response.text}")
+                    await log_event(agent_name, "error", f"Failed: {response.text}")
                     results[agent_name] = {"status": "error", "message": f"Agent error: {response.text}"}
                     return {"status": "error", "message": f"Agent {agent_name} failed"}
                     
         except Exception as e:
-            logger.error(f"Agent {agent_name} execution failed: {e}")
+            await log_event(agent_name, "error", f"Exception: {str(e)}")
             return {"status": "error", "message": str(e)}
+        finally:
+            # Mark agent as idle
+            if redis_client:
+                await redis_client.delete(f"agent:{agent_name}:current_task")
+
+    # Final update
+    if redis_client:
+        task_data = json.loads(await redis_client.get(f"task:{task.id}:details"))
+        task_data["progress"] = 100
+        task_data["status"] = "completed"
+        await redis_client.set(f"task:{task.id}:details", json.dumps(task_data))
+        await log_event("orchestrator", "success", "Workflow completed")
 
     return {"status": "completed", "message": "Workflow finished", "results": results}
 
@@ -325,3 +344,88 @@ async def health_check():
         return {"status": "healthy", "redis": "connected"}
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e))
+
+# --- DASHBOARD ENDPOINTS ---
+
+@app.get("/agents")
+async def get_agents():
+    """Get status of all agents"""
+    # In a real system, we'd query Prometheus or Docker
+    # For now, we return the configured agents with 'idle' status
+    # unless we track them in Redis
+    
+    agents_list = []
+    for key, url in AGENTS.items():
+        # Clean up name
+        name = key.replace("_", " ").title()
+        role = key.split("_")[-1].title() if "_" in key else "Agent"
+        
+        # Check Redis for status if available
+        status = "idle"
+        cpu = 0
+        ram = 0
+        
+        if redis_client:
+            # Check if agent is busy
+            # This key would be set during execution
+            current_task = await redis_client.get(f"agent:{key}:current_task")
+            if current_task:
+                status = "working"
+                cpu = 45 + (len(name) * 2) # Mock variation
+                ram = 30 + (len(name) * 3)
+            else:
+                # Mock idle stats
+                cpu = 1 + (len(name) % 5)
+                ram = 10 + (len(name) % 10)
+                
+        agents_list.append({
+            "id": key,
+            "name": name,
+            "role": role,
+            "status": status,
+            "cpu": cpu,
+            "ram": ram,
+            "url": url
+        })
+        
+    return agents_list
+
+@app.get("/tasks")
+async def get_tasks():
+    """Get recent tasks"""
+    if not redis_client:
+        return []
+        
+    # Get last 10 tasks from a list
+    task_ids = await redis_client.lrange("tasks:history", 0, 9)
+    tasks = []
+    
+    for tid in task_ids:
+        task_data = await redis_client.get(f"task:{tid}:details")
+        if task_data:
+            tasks.append(json.loads(task_data))
+            
+    return tasks
+
+@app.get("/logs")
+async def get_logs():
+    """Get recent system logs"""
+    if not redis_client:
+        return []
+        
+    # Get last 50 logs
+    logs = await redis_client.lrange("logs:global", 0, 49)
+    return [json.loads(log) for log in logs]
+
+# Helper to log to Redis
+async def log_event(agent: str, level: str, msg: str):
+    if redis_client:
+        entry = {
+            "id": datetime.now().timestamp(),
+            "time": datetime.now().strftime("%H:%M:%S"),
+            "agent": agent,
+            "level": level,
+            "msg": msg
+        }
+        await redis_client.lpush("logs:global", json.dumps(entry))
+        await redis_client.ltrim("logs:global", 0, 99) # Keep last 100

@@ -13,33 +13,15 @@ import {
   Send,
   AlertTriangle,
   CheckCircle,
-  Clock,
-  Server
+  Clock as ClockIcon,
+  Server,
+  Wifi,
+  WifiOff
 } from "lucide-react";
 import clsx from "clsx";
-
-// --- Mock Data ---
-const MOCK_AGENTS = [
-  { id: "orchestrator", name: "Crew Orchestrator", role: "Commander", status: "online", cpu: 12, ram: 45 },
-  { id: "backend", name: "Backend Specialist", role: "Engineer", status: "thinking", cpu: 65, ram: 60 },
-  { id: "frontend", name: "Frontend Specialist", role: "Designer", status: "idle", cpu: 5, ram: 20 },
-  { id: "db-architect", name: "DB Architect", role: "Engineer", status: "idle", cpu: 2, ram: 15 },
-  { id: "coder", name: "Coder Agent", role: "Builder", status: "coding", cpu: 88, ram: 75 },
-];
-
-const MOCK_LOGS = [
-  { id: 1, agent: "orchestrator", level: "info", msg: "Received new mission: Test 3 Protocol", time: "16:13:26" },
-  { id: 2, agent: "db-architect", level: "info", msg: "Analyzing schema requirements for 'todos' table...", time: "16:13:27" },
-  { id: 3, agent: "db-architect", level: "success", msg: "Schema plan approved. Generating migrations.", time: "16:13:28" },
-  { id: 4, agent: "backend", level: "info", msg: "Drafting API routes for CRUD operations.", time: "16:13:29" },
-  { id: 5, agent: "frontend", level: "warn", msg: "Detected missing 'framer-motion' dependency. Adding to plan.", time: "16:13:30" },
-  { id: 6, agent: "coder", level: "info", msg: "Writing file: components/TodoList.tsx", time: "16:13:31" },
-];
-
-const MOCK_TASKS = [
-  { id: "t-003", title: "Build Todo App", status: "in_progress", progress: 75, steps: ["Schema", "API", "UI", "Integration"] },
-  { id: "t-002", title: "User Profile", status: "completed", progress: 100, steps: ["Backend", "Frontend"] },
-];
+import { fetchAgents, fetchLogs, fetchTasks, checkHealth, sendCommand, API_BASE_URL } from "@/lib/api";
+import { Clock } from "@/components/Clock";
+import { ApprovalModal } from "@/components/ApprovalModal";
 
 // --- Components ---
 
@@ -50,7 +32,7 @@ const AgentCard = ({ agent }: { agent: any }) => (
     animate={{ opacity: 1, x: 0 }}
     className={clsx(
       "relative p-4 rounded-sm border-l-4 bg-zinc-900/50 backdrop-blur-sm transition-all hover:bg-zinc-800/50 group",
-      agent.status === "online" ? "border-emerald-500" : 
+      agent.status === "online" || agent.status === "working" ? "border-emerald-500" : 
       agent.status === "thinking" ? "border-cyan-500" :
       agent.status === "coding" ? "border-purple-500" :
       agent.status === "error" ? "border-red-500" : "border-zinc-700"
@@ -63,7 +45,7 @@ const AgentCard = ({ agent }: { agent: any }) => (
       </div>
       <div className={clsx(
         "h-2 w-2 rounded-full animate-pulse",
-        agent.status === "online" ? "bg-emerald-500" : 
+        agent.status === "online" || agent.status === "working" ? "bg-emerald-500" : 
         agent.status === "thinking" ? "bg-cyan-500 shadow-[0_0_10px_#00f0ff]" :
         agent.status === "coding" ? "bg-purple-500 shadow-[0_0_10px_#a855f7]" :
         agent.status === "error" ? "bg-red-500" : "bg-zinc-500"
@@ -120,21 +102,44 @@ const LogEntry = ({ log }: { log: any }) => (
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("live");
   const [input, setInput] = useState("");
-  const [logs, setLogs] = useState(MOCK_LOGS);
   
-  // Simulate live data
+  // Data State
+  const [agents, setAgents] = useState<any[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [connected, setConnected] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+  // Poll for data
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Randomly update CPU stats
-      // In a real app, this would fetch from an API
-    }, 1000);
+    const poll = async () => {
+      const isHealthy = await checkHealth();
+      setConnected(isHealthy);
+      
+      if (isHealthy) {
+        const [agentsData, logsData, tasksData] = await Promise.all([
+          fetchAgents(),
+          fetchLogs(),
+          fetchTasks()
+        ]);
+        
+        if (agentsData.length > 0) setAgents(agentsData);
+        if (logsData.length > 0) setLogs(logsData);
+        if (tasksData.length > 0) setTasks(tasksData);
+        setLastUpdated(new Date());
+      }
+    };
+
+    poll(); // Initial call
+    const interval = setInterval(poll, 2000); // Poll every 2s
     return () => clearInterval(interval);
   }, []);
 
-  const handleCommand = (e: React.FormEvent) => {
+  const handleCommand = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
     
+    // Optimistic log
     const newLog = {
       id: Date.now(),
       agent: "USER",
@@ -142,29 +147,57 @@ export default function Dashboard() {
       msg: `Command issued: ${input}`,
       time: new Date().toLocaleTimeString([], { hour12: false })
     };
-    
     setLogs(prev => [newLog, ...prev]);
+    
+    // Send to API
+    const res = await sendCommand(input);
+    
+    if (res.status === "error") {
+         setLogs(prev => [{
+            id: Date.now() + 1,
+            agent: "SYSTEM",
+            level: "error",
+            msg: `Command failed: ${res.message}`,
+            time: new Date().toLocaleTimeString([], { hour12: false })
+         }, ...prev]);
+    } else if (res.status === "ignored") {
+         setLogs(prev => [{
+            id: Date.now() + 1,
+            agent: "SYSTEM",
+            level: "warn",
+            msg: res.message,
+            time: new Date().toLocaleTimeString([], { hour12: false })
+         }, ...prev]);
+    }
+
     setInput("");
   };
 
   return (
     <div className="flex flex-col h-full scanline">
+      <ApprovalModal />
       {/* Header */}
       <header className="h-14 border-b border-zinc-800 bg-black/50 flex items-center justify-between px-6 shrink-0">
         <div className="flex items-center gap-4">
           <Activity className="text-cyan-500 animate-pulse" size={20} />
           <h1 className="text-lg font-bold tracking-[0.2em] text-cyan-500 glow-text">
-            HYPERSTATION <span className="text-zinc-600 text-xs tracking-normal">ALPHA</span>
+            HYPERSTATION <span className="text-zinc-600 text-xs tracking-normal">BETA</span>
           </h1>
         </div>
         <div className="flex items-center gap-6 text-xs font-mono text-zinc-500">
+           <div className="flex items-center gap-2" title={`API: ${API_BASE_URL}`}>
+            {connected ? <Wifi size={14} className="text-emerald-500" /> : <WifiOff size={14} className="text-red-500" />}
+            <span className={connected ? "text-emerald-500" : "text-red-500"}>
+                {connected ? "CONNECTED" : "OFFLINE"}
+            </span>
+          </div>
           <div className="flex items-center gap-2">
             <Server size={14} />
             <span className="text-emerald-500">SYSTEM OPTIMAL</span>
           </div>
           <div className="flex items-center gap-2">
-            <Clock size={14} />
-            <span>STARDATE {new Date().toISOString().split('T')[0]}</span>
+            <ClockIcon size={14} />
+            <Clock />
           </div>
         </div>
       </header>
@@ -178,7 +211,10 @@ export default function Dashboard() {
             <Shield size={12} /> Active Agents
           </h2>
           <div className="space-y-3">
-            {MOCK_AGENTS.map(agent => (
+            {agents.length === 0 && !connected && (
+                <div className="text-xs text-zinc-500 text-center py-4">Connecting to Neural Net...</div>
+            )}
+            {agents.map(agent => (
               <AgentCard key={agent.id} agent={agent} />
             ))}
           </div>
@@ -214,7 +250,7 @@ export default function Dashboard() {
                   <span className="animate-pulse">● LIVE</span>
                 </div>
                 <div className="flex flex-col-reverse gap-1 min-h-0">
-                   {logs.map(log => <LogEntry key={log.id} log={log} />)}
+                   {logs.map((log, i) => <LogEntry key={log.id || i} log={log} />)}
                 </div>
               </div>
             )}
@@ -229,24 +265,25 @@ export default function Dashboard() {
 
             {activeTab === 'tasks' && (
                <div className="space-y-4">
-                 {MOCK_TASKS.map(task => (
+                 {tasks.map(task => (
                    <div key={task.id} className="border border-zinc-800 bg-zinc-900/20 p-4 rounded-sm">
                       <div className="flex justify-between mb-2">
-                        <h3 className="font-bold text-cyan-400">{task.title}</h3>
+                        <h3 className="font-bold text-cyan-400">{task.description || task.title}</h3>
                         <span className="text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 uppercase">{task.status}</span>
                       </div>
                       <div className="h-1 bg-zinc-800 w-full rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500 transition-all" style={{ width: `${task.progress}%` }} />
+                        <div className="h-full bg-emerald-500 transition-all" style={{ width: `${task.progress || 0}%` }} />
                       </div>
                       <div className="flex gap-2 mt-3">
-                        {task.steps.map((step, i) => (
-                           <div key={i} className="text-[10px] bg-zinc-900 border border-zinc-700 px-2 py-1 rounded text-zinc-500">
-                             {step}
-                           </div>
-                        ))}
+                         <div className="text-[10px] bg-zinc-900 border border-zinc-700 px-2 py-1 rounded text-zinc-500">
+                             ID: {task.id}
+                         </div>
                       </div>
                    </div>
                  ))}
+                 {tasks.length === 0 && (
+                     <div className="text-center text-zinc-600 py-10">No active missions. Standby.</div>
+                 )}
                </div>
             )}
           </div>
@@ -261,7 +298,7 @@ export default function Dashboard() {
                   type="text" 
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Enter directive..."
+                  placeholder="Enter directive (e.g., 'run: build a spaceship UI')..."
                   className="flex-1 bg-transparent border-b border-zinc-700 text-cyan-400 font-mono focus:outline-none focus:border-cyan-500 transition-colors placeholder:text-zinc-700"
                 />
                 <button 
