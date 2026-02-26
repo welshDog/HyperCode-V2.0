@@ -18,6 +18,7 @@ volumes:
   grafana-data:
   prometheus-data:
   ollama-data:
+  agent_memory:
 
 services:
   # ====================
@@ -251,6 +252,7 @@ services:
   # ====================
   # AGENTS
   # ====================
+  
   coder-agent:
     profiles: ["agents"]
     build:
@@ -262,13 +264,17 @@ services:
       - PROMETHEUS_URL=http://prometheus:9090
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - AGENT_PORT=8002
     volumes:
       - ./agents/coder/workspace:/workspace
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
       - ./Configuration_Kit:/app/hive_mind:ro
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./agents/shared:/app/shared:ro
+      - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
+      - agent_memory:/app/memory
     ports:
-      - "8001:8000"
+      - "8002:8002"
     networks:
       - backend-net
     depends_on:
@@ -380,6 +386,9 @@ services:
       - CORE_URL=http://hypercode-core:8000
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/shared:/app/shared:ro
+      - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
+      - agent_memory:/app/memory
     depends_on:
       redis:
         condition: service_healthy
@@ -389,8 +398,11 @@ services:
       - backend-net
       - data-net
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8081:8080"
     restart: unless-stopped
+    command: >
+      sh -c "python -m arq task_queue.WorkerSettings &
+             uvicorn main:app --host 0.0.0.0 --port 8080"
     deploy:
       resources:
         limits:
@@ -416,6 +428,7 @@ services:
       context: ./agents/01-frontend-specialist
     container_name: frontend-specialist
     environment:
+      - AGENT_PORT=8002
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - REDIS_URL=redis://redis:6379
       - CORE_URL=http://hypercode-core:8000
@@ -423,6 +436,9 @@ services:
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./agents/shared:/app/shared:ro
+      - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
+      - agent_memory:/app/memory
     depends_on:
       redis:
         condition: service_healthy
@@ -462,6 +478,7 @@ services:
       context: ./agents/02-backend-specialist
     container_name: backend-specialist
     environment:
+      - AGENT_PORT=8003
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - REDIS_URL=redis://redis:6379
       - CORE_URL=http://hypercode-core:8000
@@ -469,6 +486,9 @@ services:
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./agents/shared:/app/shared:ro
+      - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
+      - agent_memory:/app/memory
     depends_on:
       redis:
         condition: service_healthy
