@@ -74,6 +74,17 @@ export async function sendCommand(command: string) {
     return { status: "ignored", message: "Command not recognized (try 'run: ...')" };
 }
 
+export async function fetchSystemHealth() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/system/health`);
+    if (!res.ok) throw new Error("Failed to fetch system health");
+    return await res.json();
+  } catch (error) {
+    console.error("API Error:", error);
+    return null;
+  }
+}
+
 export async function respondToApproval(approvalId: string, status: "approved" | "rejected") {
     try {
         const res = await fetch(`${API_BASE_URL}/approvals/respond`, {

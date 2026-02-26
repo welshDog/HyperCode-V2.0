@@ -421,6 +421,46 @@ services:
     cap_drop:
       - ALL
 
+  healer-agent:
+    profiles: ["agents"]
+    build:
+      context: ./agents/healer
+      dockerfile: Dockerfile
+    container_name: healer-agent
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - ORCHESTRATOR_URL=http://crew-orchestrator:8080
+      - AGENT_PORT=8008
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      redis:
+        condition: service_healthy
+      crew-orchestrator:
+        condition: service_started
+    networks:
+      - backend-net
+      - data-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8008/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
   # Agents (Tier 2)
   frontend-specialist:
     profiles: ["agents"]
