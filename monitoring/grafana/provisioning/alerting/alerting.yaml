@@ -7,7 +7,7 @@ contactPoints:
       - uid: "broski_discord"
         type: discord
         settings:
-          url: "https://discord.com/api/webhooks/1344265743472001085/oGqfWw_t1iN5D6Gg4D-K8-I5Z_r3Y8q2V9x0s1d4f7h2j5k8l3m6n9p0"
+          url: "https://discord.com/api/webhooks/1476536263669579797/_7MOawyw66xXk2JSQOoe38paWH-KnIyHE4mUoRVlUGS2WOdEpRU0h1jh4FzbPJfbuCH2"
           message: |
             {{ template "broski.alert" . }}
         disableResolveMessage: false
