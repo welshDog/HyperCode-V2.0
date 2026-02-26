@@ -1,0 +1,20 @@
+groups:
+  - name: agent_health
+    rules:
+      - alert: AgentHighCPU
+        expr: container_cpu_usage_seconds_total{name=~".*-agent|.*-specialist|.*-architect|.*-engineer"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.name }}"
+          description: "Agent {{ $labels.name }} is using >80% CPU for more than 5 minutes."
+
+      - alert: AgentRestartStorm
+        expr: increase(container_start_time_seconds{name=~".*-agent|.*-specialist|.*-architect|.*-engineer"}[15m]) > 3
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Restart storm detected on {{ $labels.name }}"
+          description: "Agent {{ $labels.name }} has restarted more than 3 times in 15 minutes."
