@@ -29,12 +29,13 @@ FROM python:3.11.8-slim
 
 WORKDIR /app
 
-# Install runtime dependencies (curl for healthcheck)
+# Install runtime dependencies (curl for healthcheck, docker for deployment)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
     apt-get install -y --no-install-recommends \
     curl \
+    docker.io \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONDONTWRITEBYTECODE=1 \

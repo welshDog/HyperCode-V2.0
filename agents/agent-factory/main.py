@@ -3,10 +3,33 @@ from pydantic import BaseModel
 from typing import List, Dict, Optional
 import uuid
 import datetime
+import logging
 
-app = FastAPI(title="Hyper Agent Factory", version="0.1.0")
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("agent-factory")
 
-# --- Models ---
+from contextlib import asynccontextmanager
+
+# --- LIFECYCLE ---
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic (e.g., connect to DB/Redis if needed)
+    # For now, we just mock the registry
+    logger.info("Agent Factory initialized")
+    
+    yield
+    
+    # Shutdown logic
+    logger.info("Agent Factory shutting down")
+
+app = FastAPI(
+    title="Hyper Agent Factory", 
+    description="Creates and manages specialized AI agents for HyperCode",
+    version="0.1.0", 
+    lifespan=lifespan
+)
 
 class AgentProfile(BaseModel):
     name: str

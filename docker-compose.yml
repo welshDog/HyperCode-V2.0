@@ -75,43 +75,43 @@ services:
       - ./backend:/app
 
   # Frontend - Terminal
-  broski-terminal:
-    build:
-      context: ./BROski Business Agents/broski-terminal
-      dockerfile: Dockerfile
-    container_name: broski-terminal
-    environment:
-      NEXT_PUBLIC_CORE_URL: ${NEXT_PUBLIC_CORE_URL:-http://localhost:8000}
-      NEXT_PUBLIC_AGENTS_URL: ${NEXT_PUBLIC_AGENTS_URL:-http://localhost:8000}
-      HOSTNAME: "0.0.0.0"
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {if (r.statusCode !== 200) process.exit(1)})"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - frontend-net
-      - backend-net
-    ports:
-      - "3000:3000" # Public facing
-    depends_on:
-      hypercode-core:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1G
-        reservations:
-          cpus: "0.25"
-          memory: 256M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
+  # broski-terminal:
+  #   build:
+  #     context: ./BROski Business Agents/broski-terminal
+  #     dockerfile: Dockerfile
+  #   container_name: broski-terminal
+  #   environment:
+  #     NEXT_PUBLIC_CORE_URL: ${NEXT_PUBLIC_CORE_URL:-http://localhost:8000}
+  #     NEXT_PUBLIC_AGENTS_URL: ${NEXT_PUBLIC_AGENTS_URL:-http://localhost:8000}
+  #     HOSTNAME: "0.0.0.0"
+  #   healthcheck:
+  #     test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {if (r.statusCode !== 200) process.exit(1)})"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #   networks:
+  #     - frontend-net
+  #     - backend-net
+  #   ports:
+  #     - "3000:3000" # Public facing
+  #   depends_on:
+  #     hypercode-core:
+  #       condition: service_healthy
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "1"
+  #         memory: 1G
+  #       reservations:
+  #         cpus: "0.25"
+  #         memory: 256M
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+  #   security_opt:
+  #     - no-new-privileges:true
 
   node-exporter:
     image: prom/node-exporter:latest
@@ -153,7 +153,7 @@ services:
       - "3200:3200"   # tempo
       - "4317:4317"  # otlp grpc
       - "4318:4318"  # otlp http
-      - "9411:9411"   # zipkin
+      - "9412:9411"   # zipkin (changed from 9411 to avoid conflict with Jaeger)
     networks:
       - backend-net
     restart: unless-stopped
@@ -170,38 +170,38 @@ services:
     restart: unless-stopped
 
   # Frontend - Editor
-  hyperflow-editor:
-    build:
-      context: ./THE HYPERCODE/hyperflow-editor
-      dockerfile: Dockerfile
-    container_name: hyperflow-editor
-    ports:
-      - "5173:4173" # Public facing
-    depends_on:
-      hypercode-core:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-        reservations:
-          cpus: "0.1"
-          memory: 128M
-    networks:
-      - frontend-net
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:4173/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
+  # hyperflow-editor:
+  #   build:
+  #     context: ./THE HYPERCODE/hyperflow-editor
+  #     dockerfile: Dockerfile
+  #   container_name: hyperflow-editor
+  #   ports:
+  #     - "5173:4173" # Public facing
+  #   depends_on:
+  #     hypercode-core:
+  #       condition: service_healthy
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.5"
+  #         memory: 512M
+  #       reservations:
+  #         cpus: "0.1"
+  #         memory: 128M
+  #   networks:
+  #     - frontend-net
+  #   healthcheck:
+  #     test: ["CMD", "wget", "-qO-", "http://localhost:4173/"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+  #   security_opt:
+  #     - no-new-privileges:true
 
   # Worker
   celery-worker:
@@ -318,43 +318,43 @@ services:
     security_opt:
       - no-new-privileges:true
       
-  hyper-agents-box:
-    profiles: ["agents"]
-    build:
-      context: ./Hyper-Agents-Box/hyper-agents-box
-      dockerfile: docker/Dockerfile
-    container_name: hyper-agents-box
-    ports:
-      - "127.0.0.1:5000:5000"
-    restart: unless-stopped
-    networks:
-      - backend-net
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
+  # hyper-agents-box:
+  #   profiles: ["agents"]
+  #   build:
+  #     context: ./Hyper-Agents-Box/hyper-agents-box
+  #     dockerfile: docker/Dockerfile
+  #   container_name: hyper-agents-box
+  #   ports:
+  #     - "127.0.0.1:5000:5000"
+  #   restart: unless-stopped
+  #   networks:
+  #     - backend-net
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.5"
+  #         memory: 512M
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+  #   security_opt:
+  #     - no-new-privileges:true
 
   dashboard:
-    image: nginx:alpine
+    build:
+      context: ./agents/dashboard
+      dockerfile: Dockerfile
     container_name: hypercode-dashboard
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost/" ]
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/" ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
     ports:
-      - "8088:80" # Public facing dashboard
-    volumes:
-      - ./agents/dashboard:/usr/share/nginx/html:ro
+      - "8088:3000" # Public facing dashboard
     depends_on:
       hypercode-core:
         condition: service_healthy
@@ -364,8 +364,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.2"
-          memory: 128M
+          cpus: "0.5"
+          memory: 512M
     logging:
       driver: "json-file"
       options:
@@ -668,11 +668,11 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_PORT=8006
       - AGENT_HEALTH_URL=http://devops-engineer:8006/health
-      # DOCKER_HOST removed for security hardening
+      - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
-      # Docker socket mount removed for security hardening
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       redis:
         condition: service_healthy
@@ -703,8 +703,8 @@ services:
         max-file: "3"
     security_opt:
       - no-new-privileges:true
-    cap_drop:
-      - ALL
+    # cap_drop:
+    #   - ALL
 
   security-engineer:
     profiles: ["agents"]

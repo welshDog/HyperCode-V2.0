@@ -6,8 +6,8 @@ from typing import Optional
 
 # Ensure we can import healer package
 try:
-    from healer.adapters.docker_adapter import DockerAdapter
-    from healer.models import ContainerStatus
+    from agents.healer.adapters.docker_adapter import DockerAdapter
+    from agents.healer.models import ContainerStatus
 except ImportError:
     # Attempt to patch sys.path to find 'healer'
     # Assume we are in .../agents/healer/cli.py
@@ -18,8 +18,8 @@ except ImportError:
         sys.path.append(parent_dir)
     
     try:
-        from healer.adapters.docker_adapter import DockerAdapter
-        from healer.models import ContainerStatus
+        from agents.healer.adapters.docker_adapter import DockerAdapter
+        from agents.healer.models import ContainerStatus
     except ImportError:
         # Fallback: try adding project root if agents is not package root
         # .../HyperCode-V2.0/agents/healer -> .../HyperCode-V2.0
@@ -27,9 +27,12 @@ except ImportError:
         if project_root not in sys.path:
             sys.path.append(project_root)
         
-        # Try importing via full path if needed, or rely on previous
-        from agents.healer.adapters.docker_adapter import DockerAdapter
-        from agents.healer.models import ContainerStatus
+        # Try importing via full path if needed, or rely on previous successful import
+        try:
+            from agents.healer.adapters.docker_adapter import DockerAdapter
+            from agents.healer.models import ContainerStatus
+        except ImportError:
+            raise ImportError("Failed to import Healer Agent components. Check sys.path.")
 
 app = typer.Typer(help="Healer Agent CLI - Manual Intervention Tools")
 adapter = DockerAdapter()
