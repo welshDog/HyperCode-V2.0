@@ -347,12 +347,17 @@ services:
       context: ./agents/dashboard
       dockerfile: Dockerfile
     container_name: hypercode-dashboard
+    environment:
+      - NEXT_PUBLIC_CORE_URL=http://hypercode-core:8000
+      - NODE_ENV=production
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => {if (r.statusCode !== 200) process.exit(1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     ports:
       - "8088:3000" # Public facing dashboard
     depends_on:
@@ -360,6 +365,7 @@ services:
         condition: service_healthy
     networks:
       - frontend-net
+      - backend-net
     restart: unless-stopped
     deploy:
       resources:
@@ -660,7 +666,8 @@ services:
   devops-engineer:
     profiles: ["agents"]
     build:
-      context: ./agents/05-devops-engineer
+      context: .
+      dockerfile: agents/05-devops-engineer/Dockerfile
     container_name: devops-engineer
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
@@ -669,6 +676,7 @@ services:
       - AGENT_PORT=8006
       - AGENT_HEALTH_URL=http://devops-engineer:8006/health
       - DOCKER_HOST=unix:///var/run/docker.sock
+      - DOCKER_API_VERSION=1.44
     volumes:
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
@@ -705,6 +713,22 @@ services:
       - no-new-privileges:true
     # cap_drop:
     #   - ALL
+
+  test-agent:
+    profiles: ["test"]
+    build:
+      context: ./agents/test-agent
+    container_name: test-agent
+    environment:
+      - PORT=8080
+    networks:
+      - backend-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
 
   security-engineer:
     profiles: ["agents"]
@@ -1011,3 +1035,5 @@ services:
         max-file: "3"
     security_opt:
       - no-new-privileges:true
+
+

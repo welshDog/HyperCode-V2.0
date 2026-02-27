@@ -48,20 +48,36 @@ export function SystemHealth() {
     (a) => a.status === "down" || a.status === "unhealthy"
   ).length;
 
+  let statusColor = "border-zinc-800";
+  let statusIconColor = "text-green-500";
+  let statusLabel = null;
+
+  if (failedCount >= 4) {
+      statusColor = "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]";
+      statusIconColor = "text-red-500";
+      statusLabel = (
+        <span className="flex items-center gap-1 text-xs font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded-full animate-pulse">
+            <AlertTriangle className="w-3 h-3" /> CRITICAL
+        </span>
+      );
+  } else if (failedCount > 0) {
+      statusColor = "border-yellow-500/50 shadow-[0_0_10px_rgba(234,179,8,0.1)]";
+      statusIconColor = "text-yellow-500";
+      statusLabel = (
+        <span className="flex items-center gap-1 text-xs font-bold text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded-full">
+            <AlertTriangle className="w-3 h-3" /> DEGRADED
+        </span>
+      );
+  }
+
   return (
-    <div className={`bg-zinc-900 border rounded-lg p-4 w-full transition-colors ${
-        failedCount >= 4 ? "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]" : "border-zinc-800"
-    }`}>
+    <div className={`bg-zinc-900 border rounded-lg p-4 w-full transition-colors ${statusColor}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Activity className={`w-5 h-5 ${failedCount >= 4 ? "text-red-500" : "text-green-500"}`} />
+          <Activity className={`w-5 h-5 ${statusIconColor}`} />
           <h3 className="font-semibold text-zinc-200">System Health</h3>
         </div>
-        {failedCount >= 4 && (
-            <span className="flex items-center gap-1 text-xs font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded-full animate-pulse">
-                <AlertTriangle className="w-3 h-3" /> CRITICAL
-            </span>
-        )}
+        {statusLabel}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">

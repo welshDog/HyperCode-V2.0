@@ -18,7 +18,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies (leverage cache)
-COPY requirements.txt .
+COPY agents/05-devops-engineer/requirements.txt .
+# Install dependencies
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip wheel --no-cache-dir --no-deps --wheel-dir /wheels -r requirements.txt
 
@@ -29,13 +30,20 @@ FROM python:3.11.8-slim
 
 WORKDIR /app
 
-# Install runtime dependencies (curl for healthcheck, docker for deployment)
+# Install runtime dependencies (curl for healthcheck, docker for deployment, kubectl)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
     apt-get install -y --no-install-recommends \
     curl \
     docker.io \
+    && mkdir -p /usr/lib/docker/cli-plugins \
+    && curl -L "https://github.com/docker/compose/releases/download/v2.24.6/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose \
+    && chmod +x /usr/local/bin/docker-compose \
+    && ln -s /usr/local/bin/docker-compose /usr/lib/docker/cli-plugins/docker-compose \
+    && curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+    && install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl \
+    && rm kubectl \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -51,9 +59,12 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --no-cache-dir /wheels/* && \
     rm -rf /wheels
 
-# Copy application code (after deps for better caching)
-COPY agent.py .
-COPY config.json .
+# Copy application code
+COPY agents/05-devops-engineer/agent.py .
+COPY agents/05-devops-engineer/config.json .
+
+# Copy Shared Modules (Evolution Protocol)
+COPY agents/shared /app/agents/shared
 
 # Mount point for Hive Mind
 VOLUME ["/app/hive_mind"]

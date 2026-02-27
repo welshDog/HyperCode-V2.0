@@ -36,6 +36,28 @@ class Deployer:
         try:
             # 1. Build
             logger.info("Building...")
+            # We assume docker compose v2 is available as a plugin or standalone
+            # But inside the container we only installed docker.io which gives us `docker` cli.
+            # Docker Compose v2 is usually `docker compose`, but v1 was `docker-compose`.
+            # In standard docker.io package on debian, compose plugin might not be included.
+            
+            # Let's try to detect if we should use `docker-compose` or `docker compose`
+            # For now, let's assume we need to install the plugin or use a different command.
+            # Since the error was "docker: 'compose' is not a docker command", we lack the plugin.
+            
+            # However, installing the plugin inside the container adds complexity.
+            # A simpler approach for self-hosted agents might be just restarting the container
+            # if the image is built elsewhere. But here we are building it.
+            
+            # WORKAROUND: If we can't build, we can at least try to restart.
+            # But the requirement is to BUILD.
+            
+            # Let's try to use the legacy `docker-compose` if available, or just fail for now.
+            # But we can fix the command to standard `docker` commands if compose is missing.
+            # `docker build` + `docker stop` + `docker rm` + `docker run`? Too complex due to networking.
+            
+            # Better fix: Install docker-compose-plugin in the Dockerfile.
+            
             build_res = subprocess.run(
                 ["docker", "compose", "build", service_name],
                 capture_output=True,

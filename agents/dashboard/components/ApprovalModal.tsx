@@ -50,8 +50,18 @@ export function ApprovalModal() {
         socket.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                console.log("Approval Request Received:", data);
-                setRequests(prev => [...prev, data]);
+                console.log("WS Message Received:", data);
+                
+                // Validate payload: Must have task_id to be an approval request
+                if (data && data.task_id && data.description) {
+                    setRequests(prev => {
+                        // Prevent duplicates
+                        if (prev.some(r => r.id === data.id)) return prev;
+                        return [...prev, data];
+                    });
+                } else {
+                    console.log("Ignored non-approval message:", data);
+                }
             } catch (e) {
                 console.error("Failed to parse approval message", e);
             }
