@@ -32,7 +32,7 @@ const AgentCard = ({ agent }: { agent: any }) => (
     initial={{ opacity: 0, x: -20 }}
     animate={{ opacity: 1, x: 0 }}
     className={clsx(
-      "relative p-4 rounded-sm border-l-4 bg-zinc-900/50 backdrop-blur-sm transition-all hover:bg-zinc-800/50 group",
+      "relative p-4 rounded-sm border-l-4 bg-zinc-900/50 backdrop-blur-sm transition-all cursor-default",
       agent.status === "online" || agent.status === "working" ? "border-emerald-500" : 
       agent.status === "thinking" ? "border-cyan-500" :
       agent.status === "coding" ? "border-purple-500" :

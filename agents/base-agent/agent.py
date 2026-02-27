@@ -89,15 +89,32 @@ class BaseAgent:
             self.client = AsyncAnthropic(api_key=self.config.anthropic_key)
         
         # Initialize Shared Systems
-        if AgentMemory:
-            self.agent_memory = AgentMemory(self.config.name)
-            # Try to ingest Bible if available
-            bible_path = "/app/HYPER-AGENT-BIBLE.md"
-            if os.path.exists(bible_path):
-                self.agent_memory.ingest_document(bible_path)
-        
-        if ProjectMemory:
-            self.project_memory = ProjectMemory(self.config.redis_url)
+        # (This import might fail if shared modules are missing, but we handle it gracefully)
+        try:
+            if AgentMemory:
+                self.agent_memory = AgentMemory(self.config.name)
+                # Try to ingest Bible if available
+                bible_path = "/app/HYPER-AGENT-BIBLE.md"
+                if os.path.exists(bible_path):
+                    self.agent_memory.ingest_document(bible_path)
+            
+            if ProjectMemory:
+                self.project_memory = ProjectMemory(self.config.redis_url)
+        except NameError:
+            if self.logger:
+                self.logger.warning("Shared memory modules not available")
+            
+        await self.initialize()
+
+    async def initialize(self):
+        """Hook for subclasses to add custom initialization logic"""
+        pass
+
+    def register_tool(self, tool_func):
+        """Placeholder for tool registration (future implementation)"""
+        # In a real implementation, this would register the tool with the LLM client
+        if self.logger:
+            self.logger.info(f"Registered tool: {tool_func.__name__}")
             
         if ApprovalSystem:
             self.approval_system = ApprovalSystem(self.config.redis_url)

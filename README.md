@@ -37,6 +37,8 @@ Agent X is a meta-agent system designed to architect, implement, and deploy spec
 
 Get the entire ecosystem running in **under 2 minutes** with **Hyper Station**.
 
+> **New:** HyperCode now features an **Evolutionary Pipeline** that allows agents to upgrade themselves autonomously! See [docs/guides/EVOLUTIONARY_PIPELINE_SETUP.md](docs/guides/EVOLUTIONARY_PIPELINE_SETUP.md) to learn more.
+
 ### Prerequisites
 - Docker Desktop
 - Windows PowerShell
@@ -91,6 +93,7 @@ See [docs/architecture/architecture.md](docs/architecture/architecture.md) for d
 
 - **HyperCode Core**: FastAPI backend managing memory, context, and integrations.
 - **Crew Orchestrator**: Manages the lifecycle and task execution of AI agents.
+- **DevOps Engineer**: Handles CI/CD and **Autonomous Evolution** (rebuilding agents on-the-fly).
 - **Healer Agent**: Monitors system health and automatically recovers failed services.
 - **Dashboard**: Next.js/React frontend for real-time visualization and control.
 - **Infrastructure**: Docker Compose network with Redis, PostgreSQL, and Observability stack.
