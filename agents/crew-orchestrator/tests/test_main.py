@@ -1,7 +1,13 @@
 import pytest
+import sys
+import os
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, patch, MagicMock
 import json
+
+# Add parent directory to path to import main
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from main import app
 
 client = TestClient(app)

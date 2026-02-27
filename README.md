@@ -35,41 +35,78 @@ Agent X is a meta-agent system designed to architect, implement, and deploy spec
 
 ## ⚡ Quick Start
 
-Get the entire ecosystem running in **under 2 minutes**.
+Get the entire ecosystem running in **under 2 minutes** with **Hyper Station**.
 
 ### Prerequisites
-- Docker & Docker Compose
-- Node.js 18+ (for local frontend dev)
+- Docker Desktop
+- Windows PowerShell
 
 ### Installation
 
 1. **Clone the repository**
-   ```bash
+   ```powershell
    git clone https://github.com/welshDog/HyperCode-V2.0.git
    cd HyperCode-V2.0
    ```
 
 2. **Configure Environment**
-   ```bash
+   ```powershell
    cp .env.example .env
    # Edit .env and add your API keys (Anthropic/OpenAI)
    ```
 
-3. **Launch the Stack**
-   ```bash
-   docker compose up -d
+3. **Install Shortcuts (Recommended)**
+   Run the setup script to create Desktop shortcuts for one-click launch:
+   ```powershell
+   .\scripts\install_shortcuts.ps1
+   ```
+   *This creates "HYPER STATION START" and "HYPER STATION STOP" on your Desktop.*
+
+4. **Launch the Mission**
+   Double-click **HYPER STATION START** or run:
+   ```powershell
+   .\scripts\hyper-station-start.bat
    ```
 
-4. **Access the Interfaces**
-   - 🖥️ **Web Interface**: `http://localhost:3000`
-   - 📊 **Grafana**: `http://localhost:3001` (User: `admin` / Pass: `admin`)
-   - 📈 **Prometheus**: `http://localhost:9090`
-   - 📝 **API Docs**: `http://localhost:8000/docs`
+### Access the Interfaces
 
-> **See [DEPLOYMENT_SUMMARY_ONE_PAGE.md](DEPLOYMENT_SUMMARY_ONE_PAGE.md) for a quick operational reference.**
+Once launched, the system opens automatically. You can also access services manually:
+
+- 🚀 **Mission Control Dashboard**: `http://localhost:8088` (Main Interface)
+- 🖥️ **BROski Terminal**: `http://localhost:3000` (Command Line UI)
+- 🧠 **Crew Orchestrator**: `http://localhost:8081` (Agent Management)
+- ❤️ **Healer Agent**: `http://localhost:8008` (Self-Healing System)
+- 📝 **Core API Docs**: `http://localhost:8000/docs`
+- 📊 **Grafana**: `http://localhost:3001` (User: `admin` / Pass: `admin`)
+
+> **See [docs/HyperStation_User_Guide.md](docs/HyperStation_User_Guide.md) for detailed usage instructions.**
 
 ---
 
 ## 🏗️ Architecture
 
-See [docs/architecture.md](docs/architecture.md) for detailed system design.
+See [docs/architecture/architecture.md](docs/architecture/architecture.md) for detailed system design.
+
+### Key Components
+
+- **HyperCode Core**: FastAPI backend managing memory, context, and integrations.
+- **Crew Orchestrator**: Manages the lifecycle and task execution of AI agents.
+- **Healer Agent**: Monitors system health and automatically recovers failed services.
+- **Dashboard**: Next.js/React frontend for real-time visualization and control.
+- **Infrastructure**: Docker Compose network with Redis, PostgreSQL, and Observability stack.
+
+---
+
+## 🛡️ Health & Status
+
+Check the latest system health report: [docs/health_assessment_report.md](docs/health_assessment_report.md)
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

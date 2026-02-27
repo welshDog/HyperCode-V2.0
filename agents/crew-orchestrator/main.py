@@ -2,40 +2,29 @@
 FastAPI Orchestration Layer for HyperCode Agent Crew
 Manages communication between 8 specialized agents
 """
-from fastapi import FastAPI, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect, Body
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
-import redis.asyncio as redis
+from typing import List, Dict, Optional, Any
 import httpx
 import os
 import json
-from datetime import datetime
 import logging
 import asyncio
+from contextlib import asynccontextmanager
 from task_queue import get_redis_pool
+import redis.asyncio as redis
+from datetime import datetime
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("orchestrator")
+logger = logging.getLogger("crew-orchestrator")
 
-app = FastAPI(
-    title="HyperCode Agent Crew Orchestrator",
-    description="Coordinates 8 specialized AI agents for software development",
-    version="2.0"
-)
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")
+redis_client: Optional[redis.Redis] = None
 
-# CORS configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Redis connection for agent communication
-redis_client = None
+# Forward declaration of app
+app: FastAPI = None # type: ignore
 
 # Agent service endpoints
 AGENTS = {
@@ -50,53 +39,106 @@ AGENTS = {
     "coder_agent": "http://coder-agent:8002",
 }
 
-# --- WEBSOCKET FOR APPROVALS ---
-connected_dashboards: List[WebSocket] = []
+# --- LIFECYCLE ---
 
-@app.websocket("/ws/approvals")
-async def websocket_approvals(websocket: WebSocket):
-    await websocket.accept()
-    connected_dashboards.append(websocket)
-    logger.info("Dashboard connected to approval stream")
-    
-    try:
-        # Create a new Redis connection for subscribing
-        pubsub_redis = await redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379"), decode_responses=True)
-        pubsub = pubsub_redis.pubsub()
-        await pubsub.subscribe("approval_requests")
-        
-        async for message in pubsub.listen():
-            if message['type'] == 'message':
-                # Forward approval request to dashboard
-                await websocket.send_text(message['data'])
+async def monitor_agent_health():
+    """Background task to monitor agent health status"""
+    while True:
+        try:
+            if not redis_client:
+                await asyncio.sleep(5)
+                continue
                 
-    except WebSocketDisconnect:
-        logger.info("Dashboard disconnected")
-        connected_dashboards.remove(websocket)
-    except Exception as e:
-        logger.error(f"WebSocket error: {e}")
-    finally:
-        if websocket in connected_dashboards:
-            connected_dashboards.remove(websocket)
+            failed_agents = []
+            results = {}
+            
+            for agent_name, url in AGENTS.items():
+                try:
+                    async with httpx.AsyncClient(timeout=5.0) as client:
+                        start_time = datetime.now()
+                        response = await client.get(f"{url}/health")
+                        latency = (datetime.now() - start_time).total_seconds() * 1000
+                        
+                        if response.status_code == 200:
+                            results[agent_name] = {
+                                "status": "healthy",
+                                "latency_ms": latency,
+                                "last_checked": datetime.now().isoformat()
+                            }
+                        else:
+                            failed_agents.append(agent_name)
+                            results[agent_name] = {
+                                "status": "unhealthy",
+                                "error": f"Status {response.status_code}",
+                                "last_checked": datetime.now().isoformat()
+                            }
+                except Exception as e:
+                    failed_agents.append(agent_name)
+                    results[agent_name] = {
+                        "status": "down",
+                        "error": str(e),
+                        "last_checked": datetime.now().isoformat()
+                    }
+            
+            # Store health results in Redis for dashboard
+            await redis_client.set("system:health", json.dumps(results))
+            
+            # Alert if threshold reached
+            if len(failed_agents) >= 4:
+                alert_msg = {
+                    "type": "CRITICAL_ALERT",
+                    "message": f"CRITICAL: {len(failed_agents)} agents are DOWN!",
+                    "failed_agents": failed_agents,
+                    "timestamp": datetime.now().isoformat()
+                }
+                # Publish to dashboard via existing approval channel or new alert channel
+                await redis_client.publish("approval_requests", json.dumps(alert_msg))
+                logger.critical(f"HEALTH ALERT: {len(failed_agents)} agents down: {failed_agents}")
+                
+        except Exception as e:
+            logger.error(f"Health monitor error: {e}")
+            
+        await asyncio.sleep(30) # Run every 30 seconds
 
-@app.post("/approvals/respond")
-async def respond_to_approval(response: Dict[str, Any]):
-    """Endpoint for Dashboard to approve/reject tasks"""
-    if not redis_client:
-        raise HTTPException(status_code=503, detail="Redis not connected")
-        
-    approval_id = response.get("approval_id")
-    if not approval_id:
-        raise HTTPException(status_code=400, detail="Missing approval_id")
-        
-    # Store the response where the waiting agent can find it
-    await redis_client.set(
-        f"approval:{approval_id}:response",
-        json.dumps(response),
-        ex=3600 # Expire in 1 hour
-    )
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global redis_client
+    # Startup
+    redis_client = await get_redis_pool()
+    logger.info("Redis connected")
     
-    return {"status": "response_recorded"}
+    # Start background health monitoring
+    monitor_task = asyncio.create_task(monitor_agent_health())
+    
+    yield
+    
+    # Shutdown
+    if monitor_task:
+        monitor_task.cancel()
+        try:
+            await monitor_task
+        except asyncio.CancelledError:
+            pass
+            
+    if redis_client:
+        await redis_client.close()
+        logger.info("Redis connection closed")
+
+app = FastAPI(
+    title="HyperCode Agent Crew Orchestrator", 
+    description="Coordinates 8 specialized AI agents for software development",
+    version="2.0", 
+    lifespan=lifespan
+)
+
+# CORS configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # --- EXECUTION ENDPOINTS ---
 
@@ -313,75 +355,62 @@ async def execute_task(request: ExecuteRequest, background_tasks: BackgroundTask
 
     return {"status": "completed", "message": "Workflow finished", "results": results}
 
-# --- LIFECYCLE ---
+# CORS configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.on_event("startup")
-async def startup_event():
-    global redis_client
-    redis_client = await get_redis_pool()
-    logger.info("Redis connected")
+# --- WEBSOCKET FOR APPROVALS ---
+connected_dashboards: List[WebSocket] = []
+
+@app.websocket("/ws/approvals")
+async def websocket_approvals(websocket: WebSocket):
+    await websocket.accept()
+    connected_dashboards.append(websocket)
+    logger.info("Dashboard connected to approval stream")
     
-    # Start background health monitoring
-    asyncio.create_task(monitor_agent_health())
+    try:
+        # Create a new Redis connection for subscribing
+        pubsub_redis = await redis.from_url(REDIS_URL, decode_responses=True)
+        pubsub = pubsub_redis.pubsub()
+        await pubsub.subscribe("approval_requests")
+        
+        async for message in pubsub.listen():
+            if message['type'] == 'message':
+                # Forward approval request to dashboard
+                await websocket.send_text(message['data'])
+                
+    except WebSocketDisconnect:
+        logger.info("Dashboard disconnected")
+        connected_dashboards.remove(websocket)
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+    finally:
+        if websocket in connected_dashboards:
+            connected_dashboards.remove(websocket)
 
-async def monitor_agent_health():
-    """Background task to monitor agent health status"""
-    while True:
-        try:
-            if not redis_client:
-                await asyncio.sleep(5)
-                continue
-                
-            failed_agents = []
-            results = {}
-            
-            for agent_name, url in AGENTS.items():
-                try:
-                    async with httpx.AsyncClient(timeout=5.0) as client:
-                        start_time = datetime.now()
-                        response = await client.get(f"{url}/health")
-                        latency = (datetime.now() - start_time).total_seconds() * 1000
-                        
-                        if response.status_code == 200:
-                            results[agent_name] = {
-                                "status": "healthy",
-                                "latency_ms": latency,
-                                "last_checked": datetime.now().isoformat()
-                            }
-                        else:
-                            failed_agents.append(agent_name)
-                            results[agent_name] = {
-                                "status": "unhealthy",
-                                "error": f"Status {response.status_code}",
-                                "last_checked": datetime.now().isoformat()
-                            }
-                except Exception as e:
-                    failed_agents.append(agent_name)
-                    results[agent_name] = {
-                        "status": "down",
-                        "error": str(e),
-                        "last_checked": datetime.now().isoformat()
-                    }
-            
-            # Store health results in Redis for dashboard
-            await redis_client.set("system:health", json.dumps(results))
-            
-            # Alert if threshold reached
-            if len(failed_agents) >= 4:
-                alert_msg = {
-                    "type": "CRITICAL_ALERT",
-                    "message": f"CRITICAL: {len(failed_agents)} agents are DOWN!",
-                    "failed_agents": failed_agents,
-                    "timestamp": datetime.now().isoformat()
-                }
-                # Publish to dashboard via existing approval channel or new alert channel
-                await redis_client.publish("approval_requests", json.dumps(alert_msg))
-                logger.critical(f"HEALTH ALERT: {len(failed_agents)} agents down: {failed_agents}")
-                
-        except Exception as e:
-            logger.error(f"Health monitor error: {e}")
-            
-        await asyncio.sleep(30) # Run every 30 seconds
+@app.post("/approvals/respond")
+async def respond_to_approval(response: Dict[str, Any]):
+    """Endpoint for Dashboard to approve/reject tasks"""
+    if not redis_client:
+        raise HTTPException(status_code=503, detail="Redis not connected")
+        
+    approval_id = response.get("approval_id")
+    if not approval_id:
+        raise HTTPException(status_code=400, detail="Missing approval_id")
+        
+    # Store the response where the waiting agent can find it
+    await redis_client.set(
+        f"approval:{approval_id}:response",
+        json.dumps(response),
+        ex=3600 # Expire in 1 hour
+    )
+    
+    return {"status": "response_recorded"}
 
 @app.get("/system/health")
 async def get_system_health():
@@ -395,10 +424,7 @@ async def get_system_health():
         
     return json.loads(health_data)
 
-@app.on_event("shutdown")
-async def shutdown():
-    if redis_client:
-        await redis_client.close()
+
 
 @app.get("/")
 async def root():
@@ -489,16 +515,3 @@ async def get_logs():
     # Get last 50 logs
     logs = await redis_client.lrange("logs:global", 0, 49)
     return [json.loads(log) for log in logs]
-
-# Helper to log to Redis
-async def log_event(agent: str, level: str, msg: str):
-    if redis_client:
-        entry = {
-            "id": datetime.now().timestamp(),
-            "time": datetime.now().strftime("%H:%M:%S"),
-            "agent": agent,
-            "level": level,
-            "msg": msg
-        }
-        await redis_client.lpush("logs:global", json.dumps(entry))
-        await redis_client.ltrim("logs:global", 0, 99) # Keep last 100

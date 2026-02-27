@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from typing import Dict, List, Optional
 import asyncio
@@ -7,20 +8,41 @@ import json
 import logging
 from datetime import datetime
 import redis.asyncio as redis
-from .adapters.docker_adapter import DockerAdapter
-from .models import HealRequest, HealResult
+from agents.healer.adapters.docker_adapter import DockerAdapter
+from agents.healer.models import HealRequest, HealResult
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("healer.main")
-
-app = FastAPI(title="Healer Agent", version="0.1.0", description="Autonomous healing service for agents and systems")
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")
 ORCHESTRATOR_URL = os.getenv("ORCHESTRATOR_URL", "http://crew-orchestrator:8080")
 
 redis_client: Optional[redis.Redis] = None
 docker_adapter: Optional[DockerAdapter] = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global redis_client, docker_adapter
+    # Startup
+    redis_client = await redis.from_url(REDIS_URL, decode_responses=True)
+    docker_adapter = DockerAdapter(redis_url=REDIS_URL)
+    
+    # Subscribe to orchestrator alerts
+    asyncio.create_task(alert_listener())
+    
+    yield
+    
+    # Shutdown
+    if redis_client:
+        await redis_client.close()
+
+app = FastAPI(
+    title="Healer Agent", 
+    version="0.1.0", 
+    description="Autonomous healing service for agents and systems",
+    lifespan=lifespan
+)
 
 async def fetch_system_health() -> Dict[str, Dict]:
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -84,14 +106,7 @@ async def auto_heal_all():
         for res in results:
             logger.info(f"Heal result for {res.agent}: {res.status} - {res.details}")
 
-@app.on_event("startup")
-async def startup():
-    global redis_client, docker_adapter
-    redis_client = await redis.from_url(REDIS_URL, decode_responses=True)
-    docker_adapter = DockerAdapter(redis_url=REDIS_URL)
-    
-    # Subscribe to orchestrator alerts
-    asyncio.create_task(alert_listener())
+
 
 async def alert_listener():
     pub = await redis.from_url(REDIS_URL, decode_responses=True)
