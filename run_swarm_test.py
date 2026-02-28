@@ -20,12 +20,22 @@ def run_test():
 
     # 2. Prepare Task Payload
     task_payload = {
-        "title": "Agent Research Test 01",
-        "description": "Research the latest advancements in Quantum Machine Learning algorithms.",
+        "title": "Translator Agent Test 01",
+        "description": """
+def process_user_cart(cart_items, user_tier):
+    total = 0
+    for item in cart_items:
+        if item.in_stock:
+            if user_tier == 'VIP':
+                total += item.price * 0.8  # 20% discount
+            else:
+                total += item.price
+    return total
+""",
         "project_id": 1,
         "status": "todo",
         "priority": "high",
-        "type": "research" # This triggers the ResearchAgent
+        "type": "translate" # This triggers the TranslatorAgent
     }
 
     print(f"🚀 Firing Payload into HyperCode Core: {task_payload['title']}...")

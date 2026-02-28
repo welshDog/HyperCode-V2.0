@@ -74,6 +74,7 @@ services:
         max-file: "3"
     volumes:
       - ./backend:/app
+      - ./docs/outputs:/app/outputs
 
   # Frontend - Terminal
   # broski-terminal:
@@ -286,6 +287,7 @@ services:
       - 8.8.8.8
     volumes:
       - ./backend:/app
+      - ./docs/outputs:/app/outputs
     environment:
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
