@@ -81,7 +81,7 @@ Once launched, the system opens automatically. You can also access services manu
 - 📝 **Core API Docs**: `http://localhost:8000/docs`
 - 📊 **Grafana**: `http://localhost:3001` (User: `admin` / Pass: `admin`)
 
-> **See [docs/HyperStation_User_Guide.md](docs/HyperStation_User_Guide.md) for detailed usage instructions.**
+> **See [docs/index.md](docs/index.md) for full documentation.**
 
 ---
 
@@ -93,6 +93,7 @@ See [docs/architecture/architecture.md](docs/architecture/architecture.md) for d
 
 - **HyperCode Core**: FastAPI backend managing memory, context, and integrations.
 - **Crew Orchestrator**: Manages the lifecycle and task execution of AI agents.
+- **The Brain**: Cognitive core powered by Perplexity AI.
 - **DevOps Engineer**: Handles CI/CD and **Autonomous Evolution** (rebuilding agents on-the-fly).
 - **Healer Agent**: Monitors system health and automatically recovers failed services.
 - **Dashboard**: Next.js/React frontend for real-time visualization and control.
@@ -102,7 +103,16 @@ See [docs/architecture/architecture.md](docs/architecture/architecture.md) for d
 
 ## 🛡️ Health & Status
 
-Check the latest system health report: [docs/health_assessment_report.md](docs/health_assessment_report.md)
+Check the latest system health report: [docs/notes/HyperCode_Health_Check_Report_2026-02-28.md](docs/notes/HyperCode_Health_Check_Report_2026-02-28.md)
+
+---
+
+## 📚 Documentation
+
+*   [**Getting Started**](docs/getting-started/installation.md)
+*   [**Monitoring & Observability**](docs/observability/monitoring-guide.md)
+*   [**Testing & Development**](docs/development/testing-guide.md)
+*   [**AI Architecture**](docs/ai/brain-architecture.md)
 
 ---
 
