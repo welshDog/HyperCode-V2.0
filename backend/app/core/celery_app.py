@@ -8,5 +8,9 @@ celery_app = Celery(
 )
 
 celery_app.conf.task_routes = {
+    "hypercode.tasks.process_agent_job": "main-queue",
     "app.worker.test_celery": "main-queue"
 }
+
+# Auto-discover tasks from the 'app.worker' module
+celery_app.autodiscover_tasks(['app.worker'])

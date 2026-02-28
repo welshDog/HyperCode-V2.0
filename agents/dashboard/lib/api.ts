@@ -1,8 +1,50 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
-export async function fetchAgents() {
+// --- CORE API TYPES ---
+export interface User {
+  id: number;
+  email: string;
+  full_name?: string;
+  role: "admin" | "developer" | "viewer";
+  is_active: boolean;
+}
+
+export interface Project {
+  id: number;
+  name: string;
+  description?: string;
+  status: "active" | "archived" | "draft";
+  owner_id: number;
+}
+
+// --- AUTHENTICATION ---
+export async function login(username: string, password: string): Promise<{ access_token: string; token_type: string } | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/agents`);
+    const formData = new URLSearchParams();
+    formData.append("username", username);
+    formData.append("password", password);
+
+    const res = await fetch(`${API_BASE_URL}/auth/login/access-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formData,
+    });
+
+    if (!res.ok) throw new Error("Login failed");
+    return await res.json();
+  } catch (error) {
+    console.error("Auth Error:", error);
+    return null;
+  }
+}
+
+// --- AGENT ORCHESTRATION ---
+export async function fetchAgents() {
+  // ... (Existing implementation for Orchestrator, usually on port 8081 or proxied)
+  // For now, assuming orchestrator is proxied or we point to it directly
+  // TODO: Unify Orchestrator API under Core API Gateway
+  try {
+    const res = await fetch(`http://localhost:8081/agents`); 
     if (!res.ok) throw new Error("Failed to fetch agents");
     return await res.json();
   } catch (error) {
@@ -10,6 +52,22 @@ export async function fetchAgents() {
     return [];
   }
 }
+
+// --- PROJECTS ---
+export async function fetchProjects(token: string): Promise<Project[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/projects/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error("Failed to fetch projects");
+    return await res.json();
+  } catch (error) {
+    console.error("API Error:", error);
+    return [];
+  }
+}
+
+// ... (Rest of existing functions)
 
 export async function fetchTasks() {
   try {
