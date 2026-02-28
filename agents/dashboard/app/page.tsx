@@ -23,6 +23,7 @@ import { fetchAgents, fetchLogs, fetchTasks, checkHealth, sendCommand, API_BASE_
 import { Clock } from "@/components/Clock";
 import { ApprovalModal } from "@/components/ApprovalModal";
 import { SystemHealth } from "@/components/SystemHealth";
+import NeuralViz from "@/components/NeuralViz";
 
 // --- Components ---
 
@@ -258,9 +259,7 @@ export default function Dashboard() {
             
             {activeTab === 'neural' && (
               <div className="h-full flex items-center justify-center text-zinc-700 flex-col gap-4">
-                 <Layout size={64} className="animate-spin-slow opacity-20" />
-                 <p className="text-xs tracking-widest">NEURAL LINK VISUALIZATION OFFLINE</p>
-                 <p className="text-[10px]">Connecting to agent swarm...</p>
+                 <NeuralViz />
               </div>
             )}
 

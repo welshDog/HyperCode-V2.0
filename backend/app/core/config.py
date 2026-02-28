@@ -10,8 +10,9 @@ class Settings(BaseSettings):
     
     # Auth
     API_KEY: Optional[str] = None
-    JWT_SECRET: Optional[str] = None
+    JWT_SECRET: str = "dev-secret-key"  # Changed Optional to str with default for dev
     HYPERCODE_JWT_SECRET: Optional[str] = None
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     
     # Database & Redis
     HYPERCODE_DB_URL: str = "postgresql://postgres:postgres@postgres:5432/hypercode"
