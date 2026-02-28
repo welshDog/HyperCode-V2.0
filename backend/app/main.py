@@ -24,10 +24,13 @@ app = FastAPI(
 # CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust in production
+    allow_origins=[
+        "http://localhost:8088", # Your Next.js Dashboard
+        "http://localhost:3000"  # Just in case you use 3000 later
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"], # Allow all methods (POST, GET, etc.)
+    allow_headers=["*"], # Allow all headers
 )
 
 # Initialize OpenTelemetry
