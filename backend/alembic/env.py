@@ -22,8 +22,9 @@ from app.core.config import settings
 config = context.config
 
 # Overwrite sqlalchemy.url with the one from settings
-# Force localhost for alembic migrations running on host
-config.set_main_option("sqlalchemy.url", "postgresql://postgres:changeme@172.19.0.15:5432/hypercode")
+# Use the settings value which should be correct for the environment (container or host)
+# If running on host, ensure HYPERCODE_DB_URL env var is set to localhost
+config.set_main_option("sqlalchemy.url", settings.HYPERCODE_DB_URL)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

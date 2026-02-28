@@ -281,7 +281,9 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: celery-worker
-    command: ["python", "-m", "celery", "-A", "app.core.celery_app", "worker", "--loglevel=info"]
+    command: ["python", "-m", "celery", "-A", "app.core.celery_app", "worker", "--loglevel=info", "-Q", "main-queue"]
+    dns:
+      - 8.8.8.8
     volumes:
       - ./backend:/app
     environment:
@@ -291,6 +293,7 @@ services:
       HYPERCODE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-hypercode}
       HYPERCODE_REDIS_URL: redis://redis:6379/0
       HYPERCODE_MEMORY_KEY: ${HYPERCODE_MEMORY_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     healthcheck:
       test: ["CMD-SHELL", "python -m celery -A app.core.celery_app inspect ping || exit 1"]
       interval: 30s
