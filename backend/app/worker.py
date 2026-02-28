@@ -35,6 +35,19 @@ def process_agent_job(task_payload: dict):
         plan = asyncio.run(router.route_task(task_type, description))
         
         logger.info(f"[INFO] Agent Output Preview: {plan[:100]}...")
+
+        # 📝 THE NEW UPGRADE: Save the art to a file!
+        import os
+        output_dir = "/app/outputs" # Docker path
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Now it saves as translation_21.md, pulse_22.md, research_23.md!
+        file_path = f"{output_dir}/{task_type}_{task_id}.md"
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(f"# 🧠 HyperCode Output: {task_type.upper()}\n\n")
+            f.write(plan)
+            
+        logger.info(f"✅ Art saved to {file_path}")
         
         return {
             "status": "success", 

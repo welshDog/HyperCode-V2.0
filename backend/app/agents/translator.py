@@ -8,24 +8,27 @@ class TranslatorAgent:
     The Visualizer: Translates standard code into HyperCode's spatial, chunked logic.
     """
     def __init__(self):
-        self.role = "Code Translator"
+        self.role = "Translator Specialist"
     
-    async def process(self, code_snippet: str, target_paradigm: str = "HyperCode Spatial") -> str:
+    async def process(self, code_payload: str) -> str:
         """
-        Translates code into a more accessible format.
+        Translates code into a more accessible format using HyperCode Spatial Logic.
         """
-        logger.info(f"[{self.role}] Translating code to {target_paradigm}")
+        logger.info(f"[{self.role}] 🎨 Synthesizing code into HyperCode Spatial Logic...")
         
-        prompt = (
-            f"Act as a Cognitive Code Translator specializing in neurodiversity accessibility. "
-            f"Take the following code snippet and refactor/explain it using {target_paradigm} principles. "
-            f"This means: "
-            f"- Break monolithic functions into small, single-responsibility chunks. "
-            f"- Use descriptive, semantic variable names. "
-            f"- Add spatial comments (ASCII art diagrams) to visualize data flow. "
-            f"- Explain the 'Why' before the 'How'. "
-            f"\n\nCode to translate:\n{code_snippet}"
-        )
+        prompt = f"""
+        You are the HyperCode Translator Agent. Your job is to translate standard code into 'HyperCode Spatial Logic', specifically designed for neurodivergent (ADHD/Dyslexic) brains.
+
+        RULES FOR YOUR OUTPUT:
+        1. 🎨 Visual Anchors: Use emojis for functions (⚙️), loops (🔄), variables (📦), and logic gates (🔀).
+        2. 🧱 Chunking: Break the code into small, isolated blocks with clear headings.
+        3. 🚫 Zero Noise: Strip out 90% of syntax jargon. Tell me what it *does* in plain, punchy English.
+        4. 🗺️ Spatial Flow: Explain the flow as a visual journey (e.g., "Block A ➡️ passes data to ➡️ Block B").
+
+        Here is the neurotypical code to translate:
+        
+        {code_payload}
+        """
         
         return await brain.think(self.role, prompt)
 

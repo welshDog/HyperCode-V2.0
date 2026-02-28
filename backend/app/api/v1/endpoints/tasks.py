@@ -34,8 +34,12 @@ def create_task(
     """
     Create new task.
     """
+    task_data = task_in.dict()
+    # Remove 'type' from task_data before creating DB model if it exists
+    task_type = task_data.pop("type", "general")
+
     task = models.Task(
-        **task_in.dict(),
+        **task_data,
     )
     db.add(task)
     db.commit()
@@ -45,7 +49,7 @@ def create_task(
     queue_payload = {
         "id": task.id,
         "title": task.title,
-        "type": "code_generation", # Defaulting for now
+        "type": task_type, # Use the type from input
         "description": task.description or task.title,
         "priority": task.priority,
         "status": "pending",
