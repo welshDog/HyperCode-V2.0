@@ -22,7 +22,7 @@ jobs:
         working-directory: backend
         run: |
           python -m pip install --upgrade pip
-          pip install -r app/requirements.txt
+          pip install -r requirements.txt
           pip install pytest pytest-asyncio pytest-cov httpx ruff pip-audit safety
 
       - name: Lint with ruff
@@ -50,7 +50,6 @@ jobs:
               s = t.getroot().attrib.get('line-rate')
               pct = float(s) * 100 if s else 0
               print(f'Coverage: {pct:.1f}%')
-              # Starting threshold at 10% - increase as tests are added
               exit(0 if pct >= 10 else 1)
           except Exception as e:
               print(f'Coverage check skipped: {e}')
@@ -60,7 +59,7 @@ jobs:
       - name: pip-audit security scan
         working-directory: backend
         run: |
-          pip-audit -r app/requirements.txt || echo "pip-audit found issues - review required"
+          pip-audit -r requirements.txt || echo "pip-audit found issues - review required"
 
       - name: safety security scan
         working-directory: backend
