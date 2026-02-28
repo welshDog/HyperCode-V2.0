@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 from app.core.config import settings
 from app.core.telemetry import setup_telemetry
+from app.api.api import api_router
 import logging
 import time
 
@@ -34,6 +35,9 @@ setup_telemetry(app)
 
 # Prometheus Instrumentation
 instrumentator = Instrumentator().instrument(app).expose(app)
+
+# Include API Router
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
 # Health Check Endpoint
 @app.get("/health")

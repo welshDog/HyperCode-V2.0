@@ -19,6 +19,7 @@ volumes:
   prometheus-data:
   ollama-data:
   agent_memory:
+  minio_data:
 
 services:
   # ====================
@@ -116,6 +117,7 @@ services:
   node-exporter:
     image: prom/node-exporter:latest
     container_name: node-exporter
+    # privileged: true # Required for some filesystem metrics in Docker Desktop
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -125,11 +127,81 @@ services:
       - '--path.rootfs=/rootfs'
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      # Explicitly enable collectors that might be failing or disabled by default
+      - '--collector.filesystem'
+      - '--collector.cpu'
+      - '--collector.meminfo'
+      - '--collector.netclass.ignored-devices=^$' # Try to catch all devices
     ports:
       - "9100:9100"
     networks:
       - backend-net
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # cAdvisor - Container Metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    # privileged: true # Required for cAdvisor to access Docker internals
+    # Using specific mounts instead of privileged mode for better security
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8090:8080" # Mapped to 8090 to avoid conflict with other services
+    networks:
+      - backend-net
+    restart: unless-stopped
+    devices:
+      - /dev/kmsg
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # MinIO - S3 Compatible Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+      - MINIO_PROMETHEUS_AUTH_TYPE=public
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    networks:
+      - backend-net
+      - data-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   loki:
     image: grafana/loki:latest

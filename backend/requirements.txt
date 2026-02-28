@@ -13,6 +13,9 @@ opentelemetry-instrumentation-system-metrics>=0.48b0
 opentelemetry-instrumentation-httpx>=0.48b0
 opentelemetry-instrumentation-sqlalchemy>=0.48b0
 opentelemetry-instrumentation-redis>=0.48b0
+python-jose[cryptography]
+passlib[bcrypt]
+psycopg2-binary
 sqlalchemy>=2.0.0
 redis>=5.0.0
 python-multipart>=0.0.9
