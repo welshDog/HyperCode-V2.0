@@ -294,6 +294,7 @@ services:
       HYPERCODE_REDIS_URL: redis://redis:6379/0
       HYPERCODE_MEMORY_KEY: ${HYPERCODE_MEMORY_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY}
     healthcheck:
       test: ["CMD-SHELL", "python -m celery -A app.core.celery_app inspect ping || exit 1"]
       interval: 30s
@@ -323,6 +324,20 @@ services:
         max-file: "3"
     security_opt:
       - no-new-privileges:true
+
+  celery-exporter:
+    image: danihodovic/celery-exporter:latest
+    container_name: celery-exporter
+    command: --broker-url=redis://redis:6379/0
+    ports:
+      - "9808:9808"
+    networks:
+      - backend-net
+      - data-net
+    depends_on:
+      - redis
+      - celery-worker
+    restart: unless-stopped
 
   # ====================
   # AGENTS
