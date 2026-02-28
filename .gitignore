@@ -17,6 +17,10 @@ coverage/
 .env.*
 !.env.example
 
+# Secrets
+token.txt
+secrets/
+
 # Logs
 *.log
 npm-debug.log*
