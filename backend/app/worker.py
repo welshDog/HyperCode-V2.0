@@ -1,7 +1,7 @@
 from celery import Task
 from app.core.celery_app import celery_app
 from app.core.config import settings
-from app.agents.brain import brain
+from app.agents.router import router
 import logging
 import asyncio
 import json
@@ -19,26 +19,27 @@ class AgentTask(Task):
 def process_agent_job(task_payload: dict):
     """
     The main entry point for the Orchestrator.
-    Receives a task payload and routes it to the appropriate agent.
+    Receives a task payload and routes it to the appropriate agent via the AgentRouter.
     """
     task_id = task_payload.get("id")
     title = task_payload.get("title")
     description = task_payload.get("description") or title
+    # Determine task type (could be passed in payload, defaulting to 'general')
+    task_type = task_payload.get("type", "general") 
     
     logger.info(f"[INFO] Received task: hypercode.tasks.process_agent_job[{task_id}]")
-    logger.info(f"[INFO] Orchestrator: Assigning '{title}' to Backend Specialist...")
+    logger.info(f"[INFO] Orchestrator: Routing '{title}' (Type: {task_type})...")
     
     try:
-        # Run the Brain asynchronously
-        logger.info(f"[INFO] Orchestrator: Invoking the Brain (Claude 3.5 Sonnet)...")
-        plan = asyncio.run(brain.think("Backend Specialist", description))
+        # Run the Router asynchronously
+        plan = asyncio.run(router.route_task(task_type, description))
         
-        logger.info(f"[INFO] Brain Output Preview: {plan[:100]}...")
+        logger.info(f"[INFO] Agent Output Preview: {plan[:100]}...")
         
         return {
             "status": "success", 
             "message": f"Task {task_id} processed",
-            "agent": "Backend Specialist",
+            "agent": "Agent Swarm",
             "result": plan
         }
     except Exception as e:

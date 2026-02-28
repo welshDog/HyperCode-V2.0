@@ -27,3 +27,7 @@ scrape_configs:
     static_configs:
       - targets: ["minio:9000"]
     metrics_path: /minio/v2/metrics/cluster
+
+  - job_name: "celery-exporter"
+    static_configs:
+      - targets: ["celery-exporter:9808"]
