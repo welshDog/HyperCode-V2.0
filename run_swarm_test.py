@@ -20,14 +20,15 @@ def run_test():
 
     # 2. Prepare Task Payload
     task_payload = {
-        "title": "BROski Swarm Test 02",
-        "description": "Write a Python script to reverse a string.",
+        "title": "Agent Research Test 01",
+        "description": "Research the latest advancements in Quantum Machine Learning algorithms.",
         "project_id": 1,
         "status": "todo",
-        "priority": "high"
+        "priority": "high",
+        "type": "research" # This triggers the ResearchAgent
     }
 
-    print("🚀 Firing Payload into HyperCode Core...")
+    print(f"🚀 Firing Payload into HyperCode Core: {task_payload['title']}...")
     try:
         res = requests.post(f"{API_URL}/tasks/", json=task_payload, headers=headers)
         if res.status_code == 200:

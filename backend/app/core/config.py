@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     
     # AI
     ANTHROPIC_API_KEY: Optional[str] = None
+    PERPLEXITY_API_KEY: Optional[str] = None
     HYPERCODE_MEMORY_KEY: Optional[str] = None
     
     # Telemetry (OpenTelemetry)
