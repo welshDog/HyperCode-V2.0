@@ -109,7 +109,14 @@ Check the latest system health report: [docs/notes/HyperCode_Health_Check_Report
 
 ## 📚 Documentation
 
-*   [**Getting Started**](docs/getting-started/installation.md)
+*   [**Architecture Overview**](docs/ARCHITECTURE.md) - Deep dive into the system design.
+*   [**CLI Manual**](docs/CLI.md) - How to use the `hypercode` command.
+*   [**Deployment Guide**](docs/DEPLOYMENT.md) - Docker setup and configuration.
+*   [**API Reference**](docs/API.md) - Endpoints and usage.
+*   [**Developer Onboarding**](docs/ONBOARDING.md) - Join the swarm!
+*   [**Troubleshooting**](docs/TROUBLESHOOTING.md) - Fix common issues.
+
+*   [**Old / Legacy Docs**](docs/getting-started/installation.md)
 *   [**Monitoring & Observability**](docs/observability/monitoring-guide.md)
 *   [**Testing & Development**](docs/development/testing-guide.md)
 *   [**AI Architecture**](docs/ai/brain-architecture.md)
