@@ -16,12 +16,39 @@ class Brain:
         # Using sonar-pro as it's the most capable model currently
         self.model = "sonar-pro" 
 
-    async def think(self, role: str, task_description: str) -> str:
+    async def recall_context(self, limit: int = 5) -> str:
+        """
+        Retrieves recent research reports from MinIO to build context.
+        """
+        try:
+            from app.core.storage import storage
+            files = storage.list_files(limit=limit)
+            context = []
+            for file_key in files:
+                if file_key.endswith(".md"):
+                    content = storage.get_file_content(file_key)
+                    # Truncate content to avoid token overflow, just get summary/intro
+                    summary = content[:1000] + "..." if len(content) > 1000 else content
+                    context.append(f"--- Report: {file_key} ---\n{summary}\n")
+            
+            return "\n".join(context)
+        except Exception as e:
+            logger.error(f"[BRAIN] Error recalling context: {e}")
+            return ""
+
+    async def think(self, role: str, task_description: str, use_memory: bool = False) -> str:
         """
         Process a task description and return a plan or code.
         """
         logger.info(f"[BRAIN] {role} is thinking about: {task_description} (via Perplexity)")
         
+        memory_context = ""
+        if use_memory:
+            logger.info("[BRAIN] Accessing Long-Term Memory (MinIO)...")
+            memory_context = await self.recall_context()
+            if memory_context:
+                task_description = f"Context from previous research:\n{memory_context}\n\nTask: {task_description}"
+
         if not self.api_key:
             return "Error: PERPLEXITY_API_KEY is not set in configuration."
 

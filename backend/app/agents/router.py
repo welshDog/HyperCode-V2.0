@@ -37,9 +37,10 @@ class AgentRouter:
                 agent = pulse
                 task_type = "health"
             else:
-                # Default behavior
-                logger.info(f"[Router] No specific agent found for '{task_type}', defaulting to Brain.")
-                return await brain.think("Backend Specialist", payload)
+                # Default behavior: Use the Brain with Context Recall
+                logger.info(f"[Router] No specific agent found for '{task_type}', defaulting to HyperBrain.")
+                # Pass use_memory=True to enable context recall
+                return await brain.think("HyperBrain Specialist", payload, use_memory=True)
 
         logger.info(f"[Router] Routing task to {agent.__class__.__name__}...")
         
@@ -52,7 +53,7 @@ class AgentRouter:
         elif agent == pulse:
             return await pulse.process(payload)
         else:
-            return await brain.think("Backend Specialist", payload)
+            return await brain.think("HyperBrain Specialist", payload, use_memory=True)
 
 # Global instance
 router = AgentRouter()

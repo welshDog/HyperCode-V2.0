@@ -10,14 +10,16 @@ Welcome to the **HyperCode V2.0** documentation hub. HyperCode is a next-generat
 *   [**Architecture Overview**](architecture/architecture.md) - Understand the system design.
 
 ### 🧠 AI & Cognitive Engine
-*   [**The Brain (Perplexity)**](ai/brain-architecture.md) - How the cognitive core works.
-*   [**Agent Swarms**](ai/agent-swarms.md) - Creating and managing autonomous agents.
-*   [**Memory Systems**](ai/memory.md) - Redis, PostgreSQL, and Vector Stores.
+*   **[The Brain (Perplexity)](ai/brain-architecture.md)** - How the cognitive core works.
+*   **[Cognitive Uplink](ai/cognitive-uplink.md)** - The neural interface for agent communication.
+*   **[Agent Swarms](ai/agent-swarms.md)** - Creating and managing autonomous agents.
+*   **[Memory Systems](ai/memory.md)** - Redis, PostgreSQL, and Vector Stores.
 
 ### 🛠️ Development & Engineering
-*   [**Backend Development**](development/backend.md) - FastAPI, SQLAlchemy, and Pydantic.
-*   [**Testing Guide**](development/testing-guide.md) - Writing tests and running CI/CD.
-*   [**Frontend Dashboard**](development/frontend.md) - Next.js 16 and Real-time Visualization.
+*   **[Backend Development](development/backend.md)** - FastAPI, SQLAlchemy, and Pydantic.
+*   **[MinIO Integration](architecture/minio-integration.md)** - Object storage for long-term memory.
+*   **[Testing Guide](development/testing-guide.md)** - Writing tests and running CI/CD.
+*   **[Frontend Dashboard](development/frontend.md)** - Next.js 16 and Real-time Visualization.
 
 ### 👁️ Observability & Operations
 *   [**Monitoring Guide**](observability/monitoring-guide.md) - Prometheus, Grafana, and Celery.
