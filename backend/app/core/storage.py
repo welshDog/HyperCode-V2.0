@@ -92,5 +92,31 @@ class StorageService:
             logger.error(f"[Storage] Upload failed for {filename}: {e}")
             raise e # Retry will catch this
 
+    def list_files(self, limit: int = 10):
+        """
+        Lists recent files in the bucket.
+        """
+        if not self.s3_client:
+            return []
+        try:
+            response = self.s3_client.list_objects_v2(Bucket=self.bucket_name, MaxKeys=limit)
+            return [obj['Key'] for obj in response.get('Contents', [])]
+        except Exception as e:
+            logger.error(f"[Storage] Failed to list files: {e}")
+            return []
+
+    def get_file_content(self, key: str) -> str:
+        """
+        Retrieves the content of a file from MinIO.
+        """
+        if not self.s3_client:
+            return ""
+        try:
+            response = self.s3_client.get_object(Bucket=self.bucket_name, Key=key)
+            return response['Body'].read().decode('utf-8')
+        except Exception as e:
+            logger.error(f"[Storage] Failed to get file {key}: {e}")
+            return ""
+
 # Global Instance
 storage = StorageService()
