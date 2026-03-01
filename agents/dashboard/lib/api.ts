@@ -100,6 +100,39 @@ export async function checkHealth() {
   }
 }
 
+export async function createTask(task: any) {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+  try {
+    const res = await fetch(`${API_BASE_URL}/tasks/`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(task),
+    });
+    if (!res.ok) throw new Error("Failed to create task");
+    return await res.json();
+  } catch (error) {
+    console.error("API Error:", error);
+    throw error;
+  }
+}
+
+export async function getTask(id: number) {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+  try {
+    const res = await fetch(`${API_BASE_URL}/tasks/${id}`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error("Failed to fetch task");
+    return await res.json();
+  } catch (error) {
+    console.error("API Error:", error);
+    throw error;
+  }
+}
+
 export async function sendCommand(command: string) {
     // Determine type of command
     // Simple parsing for demo

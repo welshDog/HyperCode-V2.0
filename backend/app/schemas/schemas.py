@@ -72,6 +72,7 @@ class Project(ProjectBase):
 class TaskBase(BaseModel):
     title: str
     description: Optional[str] = None
+    output: Optional[str] = None
     status: Optional[TaskStatus] = TaskStatus.TODO
     priority: Optional[str] = "medium"
 

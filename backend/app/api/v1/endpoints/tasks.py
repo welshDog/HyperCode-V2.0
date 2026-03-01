@@ -62,3 +62,18 @@ def create_task(
     celery_app.send_task("hypercode.tasks.process_agent_job", args=[queue_payload])
 
     return task
+
+@router.get("/{id}", response_model=schemas.Task)
+def read_task(
+    *,
+    db: Session = Depends(get_db),
+    id: int,
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Get task by ID.
+    """
+    task = db.query(models.Task).filter(models.Task.id == id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
