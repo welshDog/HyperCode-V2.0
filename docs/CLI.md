@@ -68,6 +68,16 @@ hypercode research "How does DNA computing map to spatial logic?"
 **Output:**
 *   A structured research brief in `docs/outputs/research_{task_id}.md`.
 
+## Interactive Dashboard
+
+While the CLI is powerful, you can also visualize the agent swarm in real-time.
+
+*   **URL**: `http://localhost:8088`
+*   **Features**:
+    *   **Mission Control**: Monitor live logs and system status.
+    *   **HyperFlow Editor**: Visual drag-and-drop agent orchestration.
+    *   **Neural Net**: Visualize agent memory connections.
+
 ## Troubleshooting
 
 *   **"Backend offline?"**: Ensure your Docker containers are running (`docker ps`).

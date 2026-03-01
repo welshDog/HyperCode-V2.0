@@ -43,3 +43,22 @@
 **Fix**:
 1.  Create a file named `token.txt` in the root directory.
 2.  Paste a valid JWT access token from the backend login (or ask a senior dev/admin for one).
+
+### 6. MCP Server Crash Loop / "Invalid Args"
+**Symptom**: Docker container `mcp-server` keeps restarting with `clojure.lang.ExceptionInfo: invalid args`.
+**Fix**:
+1.  The `mcp/docker` image is a CLI tool, not a service.
+2.  **Solution**: Remove the `mcp-server` service from `docker-compose.yml`. Use the MCP client configuration in `mcp-config.json` instead.
+
+### 7. Docker Container Name Conflict
+**Symptom**: `Error response from daemon: Conflict. The container name "/hypercode-ollama" is already in use`.
+**Fix**:
+1.  Run `docker rm -f hypercode-ollama` to remove the orphaned container.
+2.  Restart the stack: `docker-compose up -d`.
+
+### 8. Dashboard "Unhealthy"
+**Symptom**: Dashboard container is Up but marked `(unhealthy)`.
+**Fix**:
+1.  This is usually a strict health check timeout during the initial build/start.
+2.  If the UI is accessible at `http://localhost:8088`, you can ignore this or increase the `start_period` in `docker-compose.yml`.
+
