@@ -21,14 +21,17 @@ class ResearchAgent:
         
         prompt = (
             f"Act as an expert technical researcher and archivist. "
-            f"Conduct a deep dive into the following topic: '{topic}'. "
-            f"Focus on recent developments, best practices, and actionable insights. "
+            f"Compose a comprehensive analytical report that thoroughly examines the following subject: '{topic}'. "
+            f"The report must be suitable for presentation to stakeholders and decision-makers. "
             f"Format the output as a structured technical summary with: "
             f"1. Executive Summary "
-            f"2. Key Concepts & Definitions "
-            f"3. Code Examples or Architectural Patterns "
-            f"4. Pros & Cons "
-            f"5. References or Further Reading. "
+            f"2. Methodology & Approach "
+            f"3. Key Findings & Data Analysis (with supporting evidence) "
+            f"4. Code Examples or Architectural Patterns (where applicable) "
+            f"5. Actionable Recommendations "
+            f"6. Conclusion "
+            f"7. References & Citations. "
+            f"Ensure the report follows professional formatting standards, includes relevant charts or tables where applicable. "
             f"Keep the tone professional, concise, and optimized for a neurodivergent audience (clear headers, bullet points, spatial logic)."
         )
         
