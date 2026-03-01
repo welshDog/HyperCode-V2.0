@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     MINIO_BUCKET_REPORTS: str = "agent-reports"
     MINIO_SECURE: bool = False # False for local MinIO (http)
     
+    # RAG (ChromaDB)
+    CHROMA_HOST: str = "chroma"
+    CHROMA_PORT: int = 8000
+    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2" # Fast, local model
+
     # Telemetry (OpenTelemetry)
     OTLP_ENDPOINT: str = "http://jaeger:4317"  # Default to Jaeger OTLP gRPC port
     OTLP_EXPORTER_DISABLED: bool = False

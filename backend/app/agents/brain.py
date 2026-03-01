@@ -16,20 +16,35 @@ class Brain:
         # Using sonar-pro as it's the most capable model currently
         self.model = "sonar-pro" 
 
-    async def recall_context(self, limit: int = 5) -> str:
+    async def recall_context(self, query: str = None, limit: int = 5) -> str:
         """
-        Retrieves recent research reports from MinIO to build context.
+        Retrieves context using Vector Search (RAG) if available, falling back to recent files.
         """
+        context = []
+        
+        # 1. Try Vector Search (Semantic)
+        try:
+            from app.core.rag import rag
+            if query:
+                logger.info(f"[BRAIN] Semantic searching for: '{query}'")
+                rag_results = rag.query(query, n_results=limit)
+                if rag_results:
+                    context.append("--- Semantic Memory (RAG) ---")
+                    context.extend(rag_results)
+                    return "\n\n".join(context)
+        except Exception as e:
+            logger.warning(f"[BRAIN] RAG search failed: {e}")
+
+        # 2. Fallback to Recent Files (Temporal)
         try:
             from app.core.storage import storage
             files = storage.list_files(limit=limit)
-            context = []
             for file_key in files:
                 if file_key.endswith(".md"):
                     content = storage.get_file_content(file_key)
-                    # Truncate content to avoid token overflow, just get summary/intro
+                    # Truncate content to avoid token overflow
                     summary = content[:1000] + "..." if len(content) > 1000 else content
-                    context.append(f"--- Report: {file_key} ---\n{summary}\n")
+                    context.append(f"--- Recent File: {file_key} ---\n{summary}\n")
             
             return "\n".join(context)
         except Exception as e:
@@ -42,12 +57,12 @@ class Brain:
         """
         logger.info(f"[BRAIN] {role} is thinking about: {task_description} (via Perplexity)")
         
-        memory_context = ""
         if use_memory:
-            logger.info("[BRAIN] Accessing Long-Term Memory (MinIO)...")
-            memory_context = await self.recall_context()
+            logger.info("[BRAIN] Accessing Long-Term Memory...")
+            # Use the task description as the query for RAG
+            memory_context = await self.recall_context(query=task_description)
             if memory_context:
-                task_description = f"Context from previous research:\n{memory_context}\n\nTask: {task_description}"
+                task_description = f"Context from Memory:\n{memory_context}\n\nTask: {task_description}"
 
         if not self.api_key:
             return "Error: PERPLEXITY_API_KEY is not set in configuration."

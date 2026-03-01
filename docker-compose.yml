@@ -20,6 +20,7 @@ volumes:
   ollama-data:
   agent_memory:
   minio_data:
+  chroma_data:
 
 services:
   # ====================
@@ -289,6 +290,32 @@ services:
       retries: 3
     security_opt:
       - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ChromaDB - Vector Database (RAG)
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ALLOW_RESET=TRUE
+    volumes:
+      - chroma_data:/chroma/chroma
+    ports:
+      - "8009:8000" # Mapped to 8009 to avoid conflict with everything else (8000, 8001, 8002 taken)
+    networks:
+      - backend-net
+      - data-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     logging:
       driver: "json-file"
       options:
