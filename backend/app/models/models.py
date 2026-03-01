@@ -56,6 +56,7 @@ class Task(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True, nullable=False)
     description = Column(Text)
+    output = Column(Text, nullable=True) # Result from agent execution
     status = Column(Enum(TaskStatus), default=TaskStatus.TODO)
     priority = Column(String, default="medium")
     project_id = Column(Integer, ForeignKey("projects.id"))
