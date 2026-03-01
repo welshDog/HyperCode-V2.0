@@ -4,13 +4,13 @@
 
 ## Why HyperCode Exists 🤯
 
-**I built this because I don’t want anyone to suffer like I did.**
+**I built this because I don't want anyone to suffer like I did.**
 
-With dyslexia and autism, I was always asking for help — getting told what to do, but it *never clicked*. Instructions froze me. They didn’t sink in on the first try. Or the second. It took four or five rounds.
+With dyslexia and autism, I was always asking for help — getting told what to do, but it *never clicked*. Instructions froze me. They didn't sink in on the first try. Or the second. It took four or five rounds.
 
-Not because I’m slow — my brain just works differently. Traditional guides scatter.
+Not because I'm slow — my brain just works differently. Traditional guides scatter.
 
-**That’s why I created HyperCode.**
+**That's why I created HyperCode.**
 It guides every step — no judgment, just clarity. Puts *you* in control.
 
 Whether dyslexia, ADHD, autism, or wonder-nerd superpowers — built **for you**. Learning + creating feels natural. No fear.
@@ -131,9 +131,12 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for deta
 
 ## 📄 License
 
-This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 
+This means:
+- ✅ You can use, modify, and distribute this software freely
+- ✅ Commercial use is allowed
+- ⚠️ If you run this as a network service (API, web app, etc.), you **must** open-source your modifications
+- 🛡️ Protects the neurodivergent-first mission from corporate paywalling
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+See the [LICENSE](LICENSE) file for full legal details.
