@@ -44,8 +44,9 @@ class AgentRouter:
         logger.info(f"[Router] Routing task to {agent.__class__.__name__}...")
         
         # Dispatch based on agent interface
+        # Passing 'context' if the agent supports it (Duck Typing check or specific check)
         if agent == researcher:
-            return await researcher.process(payload)
+            return await researcher.process(payload, context)
         elif agent == translator:
             return await translator.process(payload)
         elif agent == pulse:

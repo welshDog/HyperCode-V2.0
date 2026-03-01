@@ -1,5 +1,7 @@
 import logging
 from app.agents.brain import brain
+from app.core.storage import storage
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -11,9 +13,9 @@ class ResearchAgent:
     def __init__(self):
         self.role = "Research Specialist"
     
-    async def process(self, topic: str) -> str:
+    async def process(self, topic: str, context: dict = None) -> str:
         """
-        Conducts research on a given topic.
+        Conducts research on a given topic and uploads report to MinIO.
         """
         logger.info(f"[{self.role}] Starting research on: {topic}")
         
@@ -30,7 +32,33 @@ class ResearchAgent:
             f"Keep the tone professional, concise, and optimized for a neurodivergent audience (clear headers, bullet points, spatial logic)."
         )
         
-        return await brain.think(self.role, prompt)
+        # 1. Think
+        report_content = await brain.think(self.role, prompt)
+        
+        # 2. Upload to MinIO (if context provided)
+        if context and context.get("task_id"):
+            task_id = context.get("task_id")
+            filename = f"research_{task_id}.md"
+            
+            metadata = {
+                "agent": self.role,
+                "topic": topic,
+                "created_at": datetime.utcnow().isoformat(),
+                "task_id": str(task_id)
+            }
+            
+            try:
+                # Upload using the robust storage service
+                s3_key = storage.upload_file(report_content, filename, metadata)
+                if s3_key:
+                    logger.info(f"[{self.role}] Report uploaded to Object Storage: {s3_key}")
+                    # Append MinIO link to the output (for visibility)
+                    report_content += f"\n\n---\n**Archived in MinIO**: `{s3_key}`"
+            except Exception as e:
+                logger.error(f"[{self.role}] Failed to upload report to MinIO: {e}")
+                report_content += f"\n\n---\n**Archive Error**: Could not upload to Object Storage ({str(e)})"
+
+        return report_content
 
 # Global instance
 researcher = ResearchAgent()

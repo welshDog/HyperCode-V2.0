@@ -12,5 +12,5 @@ celery_app.conf.task_routes = {
     "app.worker.test_celery": "main-queue"
 }
 
-# Auto-discover tasks from the 'app.worker' module
-celery_app.autodiscover_tasks(['app.worker'])
+# Explicitly import the worker module so tasks are registered
+celery_app.conf.imports = ('app.worker',)
