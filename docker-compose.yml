@@ -312,11 +312,11 @@ services:
       - data-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8000/api/v1/heartbeat || exit 1"]
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/8000' || exit 1"]
       interval: 30s
-      timeout: 15s
-      retries: 5
-      start_period: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     logging:
       driver: "json-file"
       options:
@@ -520,34 +520,29 @@ services:
       dockerfile: Dockerfile
     container_name: crew-orchestrator
     environment:
-      - REDIS_URL=redis://redis:6379
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - CORE_URL=http://hypercode-core:8000
+      - AGENT_ROLE=crew-orchestrator
+      - REDIS_URL=redis://redis:6379
     volumes:
+      - ./agents/crew-orchestrator:/app
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/shared:/app/shared:ro
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
-    depends_on:
-      redis:
-        condition: service_healthy
-      hypercode-core:
-        condition: service_healthy
     networks:
       - backend-net
-      - data-net
     ports:
-      - "127.0.0.1:8081:8080"
+      - "8081:8080" # Map 8081 external to 8080 internal
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"] # Check internal port 8080
       interval: 30s
       timeout: 10s
       retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
     logging:
       driver: "json-file"
       options:
@@ -855,8 +850,10 @@ services:
       - AGENT_ROLE=healer
       - AGENT_PORT=8008
       - DOCKER_HOST=unix:///var/run/docker.sock
+      - REDIS_URL=redis://redis:6379
+      - ORCHESTRATOR_URL=http://crew-orchestrator:8080
     volumes:
-      - ./agents/healer:/app
+      - ./agents/healer:/app/healer
       - ./Configuration_Kit:/app/hive_mind:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - ./agents/shared:/app/shared:ro
@@ -865,7 +862,7 @@ services:
     networks:
       - backend-net
     ports:
-      - "8009:8008"
+      - "8010:8008" # Changed from 8008 (system-architect) and 8009 (chroma) to 8010
     depends_on:
       hypercode-core:
         condition: service_healthy
