@@ -22,6 +22,13 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: Optional[str] = None
     PERPLEXITY_API_KEY: Optional[str] = None
     HYPERCODE_MEMORY_KEY: Optional[str] = None
+
+    # Storage (MinIO/S3)
+    MINIO_ENDPOINT: str = "http://minio:9000" # Internal Docker Hostname
+    MINIO_ACCESS_KEY: str = "minioadmin"
+    MINIO_SECRET_KEY: str = "minioadmin"
+    MINIO_BUCKET_REPORTS: str = "agent-reports"
+    MINIO_SECURE: bool = False # False for local MinIO (http)
     
     # Telemetry (OpenTelemetry)
     OTLP_ENDPOINT: str = "http://jaeger:4317"  # Default to Jaeger OTLP gRPC port
