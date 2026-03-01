@@ -120,14 +120,43 @@ def research_topic(topic):
     except Exception as e:
         print(f"🛑 Backend offline? Error: {e}")
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("🚀 HYPERCODE CLI v1.2")
-        print("👉 Usage:")
-        print("   python hypercode.py translate <file.py>")
-        print("   python hypercode.py pulse")
-        print("   python hypercode.py research \"Your wild topic here\"")
-        sys.exit(1)
+def create_task(description, task_type="general"):
+    """Generic task creator."""
+    token = get_token()
+    if not token:
+        print("❌ Missing auth token! Please run seed_data.py or ensure token.txt exists.")
+        return
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    print(f"📡 Dispatching '{task_type}' task: {description}")
+    
+    payload = {
+        "title": f"CLI Task: {description[:20]}...",
+        "description": description,
+        "priority": "normal",
+        "type": task_type,
+        "project_id": 1
+    }
+
+    try:
+        response = requests.post(API_URL, json=payload, headers=headers)
+        if response.status_code == 200:
+            task_data = response.json()
+            print(f"✅ Task queued! ID: {task_data['id']}")
+            print("👀 Monitor the dashboard or logs for updates.")
+        else:
+            print(f"❌ API Error: {response.text}")
+    except Exception as e:
+        print(f"❌ Connection Error: {e}")
+
+def main():
+    if len(sys.argv) < 3:
+        print("Usage: python hypercode.py <translate|research|build> <file_path|topic>")
+        return
 
     command = sys.argv[1]
 
@@ -139,5 +168,8 @@ if __name__ == "__main__":
         # Join all arguments after "research" into a single string
         topic = " ".join(sys.argv[2:])
         research_topic(topic)
+    elif command == "task" or command == "build":
+        description = sys.argv[2]
+        create_task(description, "build")
     else:
         print("❌ Invalid command, bro.")

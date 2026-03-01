@@ -5,6 +5,8 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV HF_HOME=/app/cache/huggingface
+ENV SENTENCE_TRANSFORMERS_HOME=/app/cache/sentence_transformers
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
@@ -30,6 +32,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Create a non-root user
 RUN addgroup --system appuser && adduser --system --group appuser
+
+# Create cache directories
+RUN mkdir -p /app/cache/huggingface /app/cache/sentence_transformers && \
+    chown -R appuser:appuser /app/cache
 
 COPY --from=builder /app/wheels /wheels
 COPY --from=builder /app/requirements.txt .
