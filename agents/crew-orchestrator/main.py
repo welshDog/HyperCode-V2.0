@@ -2,8 +2,9 @@
 FastAPI Orchestration Layer for HyperCode Agent Crew
 Manages communication between 8 specialized agents
 """
-from fastapi import FastAPI, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect, Body
+from fastapi import FastAPI, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Optional, Any
 import httpx
@@ -135,7 +136,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -355,17 +356,55 @@ async def execute_task(request: ExecuteRequest, background_tasks: BackgroundTask
 
     return {"status": "completed", "message": "Workflow finished", "results": results}
 
-# CORS configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # --- WEBSOCKET FOR APPROVALS ---
 connected_dashboards: List[WebSocket] = []
+
+# --- WEBSOCKETS ---
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except Exception as e:
+                logger.error(f"Error broadcasting: {e}")
+
+manager = ConnectionManager()
+
+@app.websocket("/ws/uplink")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    logger.info("Client connected to uplink")
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Echo for now, or process command
+            # In a real system, this would parse the JSON schema and route to agents
+            try:
+                message = json.loads(data)
+                # Simple loopback for testing
+                response = {
+                    "id": message.get("id"),
+                    "type": "response",
+                    "source": "orchestrator",
+                    "payload": {"status": "received", "echo": message.get("payload")}
+                }
+                await websocket.send_text(json.dumps(response))
+            except json.JSONDecodeError:
+                await websocket.send_text(json.dumps({"error": "Invalid JSON"}))
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        logger.info("Client disconnected from uplink")
 
 @app.websocket("/ws/approvals")
 async def websocket_approvals(websocket: WebSocket):
@@ -414,7 +453,7 @@ async def respond_to_approval(response: Dict[str, Any]):
 
 @app.get("/system/health")
 async def get_system_health():
-    """Get the current health status of all agents"""
+    """Return cached health data for all agents"""
     if not redis_client:
         raise HTTPException(status_code=503, detail="Redis not connected")
         
@@ -437,12 +476,8 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    try:
-        if redis_client:
-            await redis_client.ping()
-        return {"status": "healthy", "redis": "connected"}
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=str(e))
+    """Simple health check endpoint for Docker"""
+    return {"status": "ok", "service": "crew-orchestrator"}
 
 # --- DASHBOARD ENDPOINTS ---
 

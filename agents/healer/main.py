@@ -8,8 +8,8 @@ import json
 import logging
 from datetime import datetime
 import redis.asyncio as redis
-from agents.healer.adapters.docker_adapter import DockerAdapter
-from agents.healer.models import HealRequest, HealResult
+from healer.adapters.docker_adapter import DockerAdapter
+from healer.models import HealRequest, HealResult
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -108,22 +108,6 @@ async def auto_heal_all():
 
 
 
-async def alert_listener():
-    pub = await redis.from_url(REDIS_URL, decode_responses=True)
-    ps = pub.pubsub()
-    await ps.subscribe("approval_requests") 
-    
-    logger.info("Listening for alerts on Redis...")
-    async for message in ps.listen():
-        if message.get("type") == "message":
-            try:
-                data = json.loads(message["data"])
-                if data.get("type") == "CRITICAL_ALERT":
-                    logger.warning("Received CRITICAL_ALERT. Initiating auto-heal.")
-                    await auto_heal_all()
-            except Exception as e:
-                logger.error(f"Error processing alert: {e}")
-
 @app.get("/health")
 async def health():
     docker_ok = False
@@ -140,33 +124,39 @@ async def health():
         "docker": docker_ok
     }
 
-@app.post("/heal", response_model=List[HealResult])
-async def heal(req: HealRequest):
-    logger.info(f"Manual heal request: {req}")
-    system = await fetch_system_health()
+@app.get("/health/sweep")
+async def health_sweep():
+    """
+    Checks the health of all containers managed by Docker Adapter.
+    """
+    if not docker_adapter:
+        raise HTTPException(status_code=503, detail="Docker adapter not initialized")
     
-    targets = []
-    if req.agents:
-        # Filter for requested agents
-        for name in req.agents:
-            if name in system:
-                targets.append((name, system[name]))
-            else:
-                # Try to heal even if not in system health
-                targets.append((name, {"url": f"http://{name}:8000"})) 
-    else:
-        # Auto-detect unhealthy
-        for name, info in system.items():
-            if info.get("status") == "unhealthy" or req.force:
-                targets.append((name, info))
-    
-    tasks = []
-    for name, info in targets:
-        url = info.get("url", f"http://{name}:8000")
-        tasks.append(attempt_heal_agent(name, url, attempts=req.retry_attempts, timeout=req.timeout_seconds))
-    
-    if not tasks:
-        return []
+    try:
+        report = await docker_adapter.check_all_containers()
+        return report
+    except Exception as e:
+        logger.error(f"Health sweep failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/heal")
+async def trigger_heal(request: HealRequest):
+    return await attempt_heal_agent(request.agent_name, request.agent_url, request.attempts, request.timeout)
+
+async def alert_listener():
+    """
+    Listens for 'system_alert' messages on Redis and triggers healing.
+    """
+    if not redis_client:
+        return
         
-    results = await asyncio.gather(*tasks)
-    return results
+    pubsub = redis_client.pubsub()
+    await pubsub.subscribe("system_alert")
+    
+    async for message in pubsub.listen():
+        if message["type"] == "message":
+            logger.info(f"Received alert: {message['data']}")
+            try:
+                await auto_heal_all()
+            except Exception as e:
+                logger.error(f"Error processing alert: {e}")

@@ -52,6 +52,32 @@ class DockerAdapter:
             logger.error(f"Error checking container {name}: {e}")
             return None
 
+    async def check_all_containers(self) -> dict:
+        """
+        Scan all running containers and return their health status.
+        """
+        if not self.client:
+            return {"error": "Docker client not initialized"}
+            
+        report = {}
+        try:
+            containers = self.client.containers.list(all=True)
+            for container in containers:
+                name = container.name
+                state = container.attrs["State"]
+                health_status = state.get("Health", {}).get("Status", "none")
+                
+                report[name] = {
+                    "status": state["Status"],
+                    "health": health_status,
+                    "restarts": container.attrs["RestartCount"]
+                }
+        except Exception as e:
+            logger.error(f"Error scanning containers: {e}")
+            return {"error": str(e)}
+            
+        return report
+
     async def restart_container(self, name: str, force: bool = False) -> bool:
         """
         Restart a container with threshold checks (max 3 restarts in 5 mins).
