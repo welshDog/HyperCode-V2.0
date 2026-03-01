@@ -8,6 +8,10 @@ from app.api.api import api_router
 import logging
 import time
 
+# Copyright (C) 2026 HyperCode - All Rights Reserved
+# Licensed under the GNU Affero General Public License v3.0 (AGPL-3.0)
+# See LICENSE file for details.
+
 # Configure Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
