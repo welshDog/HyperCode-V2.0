@@ -20,16 +20,25 @@ export const AgentNode = ({ data, selected }: NodeProps) => {
   return (
     <motion.div
       initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
+      animate={{ 
+        scale: 1, 
+        opacity: 1,
+        borderColor: isActive ? `${color}80` : `rgba(0, 243, 255, 0.2)`,
+        boxShadow: isActive && selected 
+          ? `0 0 30px ${color}40` 
+          : selected 
+            ? `0 0 20px ${color}66` 
+            : '0 4px 12px rgba(0,0,0,0.5)'
+      }}
       whileHover={{ scale: 1.05 }}
       style={{
         background: 'rgba(11, 4, 24, 0.9)',
         backdropFilter: 'blur(12px)',
-        border: `1px solid ${selected ? color : 'rgba(0, 243, 255, 0.2)'}`,
+        borderWidth: '1px',
+        borderStyle: 'solid',
         borderRadius: '12px',
         padding: '12px',
         minWidth: '180px',
-        boxShadow: selected ? `0 0 20px ${color}66` : '0 4px 12px rgba(0,0,0,0.5)',
         color: '#fff',
         fontFamily: 'monospace'
       }}
@@ -62,8 +71,21 @@ export const AgentNode = ({ data, selected }: NodeProps) => {
         </div>
       </div>
 
-      {/* Status Dot */}
-      <div className="absolute top-3 right-3 w-2 h-2 rounded-full" style={{ background: isActive ? color : '#555', boxShadow: isActive ? `0 0 8px ${color}` : 'none' }} />
+      {/* Status Dot - PULSING */}
+      <motion.div 
+        className="absolute top-3 right-3 w-2 h-2 rounded-full"
+        animate={{
+          backgroundColor: isActive ? color : '#555',
+          boxShadow: isActive 
+            ? [`0 0 0px ${color}`, `0 0 12px ${color}`, `0 0 0px ${color}`] 
+            : 'none',
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      />
 
       {/* Tools */}
       <div className="flex flex-wrap gap-1 mt-2">
