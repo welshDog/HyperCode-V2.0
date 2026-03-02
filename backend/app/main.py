@@ -30,11 +30,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:8088", # Your Next.js Dashboard
-        "http://localhost:3000"  # Just in case you use 3000 later
+        "http://localhost:3000"  # BROski Terminal
     ],
     allow_credentials=True,
-    allow_methods=["*"], # Allow all methods (POST, GET, etc.)
-    allow_headers=["*"], # Allow all headers
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # Initialize OpenTelemetry

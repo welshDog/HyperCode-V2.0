@@ -1,6 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
+const stars = [...Array(50)].map(() => ({
+  duration: Math.random() * 3 + 2,
+  delay: Math.random() * 5,
+  top: `${Math.random() * 100}%`,
+  left: `${Math.random() * 100}%`,
+}));
+
 export const CanvasBackground = () => {
   return (
     <div style={{
@@ -18,20 +25,20 @@ export const CanvasBackground = () => {
       <div className="absolute inset-0 bg-[linear-gradient(rgba(0,243,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,243,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)]" />
 
       {/* Twinkling Stars */}
-      {[...Array(50)].map((_, i) => (
+      {stars.map((star, i) => (
         <motion.div
           key={i}
           initial={{ opacity: 0 }}
           animate={{ opacity: [0, 1, 0] }}
           transition={{
-            duration: Math.random() * 3 + 2,
+            duration: star.duration,
             repeat: Infinity,
-            delay: Math.random() * 5
+            delay: star.delay
           }}
           style={{
             position: 'absolute',
-            top: `${Math.random() * 100}%`,
-            left: `${Math.random() * 100}%`,
+            top: star.top,
+            left: star.left,
             width: '2px',
             height: '2px',
             background: '#FFFFFF',

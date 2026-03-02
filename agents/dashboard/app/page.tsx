@@ -25,9 +25,36 @@ import NeuralViz from "@/components/NeuralViz";
 import CognitiveUplink from "@/components/CognitiveUplink";
 import { HyperCanvas } from "@/components/canvas/HyperCanvas";
 
+// --- Type Definitions ---
+interface Agent {
+  id: number | string;
+  name: string;
+  role: string;
+  status: 'online' | 'working' | 'thinking' | 'coding' | 'error' | 'offline';
+  cpu: number;
+  ram: number;
+}
+
+interface Log {
+  id: number | string;
+  time: string;
+  agent: string;
+  level: 'info' | 'warn' | 'error' | 'success';
+  msg: string;
+}
+
+interface Task {
+  id: number | string;
+  description: string;
+  title: string;
+  status: string;
+  progress: number;
+}
+
+
 // --- Components ---
 
-const AgentCard = ({ agent }: { agent: any }) => (
+const AgentCard = ({ agent }: { agent: Agent }) => (
   <motion.div 
     layout
     initial={{ opacity: 0, x: -20 }}
@@ -80,7 +107,7 @@ const AgentCard = ({ agent }: { agent: any }) => (
   </motion.div>
 );
 
-const LogEntry = ({ log }: { log: any }) => (
+const LogEntry = ({ log }: { log: Log }) => (
   <motion.div 
     initial={{ opacity: 0, x: -10 }}
     animate={{ opacity: 1, x: 0 }}
@@ -106,9 +133,9 @@ export default function Dashboard() {
   const [input, setInput] = useState("");
   
   // Data State
-  const [agents, setAgents] = useState<any[]>([]);
-  const [logs, setLogs] = useState<any[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [connected, setConnected] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
@@ -266,7 +293,7 @@ export default function Dashboard() {
             {activeTab === 'live' && (
               <div className="space-y-1">
                 <div className="sticky top-0 bg-black/80 backdrop-blur-md border-b border-zinc-800 p-2 mb-4 text-xs text-cyan-600 font-bold flex justify-between">
-                  <span>// SYSTEM_LOGS_STREAM_V2.0</span>
+                  <span>{/* SYSTEM_LOGS_STREAM_V2.0 */}</span>
                   <span className="animate-pulse">● LIVE</span>
                 </div>
                 <div className="flex flex-col-reverse gap-1 min-h-0">

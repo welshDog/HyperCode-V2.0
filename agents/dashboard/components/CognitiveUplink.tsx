@@ -8,8 +8,8 @@ interface AgentMessage {
   type: 'command' | 'thought' | 'response' | 'error' | 'presence' | 'system';
   source: string;
   target: string;
-  payload: any;
-  metadata?: any;
+  payload: unknown;
+  metadata?: unknown;
 }
 
 interface MessageUI {
@@ -50,8 +50,6 @@ export default function CognitiveUplink() {
         content: 'CONNECTION INTERRUPTED. Re-establishing link to Neural Net...', 
         timestamp: Date.now() 
       }]);
-      // Retry after 3s
-      setTimeout(connect, 3000);
     };
 
     ws.onmessage = (event) => {
@@ -75,8 +73,14 @@ export default function CognitiveUplink() {
 
   useEffect(() => {
     connect();
+    const interval = setInterval(() => {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.CLOSED) {
+            connect();
+        }
+    }, 3000);
     return () => {
       if (wsRef.current) wsRef.current.close();
+      clearInterval(interval);
     };
   }, [connect]);
 
