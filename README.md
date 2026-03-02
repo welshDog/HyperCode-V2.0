@@ -1,5 +1,7 @@
 # HyperCode V2.0 - The Cognitive Architecture
 
+[![GitHub Sponsors](https://img.shields.io/github/sponsors/welshDog?style=social&logo=github)](https://github.com/sponsors/welshDog)
+
 > "You do not just write code; you craft cognitive architectures."
 
 ## Why HyperCode Exists 🤯
