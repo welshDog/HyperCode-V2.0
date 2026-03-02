@@ -10,18 +10,27 @@ import {
   applyEdgeChanges 
 } from 'reactflow';
 
+interface NodeData {
+  name: string;
+  role: string;
+  status: 'idle' | 'working' | 'thinking' | 'coding' | 'error';
+  health: number;
+  tools: string[];
+  avatar: string;
+}
+
 interface FlowState {
-  nodes: Node[];
+  nodes: Node<NodeData>[];
   edges: Edge[];
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
-  addNode: (node: Node) => void;
+  addNode: (node: Node<NodeData>) => void;
   deleteNode: (id: string) => void;
-  updateNodeStatus: (id: string, status: any) => void;
+  updateNodeStatus: (id: string, status: Partial<NodeData>) => void;
 }
 
-const initialNodes: Node[] = [
+const initialNodes: Node<NodeData>[] = [
   { 
     id: 'agent-frontend', 
     type: 'agent', 

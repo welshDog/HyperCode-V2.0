@@ -6,9 +6,9 @@ import * as api from '../lib/api';
 // Mock WebSocket
 class MockWebSocket {
   onopen: () => void = () => {};
-  onmessage: (e: any) => void = () => {};
+  onmessage: (e: MessageEvent) => void = () => {};
   onclose: () => void = () => {};
-  onerror: (e: any) => void = () => {};
+  onerror: (e: Event) => void = () => {};
   close = vi.fn();
   send = vi.fn();
 
@@ -18,7 +18,7 @@ class MockWebSocket {
   }
 }
 
-global.WebSocket = MockWebSocket as any;
+global.WebSocket = MockWebSocket as typeof MockWebSocket;
 
 describe('ApprovalModal Component', () => {
   beforeEach(() => {

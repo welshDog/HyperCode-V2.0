@@ -2,20 +2,14 @@
 import { useEffect, useState } from 'react'
 
 export function Clock() {
-  const [mounted, setMounted] = useState(false)
-  const [time, setTime] = useState('')
+  const [time, setTime] = useState(new Date().toLocaleTimeString())
 
   useEffect(() => {
-    setMounted(true)
-    const updateTime = () => {
+    const interval = setInterval(() => {
       setTime(new Date().toLocaleTimeString())
-    }
-    updateTime()
-    const interval = setInterval(updateTime, 1000)
+    }, 1000)
     return () => clearInterval(interval)
   }, [])
-
-  if (!mounted) return <span>--:--:--</span>
 
   return <span suppressHydrationWarning>{time}</span>
 }

@@ -17,6 +17,14 @@ export interface Project {
   owner_id: number;
 }
 
+export interface TaskCreate {
+  description: string;
+  title: string;
+  priority: 'high' | 'normal' | 'low';
+  type: string;
+  project_id: number;
+}
+
 // --- AUTHENTICATION ---
 export async function login(username: string, password: string): Promise<{ access_token: string; token_type: string } | null> {
   try {
@@ -100,7 +108,7 @@ export async function checkHealth() {
   }
 }
 
-export async function createTask(task: any) {
+export async function createTask(task: TaskCreate) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
   try {
     const res = await fetch(`${API_BASE_URL}/tasks/`, {
