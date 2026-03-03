@@ -1,0 +1,162 @@
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException
+from typing import Dict, List, Optional
+import asyncio
+import httpx
+import os
+import json
+import logging
+from datetime import datetime
+import redis.asyncio as redis
+from healer.adapters.docker_adapter import DockerAdapter
+from healer.models import HealRequest, HealResult
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("healer.main")
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")
+ORCHESTRATOR_URL = os.getenv("ORCHESTRATOR_URL", "http://crew-orchestrator:8080")
+
+redis_client: Optional[redis.Redis] = None
+docker_adapter: Optional[DockerAdapter] = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global redis_client, docker_adapter
+    # Startup
+    redis_client = await redis.from_url(REDIS_URL, decode_responses=True)
+    docker_adapter = DockerAdapter(redis_url=REDIS_URL)
+    
+    # Subscribe to orchestrator alerts
+    asyncio.create_task(alert_listener())
+    
+    yield
+    
+    # Shutdown
+    if redis_client:
+        await redis_client.close()
+
+app = FastAPI(
+    title="Healer Agent", 
+    version="0.1.0", 
+    description="Autonomous healing service for agents and systems",
+    lifespan=lifespan
+)
+
+async def fetch_system_health() -> Dict[str, Dict]:
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            r = await client.get(f"{ORCHESTRATOR_URL}/system/health")
+            if r.status_code != 200:
+                logger.error(f"Failed to fetch system health: {r.status_code}")
+                return {}
+            return r.json()
+        except Exception as e:
+            logger.error(f"Error fetching system health: {e}")
+            return {}
+
+async def ping_agent_health(agent_url: str, timeout: float) -> bool:
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            r = await client.get(f"{agent_url}/health")
+            return r.status_code == 200
+    except Exception:
+        return False
+
+async def attempt_heal_agent(agent_name: str, agent_url: str, attempts: int, timeout: float) -> HealResult:
+    # Phase 1: Check if truly unhealthy
+    healthy = await ping_agent_health(agent_url, timeout)
+    if healthy:
+        return HealResult(agent=agent_name, status="healthy", action="none", details="No action required", timestamp=datetime.now().isoformat())
+
+    # Phase 2: Restart via Docker Adapter
+    logger.info(f"Agent {agent_name} is unhealthy. Attempting restart...")
+    if docker_adapter:
+        restarted = await docker_adapter.restart_container(agent_name)
+        if restarted:
+             # Wait for startup
+            await asyncio.sleep(5.0)
+            if await ping_agent_health(agent_url, timeout):
+                return HealResult(agent=agent_name, status="recovered", action="restart", details="Restart successful", timestamp=datetime.now().isoformat())
+            else:
+                 # One retry
+                await asyncio.sleep(5.0)
+                if await ping_agent_health(agent_url, timeout):
+                    return HealResult(agent=agent_name, status="recovered", action="restart", details="Recovered after delay", timestamp=datetime.now().isoformat())
+        else:
+            return HealResult(agent=agent_name, status="failed", action="restart", details="Restart limit reached or failed", timestamp=datetime.now().isoformat())
+    else:
+        logger.warning("Docker adapter not initialized")
+
+    return HealResult(agent=agent_name, status="failed", action="restart", details="Agent unresponsive after attempts", timestamp=datetime.now().isoformat())
+
+async def auto_heal_all():
+    logger.info("Auto-healing triggered by alert")
+    health_data = await fetch_system_health()
+    
+    tasks = []
+    for name, info in health_data.items():
+        if info.get("status") == "unhealthy":
+            url = info.get("url", f"http://{name}:8000") # Fallback
+            tasks.append(attempt_heal_agent(name, url, attempts=2, timeout=5.0))
+    
+    if tasks:
+        results = await asyncio.gather(*tasks)
+        for res in results:
+            logger.info(f"Heal result for {res.agent}: {res.status} - {res.details}")
+
+
+
+@app.get("/health")
+async def health():
+    docker_ok = False
+    if docker_adapter and docker_adapter.client:
+        try:
+            docker_adapter.client.ping()
+            docker_ok = True
+        except:
+            pass
+            
+    return {
+        "status": "healer_online", 
+        "redis": redis_client is not None,
+        "docker": docker_ok
+    }
+
+@app.get("/health/sweep")
+async def health_sweep():
+    """
+    Checks the health of all containers managed by Docker Adapter.
+    """
+    if not docker_adapter:
+        raise HTTPException(status_code=503, detail="Docker adapter not initialized")
+    
+    try:
+        report = await docker_adapter.check_all_containers()
+        return report
+    except Exception as e:
+        logger.error(f"Health sweep failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/heal")
+async def trigger_heal(request: HealRequest):
+    return await attempt_heal_agent(request.agent_name, request.agent_url, request.attempts, request.timeout)
+
+async def alert_listener():
+    """
+    Listens for 'system_alert' messages on Redis and triggers healing.
+    """
+    if not redis_client:
+        return
+        
+    pubsub = redis_client.pubsub()
+    await pubsub.subscribe("system_alert")
+    
+    async for message in pubsub.listen():
+        if message["type"] == "message":
+            logger.info(f"Received alert: {message['data']}")
+            try:
+                await auto_heal_all()
+            except Exception as e:
+                logger.error(f"Error processing alert: {e}")
