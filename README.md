@@ -87,7 +87,46 @@ Once launched, the system opens automatically. You can also access services manu
 
 ---
 
-## 🏗️ Architecture
+## 📸 Live System Screenshots
+
+See HyperCode V2.0 in action with full observability:
+
+[![Grafana Dashboards](HyperFocus%20Images/Grafana%20DashBoards%20pics/Screenshot%202026-03-02%20211404.png)](docs/screenshots-gallery.md)
+
+**Full gallery with 10+ dashboards:** [View Screenshot Gallery](docs/screenshots-gallery.md)
+
+### Captured Highlights (March 2, 2026)
+- 🧠 **Agent Intelligence:** Real-time CPU tracking for all agents
+- 🖥️ **Node Exporter:** System health + resource utilization
+- 🌐 **Mission Control:** Network, disk I/O, Prometheus health
+- 🧬 **HyperSwarm:** Agent heartbeat heatmaps + swarm status
+- 🎨 **HyperFocus Zone:** MinIO S3 storage metrics
+- ✅ **100% Uptime:** All services healthy, 0 OOM kills
+
+---
+
+## 📚 Tips & Tricks Knowledge Base
+
+**Quick, actionable guides for common tasks — built for neurodivergent minds!**
+
+**[🚀 Browse All Tips & Tricks](docs/tips-and-tricks/README.md)** (35 guides planned)
+
+### Currently Available:
+- ✅ **[Git Commit SHA Guide](docs/tips-and-tricks/git-commit-sha-guide.md)** — What SHAs are + how to use them safely
+- ✅ **[Git Basics](docs/tips-and-tricks/git-basics.md)** — Clone, commit, push, pull explained
+
+### Coming Soon:
+- 🔄 Agent Debugging, Docker Troubleshooting, Grafana Dashboards, Performance Tips, and more!
+
+**Every guide features:**
+- 🟢🟡🔴 Color-coded risk levels
+- Step-by-step workflows (no walls of text)
+- Real HyperCode examples
+- ADHD/Dyslexia friendly format
+
+---
+
+## 🏭️ Architecture
 
 See [docs/architecture/architecture.md](docs/architecture/architecture.md) for detailed system design.
 
@@ -117,6 +156,7 @@ Check the latest system health report: [docs/notes/HyperCode_Health_Check_Report
 *   [**API Reference**](docs/API.md) - Endpoints and usage.
 *   [**Developer Onboarding**](docs/ONBOARDING.md) - Join the swarm!
 *   [**Troubleshooting**](docs/TROUBLESHOOTING.md) - Fix common issues.
+*   [**Tips & Tricks**](docs/tips-and-tricks/README.md) - Quick guides for common tasks.
 
 *   [**Old / Legacy Docs**](docs/getting-started/installation.md)
 *   [**Monitoring & Observability**](docs/observability/monitoring-guide.md)
