@@ -105,6 +105,27 @@ See HyperCode V2.0 in action with full observability:
 
 ---
 
+## 📚 Tips & Tricks Knowledge Base
+
+**Quick, actionable guides for common tasks — built for neurodivergent minds!**
+
+**[🚀 Browse All Tips & Tricks](docs/tips-and-tricks/README.md)** (35 guides planned)
+
+### Currently Available:
+- ✅ **[Git Commit SHA Guide](docs/tips-and-tricks/git-commit-sha-guide.md)** — What SHAs are + how to use them safely
+- ✅ **[Git Basics](docs/tips-and-tricks/git-basics.md)** — Clone, commit, push, pull explained
+
+### Coming Soon:
+- 🔄 Agent Debugging, Docker Troubleshooting, Grafana Dashboards, Performance Tips, and more!
+
+**Every guide features:**
+- 🟢🟡🔴 Color-coded risk levels
+- Step-by-step workflows (no walls of text)
+- Real HyperCode examples
+- ADHD/Dyslexia friendly format
+
+---
+
 ## 🏭️ Architecture
 
 See [docs/architecture/architecture.md](docs/architecture/architecture.md) for detailed system design.
@@ -135,6 +156,7 @@ Check the latest system health report: [docs/notes/HyperCode_Health_Check_Report
 *   [**API Reference**](docs/API.md) - Endpoints and usage.
 *   [**Developer Onboarding**](docs/ONBOARDING.md) - Join the swarm!
 *   [**Troubleshooting**](docs/TROUBLESHOOTING.md) - Fix common issues.
+*   [**Tips & Tricks**](docs/tips-and-tricks/README.md) - Quick guides for common tasks.
 
 *   [**Old / Legacy Docs**](docs/getting-started/installation.md)
 *   [**Monitoring & Observability**](docs/observability/monitoring-guide.md)
