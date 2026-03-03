@@ -87,7 +87,25 @@ Once launched, the system opens automatically. You can also access services manu
 
 ---
 
-## 🏗️ Architecture
+## 📸 Live System Screenshots
+
+See HyperCode V2.0 in action with full observability:
+
+[![Grafana Dashboards](HyperFocus%20Images/Grafana%20DashBoards%20pics/Screenshot%202026-03-02%20211404.png)](docs/screenshots-gallery.md)
+
+**Full gallery with 10+ dashboards:** [View Screenshot Gallery](docs/screenshots-gallery.md)
+
+### Captured Highlights (March 2, 2026)
+- 🧠 **Agent Intelligence:** Real-time CPU tracking for all agents
+- 🖥️ **Node Exporter:** System health + resource utilization
+- 🌐 **Mission Control:** Network, disk I/O, Prometheus health
+- 🧬 **HyperSwarm:** Agent heartbeat heatmaps + swarm status
+- 🎨 **HyperFocus Zone:** MinIO S3 storage metrics
+- ✅ **100% Uptime:** All services healthy, 0 OOM kills
+
+---
+
+## 🏭️ Architecture
 
 See [docs/architecture/architecture.md](docs/architecture/architecture.md) for detailed system design.
 
