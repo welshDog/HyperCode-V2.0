@@ -12,10 +12,15 @@ distributor:
     jaeger:
       protocols:
         thrift_http:
+          endpoint: "0.0.0.0:14268"
         grpc:
+          endpoint: "0.0.0.0:14250"
         thrift_binary:
+          endpoint: "0.0.0.0:6832"
         thrift_compact:
+          endpoint: "0.0.0.0:6831"
     zipkin:
+      endpoint: "0.0.0.0:9411"
 
 ingester:
   trace_idle_period: 10s
@@ -26,6 +31,11 @@ storage:
   trace:
     backend: local
     local:
-      path: /tmp/tempo/blocks
+      path: /var/lib/tempo/blocks
     wal:
-      path: /tmp/tempo/wal
+      path: /var/lib/tempo/wal
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors: [service-graphs, span-metrics]
