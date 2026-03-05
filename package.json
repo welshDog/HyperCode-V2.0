@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "openai": "^6.16.0"
+    "openai": "^6.25.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.0.0",
