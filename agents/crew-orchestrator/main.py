@@ -125,7 +125,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -354,24 +354,21 @@ manager = ConnectionManager()
 @app.websocket("/ws/uplink")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
-    logger.info("Client connected to uplink")
     try:
         while True:
             data = await websocket.receive_text()
             # Echo for now, or process command
-            # In a real system, this would parse the JSON schema and route to agents
             try:
                 message = json.loads(data)
-                # Simple loopback for testing
                 response = {
                     "id": message.get("id"),
                     "type": "response",
-                    "source": "orchestrator",
+                    "source": "orchestrator", 
                     "payload": {"status": "received", "echo": message.get("payload")}
                 }
                 await websocket.send_text(json.dumps(response))
             except json.JSONDecodeError:
-                await websocket.send_text(json.dumps({"error": "Invalid JSON"}))
+                await websocket.send_text(json.dumps({"type": "error", "payload": "Invalid JSON"}))
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         logger.info("Client disconnected from uplink")

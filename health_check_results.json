@@ -1,0 +1,42 @@
+{
+  "timestamp": "2026-03-05T20:47:38.037411",
+  "infrastructure": {
+    "containers": []
+  },
+  "services": [
+    {
+      "name": "HyperCode Core",
+      "url": "http://localhost:8000/health",
+      "status": 200,
+      "latency_ms": 2069.91,
+      "healthy": true
+    },
+    {
+      "name": "Orchestrator",
+      "url": "http://localhost:8081/health",
+      "status": 200,
+      "latency_ms": 2076.42,
+      "healthy": true
+    },
+    {
+      "name": "Dashboard",
+      "url": "http://localhost:3000",
+      "status": "ERROR",
+      "latency_ms": 0,
+      "healthy": false,
+      "error": "HTTPConnectionPool(host='localhost', port=3000): Max retries exceeded with url: / (Caused by NewConnectionError(\"HTTPConnection(host='localhost', port=3000): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it\"))"
+    },
+    {
+      "name": "Grafana",
+      "url": "http://localhost:3000",
+      "status": "ERROR",
+      "latency_ms": 0,
+      "healthy": false,
+      "error": "HTTPConnectionPool(host='localhost', port=3000): Max retries exceeded with url: / (Caused by NewConnectionError(\"HTTPConnection(host='localhost', port=3000): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it\"))"
+    }
+  ],
+  "resources": {
+    "docker_disk": "TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE\nImages          39        30        36.66GB   25.64GB (69%)\nContainers      38        33        415.9MB   53.65MB (12%)\nLocal Volumes   21        11        2.966GB   663.4MB (22%)\nBuild Cache     18        0         1.368GB   272.7MB"
+  },
+  "logs": []
+}

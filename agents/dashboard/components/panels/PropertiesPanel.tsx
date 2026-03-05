@@ -54,7 +54,7 @@ export const PropertiesPanel = () => {
           <select 
             className="w-full bg-black border border-white/20 rounded px-2 py-1.5 text-xs text-white focus:border-cyan-500 outline-none"
             value={data.status}
-            onChange={(e) => updateNodeStatus(selectedNode.id, { status: e.target.value })}
+            onChange={(e) => updateNodeStatus(selectedNode.id, { status: e.target.value as any })}
           >
             <option value="idle">Idle</option>
             <option value="thinking">Thinking</option>

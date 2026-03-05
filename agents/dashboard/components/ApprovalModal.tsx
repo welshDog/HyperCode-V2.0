@@ -21,27 +21,32 @@ export function ApprovalModal() {
   useEffect(() => {
     // Construct WS URL for Orchestrator (Port 8081)
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // Use hardcoded orchestrator port since API_BASE_URL points to Core API (8000)
-    // TODO: Move this to environment variable NEXT_PUBLIC_ORCHESTRATOR_URL
-    const orchestratorHost = "localhost:8081";
+    // Use window.location.hostname to automatically adapt to localhost/127.0.0.1/network IP
+    const hostname = window.location.hostname;
+    const orchestratorHost = `${hostname}:8081`;
     const wsUrl = `${protocol}//${orchestratorHost}/ws/approvals`;
     
-    console.log("Connecting to Approval Stream:", wsUrl);
+    console.log(`[ApprovalStream] Connecting to ${wsUrl}...`);
     
     let socket: WebSocket | null = null;
     let retryTimeout: NodeJS.Timeout;
 
     const connect = () => {
+        // Prevent multiple connections
+        if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+            return;
+        }
+
         socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
-            console.log("Approval Stream Connected");
+            console.log("[ApprovalStream] Connected");
         };
 
         socket.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                console.log("WS Message Received:", data);
+                // console.log("[ApprovalStream] Message:", data); // Reduce spam
                 
                 // Validate payload: Must have task_id to be an approval request
                 if (data && data.task_id && data.description) {
@@ -50,8 +55,6 @@ export function ApprovalModal() {
                         if (prev.some(r => r.id === data.id)) return prev;
                         return [...prev, data];
                     });
-                } else {
-                    console.log("Ignored non-approval message:", data);
                 }
             } catch (e) {
                 console.error("Failed to parse approval message", e);
@@ -59,12 +62,13 @@ export function ApprovalModal() {
         };
 
         socket.onclose = () => {
-            console.log("Approval Stream Disconnected. Retrying...");
-            retryTimeout = setTimeout(connect, 3000);
+            // Silent reconnect
+            // console.log("[ApprovalStream] Disconnected. Retrying...");
+            retryTimeout = setTimeout(connect, 5000);
         };
         
         socket.onerror = (err) => {
-            console.error("WebSocket Error:", err);
+            console.error("[ApprovalStream] Error:", err);
             socket?.close();
         };
     };
