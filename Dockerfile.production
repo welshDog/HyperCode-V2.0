@@ -3,7 +3,7 @@
 
 # ==================== BASE STAGE ====================
 # Shared foundation for all production stages
-FROM python:3.11-slim as base
+FROM python:3.14-slim as base
 
 # Install system dependencies in a single layer with cache cleanup
 RUN apt-get update && apt-get install -y --no-install-recommends \
