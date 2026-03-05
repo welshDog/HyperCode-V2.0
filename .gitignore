@@ -84,3 +84,4 @@ Thumbs.db
 # .trae/documents/archive/
 
 data/ollama/models
+scripts/verify_env.py
