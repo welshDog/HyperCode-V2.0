@@ -37,11 +37,24 @@ async def execute_agent_task(ctx, agent_name: str, task: dict):
 
 # Worker settings
 class WorkerSettings:
-    redis_settings = RedisSettings(host='redis', port=6379)
+    # Use environment variable or fallback to localhost for local dev, 'redis' for docker
+    import os
+    redis_host = os.getenv('ORCHESTRATOR_REDIS_HOST', 'localhost')
+    redis_port = int(os.getenv('ORCHESTRATOR_REDIS_PORT', 6379))
+    
+    redis_settings = RedisSettings(host=redis_host, port=redis_port)
     functions = [execute_agent_task]
     max_jobs = 10
     job_timeout = 600  # 10 minutes
     allow_abort_jobs = True
 
 async def get_redis_pool():
-    return await create_pool(WorkerSettings.redis_settings)
+    # Helper to get a simple redis connection pool
+    from arq.connections import create_pool
+    from arq.connections import RedisSettings
+    import os
+    
+    redis_host = os.getenv('ORCHESTRATOR_REDIS_HOST', 'localhost')
+    redis_port = int(os.getenv('ORCHESTRATOR_REDIS_PORT', 6379))
+    
+    return await create_pool(RedisSettings(host=redis_host, port=redis_port))
