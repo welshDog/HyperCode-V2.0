@@ -4,7 +4,7 @@
   },
   "devDependencies": {
     "@commitlint/cli": "^19.0.0",
-    "@commitlint/config-conventional": "^19.0.0",
+    "@commitlint/config-conventional": "^20.4.3",
     "@playwright/test": "^1.58.2",
     "husky": "^9.0.0"
   },
