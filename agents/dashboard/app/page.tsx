@@ -170,7 +170,7 @@ export default function Dashboard() {
     if (!input.trim()) return;
     
     // Optimistic log
-    const newLog = {
+    const newLog: Log = {
       id: Date.now(),
       agent: "USER",
       level: "info",
@@ -275,11 +275,9 @@ export default function Dashboard() {
           </div>
 
           {/* Viewport Content */}
-          <div className="flex-1 overflow-y-auto p-4 font-mono relative">
+          <div className="flex-1 overflow-y-auto p-0 font-mono relative bg-black">
             {activeTab === 'uplink' && (
-              <div className="h-full flex items-center justify-center">
-                 <CognitiveUplink />
-              </div>
+               <CognitiveUplink />
             )}
 
             {activeTab === 'hyperflow' && (

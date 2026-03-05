@@ -3,12 +3,13 @@ import path from "path";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // Experimental options for Next.js 16+
   experimental: {
+    // Turbopack root resolution (if supported by this version)
     turbo: {
-      // Resolve the project root to handle multiple lockfiles
       root: path.resolve(__dirname, '../../'),
-    },
-  },
+    }
+  } as any,
 };
 
 export default nextConfig;

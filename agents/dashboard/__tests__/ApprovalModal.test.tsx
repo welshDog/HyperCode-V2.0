@@ -11,6 +11,7 @@ class MockWebSocket {
   onerror: (e: Event) => void = () => {};
   close = vi.fn();
   send = vi.fn();
+  readyState = 1;
 
   constructor(url: string) {
     // Simulate connection
@@ -18,7 +19,12 @@ class MockWebSocket {
   }
 }
 
-global.WebSocket = MockWebSocket as typeof MockWebSocket;
+(MockWebSocket as any).CONNECTING = 0;
+(MockWebSocket as any).OPEN = 1;
+(MockWebSocket as any).CLOSING = 2;
+(MockWebSocket as any).CLOSED = 3;
+
+global.WebSocket = MockWebSocket as unknown as typeof WebSocket;
 
 describe('ApprovalModal Component', () => {
   beforeEach(() => {

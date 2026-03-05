@@ -4,4 +4,4 @@ metadata:
   name: hypercode
   labels:
     name: hypercode
-    app: hypercode-platform
+    environment: production

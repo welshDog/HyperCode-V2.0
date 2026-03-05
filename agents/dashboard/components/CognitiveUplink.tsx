@@ -36,12 +36,21 @@ export default function CognitiveUplink() {
   }, []);
 
   const connect = useCallback(() => {
+    // Check if we already have an active connection or are connecting
+    if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+
     // In production, this URL should come from env vars
-    // Use 127.0.0.1 to avoid localhost resolution issues with CORS
-    const wsUrl = 'ws://127.0.0.1:8081/ws/uplink'; 
+    // Use window.location.hostname to automatically adapt to localhost/127.0.0.1/network IP
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    const wsUrl = `ws://${hostname}:8081/ws/uplink`; 
+    
+    console.log(`[CognitiveUplink] Connecting to ${wsUrl}...`);
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
+      console.log("[CognitiveUplink] Connected");
       setIsConnected(true);
       setMessages(prev => [...prev, { 
         role: 'system', 
@@ -50,18 +59,24 @@ export default function CognitiveUplink() {
       }]);
     };
 
-    ws.onclose = () => {
-      setIsConnected(false);
-      setMessages(prev => [...prev, { 
-        role: 'system', 
-        content: 'CONNECTION INTERRUPTED. Re-establishing link to Neural Net...', 
-        timestamp: Date.now() 
-      }]);
+    ws.onerror = (error) => {
+        console.error("[CognitiveUplink] WebSocket Error:", error);
+        // Don't clutter UI with connection errors, just log them
     };
 
-    ws.onmessage = (event) => {
+    ws.onclose = () => {
+      console.log("[CognitiveUplink] Disconnected");
+      setIsConnected(false);
+      // Only show disconnected message if we were previously connected
+      // to avoid spamming "Re-establishing" on initial load failure
+    };
+
+    wsRef.current = ws;
+
+    ws.onmessage = (event: MessageEvent) => {
       try {
-        const data: AgentMessage = JSON.parse(event.data);
+        const data = JSON.parse(event.data);
+        // ... handle message logic
         if (data.type === 'response') {
           setMessages(prev => [...prev, { 
             role: 'agent', 
@@ -74,20 +89,26 @@ export default function CognitiveUplink() {
         console.error("Failed to parse message", e);
       }
     };
-
-    wsRef.current = ws;
   }, []);
 
   useEffect(() => {
-    connect();
+    // Only connect if not already connected
+    if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
+        connect();
+    }
+    
     const interval = setInterval(() => {
-        if (wsRef.current && wsRef.current.readyState === WebSocket.CLOSED) {
+        // Reconnect logic: Only if explicitly closed/missing
+        if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
+            console.log("[CognitiveUplink] Reconnecting...");
             connect();
         }
-    }, 3000);
+    }, 5000); // Increased interval to 5s to reduce spam
+
     return () => {
-      if (wsRef.current) wsRef.current.close();
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
+      // Optional: Close on unmount if you want strict cleanup
+      // if (wsRef.current) wsRef.current.close();
     };
   }, [connect]);
 
