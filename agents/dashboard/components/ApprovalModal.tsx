@@ -19,21 +19,12 @@ export function ApprovalModal() {
   const [requests, setRequests] = useState<ApprovalRequest[]>([]);
   
   useEffect(() => {
-    // Construct WS URL
+    // Construct WS URL for Orchestrator (Port 8081)
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // Use API_BASE_URL but replace http/https with ws/wss
-    // If API_BASE_URL is "http://localhost:8080", we want "ws://localhost:8080"
-    // Handle the case where API_BASE_URL might be undefined or empty
-    const baseUrl = API_BASE_URL || "http://localhost:8080";
-    let wsUrl = baseUrl.replace(/^http/, 'ws');
-    
-    // Fallback if replace didn't work (e.g. relative path)
-    if (wsUrl.startsWith('/')) {
-        wsUrl = `${protocol}//${window.location.host}${wsUrl}`;
-    }
-    
-    // Append endpoint
-    wsUrl = `${wsUrl}/ws/approvals`;
+    // Use hardcoded orchestrator port since API_BASE_URL points to Core API (8000)
+    // TODO: Move this to environment variable NEXT_PUBLIC_ORCHESTRATOR_URL
+    const orchestratorHost = "localhost:8081";
+    const wsUrl = `${protocol}//${orchestratorHost}/ws/approvals`;
     
     console.log("Connecting to Approval Stream:", wsUrl);
     

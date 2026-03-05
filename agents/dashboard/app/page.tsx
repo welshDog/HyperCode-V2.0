@@ -137,10 +137,11 @@ export default function Dashboard() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [connected, setConnected] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // Poll for data
   useEffect(() => {
+    setLastUpdated(new Date()); // Initialize on client
     const poll = async () => {
       const isHealthy = await checkHealth();
       setConnected(isHealthy);

@@ -1,5 +1,6 @@
 # Core Backend
 -r backend/requirements.txt
+-r agents/broski-bot/requirements.txt
 
 # Development Tools
 pytest>=7.4.0

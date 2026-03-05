@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Send, Radio, Terminal } from 'lucide-react';
 
+import { formatTime } from '@/lib/format';
+
 interface AgentMessage {
   id: string;
   timestamp: string;
@@ -20,13 +22,18 @@ interface MessageUI {
 
 export default function CognitiveUplink() {
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<MessageUI[]>([
-    { role: 'system', content: 'Neural interface ready. Establishing uplink...', timestamp: Date.now() }
-  ]);
+  const [messages, setMessages] = useState<MessageUI[]>([]); // Initialize empty to avoid hydration mismatch
   const [isConnected, setIsConnected] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
+
+  // Hydration fix: Set initial message on mount
+  useEffect(() => {
+    setMessages([
+        { role: 'system', content: 'Neural interface ready. Establishing uplink...', timestamp: Date.now() }
+    ]);
+  }, []);
 
   const connect = useCallback(() => {
     // In production, this URL should come from env vars
@@ -155,7 +162,7 @@ export default function CognitiveUplink() {
             {messages.map((msg, i) => (
               <div key={i} className={`mb-2 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
                 <span className={`text-[10px] uppercase ${msg.role === 'user' ? 'text-emerald-700' : 'text-cyan-700'} block mb-1`}>
-                  [{new Date(msg.timestamp).toLocaleTimeString()}] {msg.role === 'user' ? 'OPERATOR' : msg.role === 'agent' ? 'SWARM' : 'SYSTEM'}
+                  [{formatTime(msg.timestamp)}] {msg.role === 'user' ? 'OPERATOR' : msg.role === 'agent' ? 'SWARM' : 'SYSTEM'}
                 </span>
                 <div className={`${msg.role === 'user' ? 'text-emerald-400' : msg.role === 'system' ? 'text-zinc-500 italic' : 'text-cyan-300'}`}>
                   {msg.role === 'system' && '// '}
