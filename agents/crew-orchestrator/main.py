@@ -17,28 +17,17 @@ from task_queue import get_redis_pool
 import redis.asyncio as redis
 from datetime import datetime
 
+# Import configuration
+from config import settings
+
 # Configure Logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=settings.log_level)
 logger = logging.getLogger("crew-orchestrator")
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")
 redis_client: Optional[redis.Redis] = None
 
 # Forward declaration of app
 app: FastAPI = None # type: ignore
-
-# Agent service endpoints
-AGENTS = {
-    "project_strategist": "http://project-strategist:8001",
-    "frontend_specialist": "http://frontend-specialist:8002",
-    "backend_specialist": "http://backend-specialist:8003",
-    "database_architect": "http://database-architect:8004",
-    "qa_engineer": "http://qa-engineer:8005",
-    "devops_engineer": "http://devops-engineer:8006",
-    "security_engineer": "http://security-engineer:8007",
-    "system_architect": "http://system-architect:8008",
-    "coder_agent": "http://coder-agent:8002",
-}
 
 # --- LIFECYCLE ---
 
@@ -53,7 +42,7 @@ async def monitor_agent_health():
             failed_agents = []
             results = {}
             
-            for agent_name, url in AGENTS.items():
+            for agent_name, url in settings.agents.items():
                 try:
                     async with httpx.AsyncClient(timeout=5.0) as client:
                         start_time = datetime.now()
@@ -127,7 +116,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="HyperCode Agent Crew Orchestrator", 
-    description="Coordinates 8 specialized AI agents for software development",
+    description="Coordinates specialized AI agents for software development",
     version="2.0", 
     lifespan=lifespan
 )
@@ -168,6 +157,52 @@ async def log_event(agent: str, level: str, msg: str):
         await redis_client.lpush("logs:global", json.dumps(entry))
         await redis_client.ltrim("logs:global", 0, 99) # Keep last 100
 
+async def request_approval(task_id: str, description: str, agent: Optional[str] = None) -> str:
+    """Helper to handle approval workflow"""
+    if not redis_client:
+        logger.error("Redis not connected, cannot request approval")
+        return "error"
+
+    approval_id = f"approval-{task_id}"
+    if agent:
+        approval_id += f"-{agent}"
+
+    approval_request = {
+        "id": approval_id,
+        "task_id": task_id,
+        "description": description,
+        "agent": agent,
+        "plan": "Generated plan based on RAG..." if not agent else f"Execute specific tasks for {agent}",
+        "risk_level": "Low",
+        "estimated_time": "2 minutes"
+    }
+    
+    # Publish to Redis for Dashboard
+    await redis_client.publish("approval_requests", json.dumps(approval_request))
+    log_msg = f"Approval requested for task {task_id}"
+    if agent:
+        log_msg += f" ({agent})"
+    await log_event("orchestrator", "warn", log_msg)
+    
+    status = "pending"
+    timeout = 60
+    start_time = datetime.now()
+    
+    while status == "pending":
+        if (datetime.now() - start_time).seconds > timeout:
+            await log_event("orchestrator", "error", f"Approval timeout for {task_id}")
+            return "timeout"
+            
+        response = await redis_client.get(f"approval:{approval_id}:response")
+        if response:
+            data = json.loads(response)
+            status = data.get("status")
+        else:
+            await asyncio.sleep(1)
+    
+    await log_event("orchestrator", "success", f"Approval received: {status}")
+    return status
+
 @app.post("/execute")
 async def execute_task(request: ExecuteRequest, background_tasks: BackgroundTasks):
     task = request.task
@@ -207,45 +242,9 @@ async def execute_task(request: ExecuteRequest, background_tasks: BackgroundTask
 
     # 4. Approval Flow
     if task.requires_approval:
-        approval_id = f"approval-{task.id}"
-        approval_request = {
-            "id": approval_id,
-            "task_id": task.id,
-            "description": task.description,
-            "agent": task.agent,
-            "plan": "Generated plan based on RAG...",
-            "risk_level": "Low",
-            "estimated_time": "2 minutes"
-        }
-        
-        # Publish to Redis for Dashboard
-        if redis_client:
-            await redis_client.publish("approval_requests", json.dumps(approval_request))
-            await log_event("orchestrator", "warn", f"Approval requested for task {task.id}")
-        else:
-            logger.error("Redis not connected, cannot request approval")
-            return {"status": "error", "message": "Redis disconnected"}
-        
-        status = "pending"
-        timeout = 60
-        start_time = datetime.now()
-        
-        while status == "pending":
-            if (datetime.now() - start_time).seconds > timeout:
-                await log_event("orchestrator", "error", f"Approval timeout for {task.id}")
-                return {"status": "timeout"}
-                
-            response = await redis_client.get(f"approval:{approval_id}:response")
-            if response:
-                data = json.loads(response)
-                status = data.get("status")
-            else:
-                await asyncio.sleep(1)
-        
-        await log_event("orchestrator", "success", f"Approval received: {status}")
-        
+        status = await request_approval(task.id, task.description, task.agent)
         if status != "approved":
-            return {"status": "rejected"}
+            return {"status": "rejected" if status != "timeout" else "timeout"}
 
     # 5. Execute Agent(s)
     agents_to_run = []
@@ -276,44 +275,15 @@ async def execute_task(request: ExecuteRequest, background_tasks: BackgroundTask
 
         # Approval for multi-agent (Test 2/3)
         if len(agents_to_run) > 1 and task.requires_approval:
-             approval_id = f"approval-{task.id}-{agent_name}"
-             approval_request = {
-                "id": approval_id,
-                "task_id": task.id,
-                "description": f"Execute phase for {agent_name}: {task.description[:50]}...",
-                "agent": agent_name,
-                "plan": f"Execute specific tasks for {agent_name}",
-                "risk_level": "Low",
-                "estimated_time": "2 minutes"
-             }
+             desc = f"Execute phase for {agent_name}: {task.description[:50]}..."
+             status = await request_approval(task.id, desc, agent_name)
              
-             if redis_client:
-                await redis_client.publish("approval_requests", json.dumps(approval_request))
-                await log_event("orchestrator", "warn", f"Approval requested for {agent_name}")
-                
-                status = "pending"
-                timeout = 60
-                start_time = datetime.now()
-                
-                while status == "pending":
-                    if (datetime.now() - start_time).seconds > timeout:
-                        return {"status": "timeout"}
-                    
-                    response = await redis_client.get(f"approval:{approval_id}:response")
-                    if response:
-                        data = json.loads(response)
-                        status = data.get("status")
-                    else:
-                        await asyncio.sleep(1)
-                
-                if status != "approved":
-                    return {"status": "rejected", "agent": agent_name}
-                
-                await log_event("orchestrator", "success", f"Approved {agent_name}")
+             if status != "approved":
+                 return {"status": "rejected" if status != "timeout" else "timeout", "agent": agent_name}
 
         # Determine agent URL
         agent_key = agent_name.replace("-", "_")
-        agent_url = AGENTS.get(agent_key)
+        agent_url = settings.agents.get(agent_key)
         
         if not agent_url:
             agent_url = f"http://{agent_name}:8000"
@@ -414,7 +384,7 @@ async def websocket_approvals(websocket: WebSocket):
     
     try:
         # Create a new Redis connection for subscribing
-        pubsub_redis = await redis.from_url(REDIS_URL, decode_responses=True)
+        pubsub_redis = await redis.from_url(settings.redis_url, decode_responses=True)
         pubsub = pubsub_redis.pubsub()
         await pubsub.subscribe("approval_requests")
         
@@ -470,7 +440,7 @@ async def root():
     return {
         "service": "HyperCode Agent Crew Orchestrator",
         "version": "2.0",
-        "agents": list(AGENTS.keys()),
+        "agents": list(settings.agents.keys()),
         "status": "operational"
     }
 
@@ -489,7 +459,7 @@ async def get_agents():
     # unless we track them in Redis
     
     agents_list = []
-    for key, url in AGENTS.items():
+    for key, url in settings.agents.items():
         # Clean up name
         name = key.replace("_", " ").title()
         role = key.split("_")[-1].title() if "_" in key else "Agent"
