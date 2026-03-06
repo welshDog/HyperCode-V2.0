@@ -649,6 +649,13 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=crew-orchestrator
       - REDIS_URL=redis://redis:6379
+<<<<<<< HEAD
+=======
+      - ORCHESTRATOR_REDIS_HOST=redis
+      - ORCHESTRATOR_REDIS_PORT=6379
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+>>>>>>> 64df445 (feat(docs): add comprehensive project audit methodology files)
     volumes:
       - ./agents/crew-orchestrator:/app
       - ./Configuration_Kit:/app/hive_mind:ro
