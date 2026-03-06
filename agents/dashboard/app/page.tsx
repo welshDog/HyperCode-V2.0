@@ -17,10 +17,11 @@ import {
   WifiOff
 } from "lucide-react";
 import clsx from "clsx";
-import { fetchAgents, fetchLogs, fetchTasks, checkHealth, sendCommand, API_BASE_URL } from "@/lib/api";
+import { fetchAgents, fetchLogs, fetchTasks, checkHealth, sendCommand, API_BASE_URL, type Task } from "@/lib/api";
 import { Clock } from "@/components/Clock";
 import { ApprovalModal } from "@/components/ApprovalModal";
 import { SystemHealth } from "@/components/SystemHealth";
+import { MetricsPanel } from "@/components/MetricsPanel";
 import NeuralViz from "@/components/NeuralViz";
 import CognitiveUplink from "@/components/CognitiveUplink";
 import { HyperCanvas } from "@/components/canvas/HyperCanvas";
@@ -42,15 +43,6 @@ interface Log {
   level: 'info' | 'warn' | 'error' | 'success';
   msg: string;
 }
-
-interface Task {
-  id: number | string;
-  description: string;
-  title: string;
-  status: string;
-  progress: number;
-}
-
 
 // --- Components ---
 
@@ -277,7 +269,14 @@ export default function Dashboard() {
           {/* Viewport Content */}
           <div className="flex-1 overflow-y-auto p-0 font-mono relative bg-black">
             {activeTab === 'uplink' && (
-               <CognitiveUplink />
+               <div className="flex flex-col h-full">
+                  <div className="p-6 pb-0">
+                     <MetricsPanel />
+                  </div>
+                  <div className="flex-1 min-h-0">
+                     <CognitiveUplink />
+                  </div>
+               </div>
             )}
 
             {activeTab === 'hyperflow' && (
