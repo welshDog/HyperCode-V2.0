@@ -101,6 +101,32 @@ services:
       interval: 30s
 
   # ====================
+  # BUSINESS AGENTS
+  # ====================
+  project-strategist-v2:
+    build:
+      context: ./agents/business/project-strategist
+      dockerfile: Dockerfile
+    container_name: project-strategist-v2
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ====================
   # BROSKI BOT
   # ====================
   broski-bot:
