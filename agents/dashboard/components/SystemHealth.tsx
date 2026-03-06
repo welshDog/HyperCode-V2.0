@@ -1,18 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchSystemHealth } from "@/lib/api";
+import { fetchSystemHealth, type SystemHealthData } from "@/lib/api";
 import { Activity, AlertTriangle, CheckCircle, ServerCrash } from "lucide-react";
 
-interface AgentHealth {
-  status: "healthy" | "unhealthy" | "down";
-  latency_ms?: number;
-  error?: string;
-  last_checked: string;
-}
-
 export function SystemHealth() {
-  const [healthData, setHealthData] = useState<Record<string, AgentHealth> | null>(null);
+  const [healthData, setHealthData] = useState<Record<string, SystemHealthData> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

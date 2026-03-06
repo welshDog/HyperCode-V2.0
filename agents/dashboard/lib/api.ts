@@ -17,6 +17,14 @@ export interface Project {
   owner_id: number;
 }
 
+export interface Task {
+  id: number | string;
+  description: string;
+  title: string;
+  status: string;
+  progress: number;
+}
+
 export interface TaskCreate {
   description: string;
   title: string;
@@ -77,7 +85,7 @@ export async function fetchProjects(token: string): Promise<Project[]> {
 
 // ... (Rest of existing functions)
 
-export async function fetchTasks() {
+export async function fetchTasks(): Promise<Task[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/tasks`);
     if (!res.ok) throw new Error("Failed to fetch tasks");
@@ -173,7 +181,14 @@ export async function sendCommand(command: string) {
     return { status: "ignored", message: "Command not recognized (try 'run: ...')" };
 }
 
-export async function fetchSystemHealth() {
+export interface SystemHealthData {
+    status: string;
+    latency_ms?: number;
+    last_checked?: string;
+    error?: string;
+}
+
+export async function fetchSystemHealth(): Promise<Record<string, SystemHealthData>> {
   try {
     // Attempt to fetch from API
     const res = await fetch(`${API_BASE_URL}/system/health`);

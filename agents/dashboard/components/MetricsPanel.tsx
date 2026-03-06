@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchTasks, fetchSystemHealth } from "@/lib/api";
+import { fetchTasks, fetchSystemHealth, type Task, type SystemHealthData } from "@/lib/api";
 import { 
   Database, 
   Server, 
@@ -34,7 +34,7 @@ export function MetricsPanel() {
 
       // Process Tasks
       const total = tasksData.length;
-      const completed = tasksData.filter((t: any) => t.status === "done" || t.status === "completed").length;
+      const completed = tasksData.filter((t: Task) => t.status === "done" || t.status === "completed").length;
       
       // Process Health
       // Health data structure from api.ts: { "service_name": { status: "healthy"|"down" } }
