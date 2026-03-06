@@ -20,4 +20,4 @@ ENV REDIS_HOST=redis
 ENV REDIS_PORT=6379
 
 # Run the agent
-CMD ["tail", "-f", "/dev/null"]
+CMD ["python", "src/main.py"]

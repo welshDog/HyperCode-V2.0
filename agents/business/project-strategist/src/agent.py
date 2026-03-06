@@ -1,252 +1,205 @@
-import json
-import logging
-import os
+"""
+Project Strategist Agent
+Plans, breaks down, and delegates tasks to specialist agents
+"""
 import sys
-import argparse
-import time
-import redis
-import requests
-from typing import Dict, Any, Optional
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+import os
+import json
+import httpx
+from typing import Dict, List, Any
+from base_agent import BaseAgent, AgentConfig, TaskRequest
 
-# Configure logging
-LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))), "logs")
-if not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR)
-
-LOG_FILE = os.path.join(LOG_DIR, "business-agent.log")
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(LOG_FILE),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-
-logger = logging.getLogger("ProjectStrategist")
-
-class ProjectStrategistAgent:
-    """
-    Project Strategist Agent
-    Core responsibilities:
-    - Aligns project goals with execution plans
-    - Manages milestones
-    - Ensures strategic coherence
-    """
-
-    def __init__(self, config_path: str = None):
-        """
-        Initialize the agent.
-        :param config_path: Path to the configuration JSON file.
-        """
-        self.config = {}
-        self.state = "IDLE"
-        self._load_config(config_path)
-        self.initialize()
-
-    def _load_config(self, config_path: Optional[str]):
-        """
-        Load configuration from a JSON file.
-        """
-        if not config_path:
-            # Default relative path
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            config_path = os.path.join(base_dir, "config", "business-agent.json")
-
-        try:
-            with open(config_path, 'r') as f:
-                self.config = json.load(f)
-            logger.info(f"Configuration loaded from {config_path}")
-        except FileNotFoundError:
-            logger.error(f"Configuration file not found at {config_path}")
-            raise
-        except json.JSONDecodeError:
-            logger.error(f"Invalid JSON in configuration file at {config_path}")
-            raise
-
-    def initialize(self):
-        """
-        Lifecycle method: Initialize agent resources.
-        """
-        logger.info(f"Initializing {self.config.get('name', 'Unknown Agent')}...")
-        self.state = "INITIALIZING"
+class ProjectStrategist(BaseAgent):
+    
+    SPECIALIST_AGENTS = {
+        "frontend": "http://frontend-specialist:8002",
+        "backend": "http://backend-specialist:8003",
+        "database": "http://database-architect:8004",
+        "qa": "http://qa-engineer:8005",
+        "devops": "http://devops-engineer:8006",
+        "security": "http://security-engineer:8007",
+        "architect": "http://system-architect:8008"
+    }
+    
+    def build_system_prompt(self) -> str:
+        # Fallback base prompt
+        base_prompt = f"You are {self.config.name}, responsible for {self.config.role}."
         
-        # Load capabilities
-        self.capabilities = self.config.get("capabilities", [])
+        return f"""{base_prompt}
+
+**Your Specialization: Project Strategy & Task Delegation**
+
+RESPONSIBILITIES:
+- Break down complex features into actionable subtasks
+- Identify which specialists are needed for each task
+- Create detailed task tickets with acceptance criteria
+- Estimate time and complexity
+- Coordinate dependencies between tasks
+- Monitor overall project progress
+
+TASK BREAKDOWN FORMAT:
+1. Analyze the request thoroughly
+2. Identify all technical components needed
+3. Determine specialist assignments (Frontend, Backend, Database, etc.)
+4. Define clear acceptance criteria
+5. Establish task order and dependencies
+6. Estimate effort (story points or hours)
+
+DELEGATION STRATEGY:
+- Frontend Specialist: UI components, styling, client-side logic
+- Backend Specialist: APIs, business logic, server operations
+- Database Architect: Schema design, queries, migrations
+- QA Engineer: Test plans, automation, validation
+- DevOps Engineer: CI/CD, deployments, infrastructure
+- Security Engineer: Vulnerability scanning, auth implementation
+- System Architect: Overall design, patterns, architecture decisions
+
+OUTPUT FORMAT:
+Return structured JSON with:
+{{
+  "feature_name": "...",
+  "complexity": "low|medium|high",
+  "estimated_hours": 0,
+  "tasks": [
+    {{
+      "id": "TASK-001",
+      "title": "...",
+      "description": "...",
+      "assigned_to": "backend",
+      "priority": "high|medium|low",
+      "dependencies": ["TASK-000"],
+      "acceptance_criteria": ["..."]
+    }}
+  ]
+}}
+"""
+    
+    async def process_task(self, task: str, context: dict, requires_approval: bool) -> dict:
+        """
+        Bridges BaseAgent's /execute route -> ProjectStrategist.plan()
+        Called automatically by Crew Orchestrator via POST /execute
+        """
+        import uuid
+        task_request = TaskRequest(
+            id=str(uuid.uuid4()),
+            task=task,
+            description=task,
+            context=context or {},
+            requires_approval=requires_approval
+        )
+        return await self.plan(task_request)
+
+    async def plan(self, request: TaskRequest) -> Dict:
+        """
+        Create detailed plan and delegate to specialists
+        """
+        # Get planning from Claude
+        system_prompt = self.build_system_prompt()
         
-        # Initialize Redis
-        self._init_redis()
-        
-        self.state = "READY"
-        logger.info("Agent initialized and READY.")
-
-    def _init_redis(self):
-        """
-        Initialize Redis connection with retry logic.
-        """
-        redis_conf = self.config.get("redis_config", {})
-        # If running in Docker, use the service name 'redis' instead of localhost
-        # We can detect this via an env var or just default to 'redis' if 'localhost' fails
-        host = os.environ.get("REDIS_HOST", "localhost")
-        port = int(os.environ.get("REDIS_PORT", 6379))
-        db = redis_conf.get("db", 0)
-        password = redis_conf.get("password")
-
-        # Skip actual connection if in test mode or explicitly disabled
-        # This is a simple way to allow unit tests to pass without a running Redis
-        if os.environ.get("TEST_MODE") == "true":
-            logger.info("TEST_MODE detected. Skipping Redis connection.")
-            self.redis_client = None
-            return
-
-        # Simple retry loop with exponential backoff for initial connection
-        max_retries = 5
-        retry_delay = 2
-        
-        for i in range(max_retries):
-            try:
-                logger.info(f"Connecting to Redis at {host}:{port} (Attempt {i+1}/{max_retries})...")
-                self.redis_client = redis.Redis(
-                    host=host, 
-                    port=port, 
-                    db=db, 
-                    password=password, 
-                    decode_responses=True,
-                    socket_connect_timeout=2
-                )
-                self.redis_client.ping()
-                logger.info(f"Connected to Redis at {host}:{port}")
-                return
-            except (redis.ConnectionError, redis.TimeoutError) as e:
-                logger.warning(f"Failed to connect to Redis at {host}:{port}: {e}")
-                if i < max_retries - 1:
-                    time.sleep(retry_delay)
-                    retry_delay *= 2
-                else:
-                    logger.error(f"Could not connect to Redis after {max_retries} attempts.")
-                    self.redis_client = None
-                    # In production, we might want to crash here if Redis is critical
-                    # raise e
-
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=4), retry=retry_if_exception_type((requests.RequestException, TimeoutError)))
-    def _call_llm(self, prompt: str) -> str:
-        """
-        Call LLM service with retry logic.
-        """
-        llm_conf = self.config.get("llm_config", {})
-        model = llm_conf.get("model", "gpt-4-turbo")
-        # Assuming a local or proxy LLM endpoint for now, or direct API
-        # Replacing with actual implementation logic:
-        
-        # NOTE: This is a placeholder for the actual API call. 
-        # In a real scenario, this would use the OpenAI SDK or a request to the Core API.
-        # For prototype, we simulate a successful response if 'mock' is not enabled.
-        
-        # Simulation delay to test timeout handling
-        # time.sleep(0.1) 
-        
-        logger.info(f"Calling LLM ({model}) with prompt length: {len(prompt)}")
-        return f"Simulated LLM response for: {prompt[:50]}..."
-
-    def publish_message(self, channel: str, message: Dict[str, Any]):
-        """
-        Publish a message to Redis.
-        """
-        if not self.redis_client:
-            logger.warning("Redis client not available. Skipping publish.")
-            return
-
-        try:
-            start_time = time.time()
-            self.redis_client.publish(channel, json.dumps(message))
-            latency = (time.time() - start_time) * 1000
-            logger.info(f"Published to {channel} in {latency:.2f}ms")
-        except Exception as e:
-            logger.error(f"Failed to publish to Redis: {e}")
-
-    def execute(self, task: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Lifecycle method: Execute a task.
-        :param task: A dictionary containing task details.
-        :return: Result dictionary.
-        """
-        if self.state != "READY":
-            msg = f"Agent is not ready. Current state: {self.state}"
-            logger.warning(msg)
-            return {"status": "error", "message": msg}
-
-        self.state = "WORKING"
-        task_id = task.get("id", "unknown")
-        task_type = task.get("type", "unknown")
-        logger.info(f"Executing task: {task_type} (ID: {task_id})")
-
-        try:
-            # 1. Analyze Task with LLM
-            prompt = f"Analyze strategy for task: {task.get('description')}"
-            llm_response = self._call_llm(prompt)
-            
-            # 2. Formulate Result
-            result = {
-                "status": "success",
-                "task_id": task_id,
-                "output": llm_response,
-                "agent": self.config.get("name"),
-                "timestamp": time.time()
+        # Simulate LLM call if no client (for testing/mocking)
+        if not self.client:
+            print("⚠️ No LLM client available. Using mock plan.")
+            plan = {
+                "feature_name": request.task,
+                "complexity": "low",
+                "estimated_hours": 1,
+                "tasks": []
             }
-            
-            # 3. Publish Result to Bus
-            output_channel = self.config.get("redis_config", {}).get("channels", {}).get("output", "agent:strategist:output")
-            self.publish_message(output_channel, result)
-            
-            logger.info("Task execution completed successfully.")
-            return result
-            
-        except Exception as e:
-            logger.error(f"Task execution failed: {str(e)}")
-            return {"status": "error", "message": str(e)}
-        finally:
-            self.state = "READY"
-
-    def terminate(self):
-        """
-        Lifecycle method: Clean up and shutdown.
-        """
-        logger.info("Terminating agent...")
-        self.state = "TERMINATED"
-        # Cleanup logic here
-        logger.info("Agent terminated.")
-
-def main():
-    parser = argparse.ArgumentParser(description="Run the Project Strategist Agent")
-    parser.add_argument("--agent", type=str, help="Agent type (validation flag)", required=False)
-    parser.add_argument("--task", type=str, help="JSON string task description", required=False)
-    args = parser.parse_args()
-
-    if args.agent and args.agent != "business":
-        print(f"Invalid agent type '{args.agent}'. Expected 'business'.")
-        sys.exit(1)
-
-    try:
-        agent = ProjectStrategistAgent()
-        
-        if args.task:
-            try:
-                task_payload = json.loads(args.task)
-                result = agent.execute(task_payload)
-                print(json.dumps(result, indent=2))
-            except json.JSONDecodeError:
-                logger.error("Invalid JSON provided for task")
-                print("Error: Invalid JSON task string")
         else:
-            # Default behavior if run without task (e.g. keep alive or run demo)
-            logger.info("Running in standby mode (no task provided via CLI)")
-            print(f"{agent.config.get('name')} is online and ready.")
+            try:
+                message = await self.client.messages.create(
+                    model=self.config.model,
+                    max_tokens=4096,
+                    system=system_prompt,
+                    messages=[{
+                        "role": "user",
+                        "content": f"""Plan this task:
 
-    except Exception as e:
-        logger.critical(f"Fatal error: {e}")
-        sys.exit(1)
+Task: {request.task}
+Context: {json.dumps(request.context or {})}
 
-if __name__ == "__main__":
-    main()
+Create a detailed breakdown with specific subtasks for each specialist agent."""
+                    }]
+                )
+                result = message.content[0].text
+                
+                # Parse the plan
+                try:
+                    # Find JSON in the response if mixed with text
+                    import re
+                    json_match = re.search(r'\{.*\}', result, re.DOTALL)
+                    if json_match:
+                        plan = json.loads(json_match.group(0))
+                    else:
+                        plan = json.loads(result)
+                except:
+                    # If not JSON, wrap it
+                    plan = {"raw_plan": result, "tasks": []}
+            except Exception as e:
+                print(f"Error calling LLM: {e}")
+                plan = {"error": str(e), "tasks": []}
+        
+        # Store plan in Redis
+        if self.redis:
+            try:
+                task_id = request.task_id or request.id or "unknown"
+                await self.redis.hset(
+                    f"task:{task_id}",
+                    "plan",
+                    json.dumps(plan)
+                )
+                
+                # Bridge: submit mission to HyperCode Core for lifecycle tracking
+                try:
+                    feature_name = plan.get("feature_name") or request.task
+                    caps = sorted({(t.get("assigned_to") or "").lower() for t in plan.get("tasks", []) if t.get("assigned_to")})
+                    mission_payload = {
+                        "plan": plan,
+                        "requirements": {"capabilities": caps},
+                        "rollback_plan": plan.get("rollback", []),
+                    }
+                    async with httpx.AsyncClient(timeout=5.0) as client:
+                        mr = await client.post(
+                            f"{self.config.core_url}/orchestrator/mission",
+                            json={"title": feature_name, "priority": 80, "payload": mission_payload}
+                        )
+                        if mr.status_code == 200:
+                            await self.redis.hset(f"task:{task_id}", "mission", mr.text)
+                except Exception as e:
+                    print(f"⚠️ Failed to submit mission to Core: {e}")
+
+            except Exception as e:
+                print(f"Redis error: {e}")
+
+        # Delegate to specialists
+        await self.delegate_tasks(request.task_id or request.id, plan.get("tasks", []))
+        
+        return {
+            "task_id": request.task_id or request.id,
+            "status": "planned",
+            "plan": plan
+        }
+    
+    async def delegate_tasks(self, parent_task_id: str, tasks: List[Dict]):
+        """
+        Send subtasks to specialist agents
+        """
+        async with httpx.AsyncClient() as client:
+            for task in tasks:
+                agent = task.get("assigned_to")
+                if agent in self.SPECIALIST_AGENTS:
+                    try:
+                        await client.post(
+                            f"{self.SPECIALIST_AGENTS[agent]}/execute",
+                            json={
+                                "task_id": task.get("id"),
+                                "task": task.get("description"),
+                                "context": {
+                                    "parent_task": parent_task_id,
+                                    "acceptance_criteria": task.get("acceptance_criteria", [])
+                                }
+                            },
+                            timeout=120.0
+                        )
+                    except Exception as e:
+                        print(f"Failed to delegate to {agent}: {e}")
