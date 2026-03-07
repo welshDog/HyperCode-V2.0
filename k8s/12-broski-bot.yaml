@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: broski-bot
-        image: hypercode-v20-broski-bot:latest # Replace with your registry image
+        image: hypercode-v20-broski-bot:latest 
         imagePullPolicy: IfNotPresent
         command: ["python", "src/bot.py"]
         envFrom:

@@ -32,7 +32,7 @@ spec:
         runAsUser: 1000
       containers:
       - name: frontend-specialist
-        image: frontend-specialist:latest
+        image: hypercode-v20-frontend-specialist:latest
         env:
         - name: REDIS_URL
           valueFrom:
@@ -106,7 +106,7 @@ spec:
         runAsUser: 1000
       containers:
       - name: backend-specialist
-        image: backend-specialist:latest
+        image: hypercode-v20-backend-specialist:latest
         env:
         - name: REDIS_URL
           valueFrom:
@@ -180,7 +180,7 @@ spec:
         runAsUser: 1000
       containers:
       - name: database-architect
-        image: database-architect:latest
+        image: hypercode-v20-database-architect:latest
         env:
         - name: REDIS_URL
           valueFrom:
@@ -256,7 +256,7 @@ spec:
         runAsUser: 1000
       containers:
       - name: qa-engineer
-        image: qa-engineer:latest
+        image: hypercode-v20-qa-engineer:latest
         env:
         - name: REDIS_URL
           valueFrom:
@@ -330,7 +330,7 @@ spec:
         runAsUser: 1000
       containers:
       - name: devops-engineer
-        image: devops-engineer:latest
+        image: hypercode-v20-devops-engineer:latest
         env:
         - name: REDIS_URL
           valueFrom:
@@ -404,7 +404,7 @@ spec:
         runAsUser: 1000
       containers:
       - name: security-engineer
-        image: security-engineer:latest
+        image: hypercode-v20-security-engineer:latest
         env:
         - name: REDIS_URL
           valueFrom:
@@ -478,7 +478,7 @@ spec:
         runAsUser: 1000
       containers:
       - name: system-architect
-        image: system-architect:latest
+        image: hypercode-v20-system-architect:latest
         env:
         - name: REDIS_URL
           valueFrom:
