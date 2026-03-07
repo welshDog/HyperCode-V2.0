@@ -137,7 +137,12 @@ services:
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=${HYPERCODE_DB_URL}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=hypercode
+      - DB_USER=postgres
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
       - REDIS_URL=redis://redis:6379/0
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
