@@ -6,7 +6,7 @@ fastapi==0.110.0
 uvicorn[standard]==0.27.1
 python-multipart==0.0.9
 pydantic==2.6.1
-pydantic-settings==2.1.0
+pydantic-settings==2.13.1
 
 # Async & Background Tasks
 aiofiles==23.2.1
