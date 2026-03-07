@@ -92,12 +92,8 @@ class Brain:
             # but allows us to potentially debug or modify if needed
             ssl_context = ssl.create_default_context()
             
-            # Increase timeout and verify=False ONLY IF absolutely necessary (trying to be strict first)
-            # Actually, let's try with verify=False temporarily to debug the connection issue 
-            # if the previous error was SSL related. But "All connection attempts failed" usually means DNS/Network.
-            # We already fixed DNS.
-            
-            async with httpx.AsyncClient(timeout=60.0, verify=False) as client:
+            # Increase timeout and verify=True for production security
+            async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.post(
                     f"{self.base_url}/chat/completions",
                     json=payload,

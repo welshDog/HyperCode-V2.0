@@ -24,7 +24,8 @@ class AgentMemory:
         
         # Store each chunk with metadata
         for idx, chunk in enumerate(chunks):
-            chunk_id = hashlib.md5(chunk.encode()).hexdigest()
+            # Use SHA-256 for secure ID generation (replaced MD5)
+            chunk_id = hashlib.sha256(chunk.encode()).hexdigest()
             # Check if exists first to avoid re-embedding
             existing = self.collection.get(ids=[chunk_id])
             if not existing['ids']:
