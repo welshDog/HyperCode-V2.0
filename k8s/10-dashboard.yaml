@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: dashboard
-        image: hypercode-v20-dashboard:latest # Replace with your registry image
+        image: hypercode-v20-dashboard:latest 
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3000

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: hypercode-core
-        image: hypercode-v20-hypercode-core:latest # Replace with your registry image
+        image: hypercode-v20-hypercode-core:latest 
         imagePullPolicy: IfNotPresent
         command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
         ports:
@@ -78,7 +78,7 @@ spec:
     spec:
       containers:
       - name: celery-worker
-        image: hypercode-v20-celery-worker:latest # Replace with your registry image
+        image: hypercode-v20-celery-worker:latest 
         imagePullPolicy: IfNotPresent
         command: ["celery", "-A", "app.worker.celery", "worker", "--loglevel=info"]
         envFrom:
