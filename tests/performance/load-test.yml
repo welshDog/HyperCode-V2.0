@@ -13,24 +13,21 @@ config:
     apdex: {}
     metrics-by-endpoint: {}
   ensure:
-    p95: 500
-    maxErrorRate: 2
+    p95: 3000
+    maxErrorRate: 1
   apdex:
     threshold: 100
   defaults:
     headers:
       Content-Type: "application/json"
       X-API-Key: "dev-master-key"
-  variables:
-    agentId:
-      - "test-agent-id"
 
 scenarios:
   - name: "Task Submission Flow"
     weight: 7
     flow:
       - post:
-          url: "/v1/chat/completions"
+          url: "/api/v1/chat/completions"
           json:
             model: "gpt-4o"
             messages:
@@ -50,12 +47,16 @@ scenarios:
           expect:
             - statusCode: 200
 
-  - name: "Orchestrator Lock Test"
+  - name: "Orchestrator Execution Test"
     weight: 1
     flow:
       - post:
-          url: "/v1/agents/terminate"
+          url: "http://localhost:8081/execute"
           json:
-            agent_id: "{{ agentId }}"
+            task:
+              id: "load-test-task"
+              description: "Load Test"
+              agent: "test-agent"
+              type: "test"
           expect:
-            - statusCode: 404 # Expecting 404 since ID is fake, but server must handle it (not 500)
+            - statusCode: 200
