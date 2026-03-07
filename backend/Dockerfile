@@ -24,6 +24,8 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV HF_HOME=/app/cache/huggingface
+ENV SENTENCE_TRANSFORMERS_HOME=/app/cache/sentence_transformers
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
