@@ -85,3 +85,6 @@ Thumbs.db
 
 data/ollama/models
 scripts/verify_env.py
+k8s/01-secrets.yaml
+k8s/02-secrets.yaml
+
