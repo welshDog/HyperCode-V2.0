@@ -54,7 +54,7 @@ export const AGENT_TEMPLATES = [
     name: 'Project Boss',
     tools: ['roadmap', 'prioritize'],         
     color: '#00F0FF',
-    description: 'Aligns technical tasks with project goals.'
+    description: 'Defines clear project roadmap and prioritizes features.'
   },
   { 
     role: 'healer',     
@@ -63,5 +63,13 @@ export const AGENT_TEMPLATES = [
     tools: ['monitor', 'recover', 'restart'], 
     color: '#00FF9D',
     description: 'Monitors system health and attempts auto-recovery.'
+  },
+  { 
+    role: 'tips-tricks', 
+    avatar: '💡', 
+    name: 'Tips Architect',
+    tools: ['write', 'neuro-ux', 'chunk'],         
+    color: '#FFD700',
+    description: 'Generates neurodivergent-friendly development guides.'
   }
 ];
