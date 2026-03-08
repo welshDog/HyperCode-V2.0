@@ -367,6 +367,39 @@ async def trigger_heal(request: HealRequest):
     return result
 
 
+@app.post("/alerts/webhook")
+async def alert_webhook(request: dict):
+    """
+    Webhook endpoint for Prometheus Alertmanager.
+    Triggers auto-healing when specific alerts (e.g., ServiceDown) are received.
+    """
+    logger.info(f"🔔 Alert webhook received: {len(request.get('alerts', []))} alerts")
+    
+    for alert in request.get("alerts", []):
+        status = alert.get("status")
+        labels = alert.get("labels", {})
+        alert_name = labels.get("alertname")
+        instance = labels.get("instance")
+        
+        if status == "firing" and alert_name in ["ServiceDown", "ContainerKilled", "ContainerAbsent"]:
+            logger.warning(f"🚨 Critical Alert: {alert_name} on {instance}")
+            
+            # Extract service name from instance (e.g., "healer-agent:8008" -> "healer-agent")
+            service_name = instance.split(":")[0] if instance else "unknown"
+            
+            if service_name != "unknown":
+                logger.info(f"Triggering auto-heal for service: {service_name}")
+                # Trigger async healing task
+                asyncio.create_task(attempt_heal_agent(
+                    agent_name=service_name,
+                    agent_url=f"http://{instance}", # Assuming internal DNS works
+                    attempts=2,
+                    timeout=10.0
+                ))
+    
+    return {"status": "processed"}
+
+
 async def alert_listener():
     """
     Listens for 'system_alert' messages on Redis pubsub and triggers healing.

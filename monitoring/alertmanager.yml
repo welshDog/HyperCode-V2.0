@@ -11,4 +11,5 @@ route:
 receivers:
 - name: 'web.hook'
   webhook_configs:
-  - url: 'http://127.0.0.1:5001/'
+  - url: 'http://healer-agent:8008/alerts/webhook'
+    send_resolved: true

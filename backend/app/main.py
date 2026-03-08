@@ -7,6 +7,10 @@ from app.core.telemetry import setup_telemetry
 from app.api.api import api_router
 import logging
 import time
+import sys
+
+# DEBUG: Print to stderr to ensure visibility in Docker logs
+print("Starting HyperCode Core API...", file=sys.stderr)
 
 # Copyright (C) 2026 HyperCode - All Rights Reserved
 # Licensed under the GNU Affero General Public License v3.0 (AGPL-3.0)
