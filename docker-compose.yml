@@ -161,6 +161,7 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+    command: ["python", "/app/src/main.py", "run"]
     deploy:
       resources:
         limits:
@@ -633,11 +634,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 512M
+          cpus: "1"
+          memory: 1G
         reservations:
-          cpus: "0.1"
-          memory: 128M
+          cpus: "0.25"
+          memory: 256M
     logging:
       driver: "json-file"
       options:
