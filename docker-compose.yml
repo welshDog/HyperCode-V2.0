@@ -1090,6 +1090,43 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  tips-tricks-writer:
+    profiles: ["agents"]
+    build:
+      context: ./agents/09-tips-tricks-writer
+      dockerfile: Dockerfile
+    container_name: tips-tricks-writer
+    environment:
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_ROLE=tips-tricks-writer
+      - AGENT_PORT=8009
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - ./agents/09-tips-tricks-writer:/app
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/shared:/app/shared:ro
+      - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
+      - agent_memory:/app/memory
+    networks:
+      - backend-net
+    ports:
+      - "8011:8009"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8009/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
   hypercode-ollama:
     image: ollama/ollama:latest
     container_name: hypercode-ollama

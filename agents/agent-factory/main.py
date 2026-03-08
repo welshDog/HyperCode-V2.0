@@ -59,6 +59,12 @@ BLUEPRINTS: Dict[str, AgentProfile] = {
         role="backend",
         capabilities=["python", "fastapi", "postgres"],
         config={"model": "gpt-4-turbo"}
+    ),
+    "tips-tricks-writer": AgentProfile(
+        name="Tips & Tricks Writer",
+        role="documentation",
+        capabilities=["technical-writing", "neurodivergent-ux", "chunking"],
+        config={"model": "claude-3-5-sonnet-20241022"}
     )
 }
 
