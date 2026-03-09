@@ -281,6 +281,9 @@ main() {
     deploy_phase 5 "04-postgres.yaml" "PostgreSQL Database" || { log_fail "PostgreSQL deployment failed"; rollback; exit 1; }
     wait_for_deployment "postgres" 1 || { log_fail "PostgreSQL failed to start"; rollback; exit 1; }
     
+    # Deploy backup cronjob
+    deploy_phase 5b "05-backup-cronjob.yaml" "PostgreSQL Backup Job" || log_warn "Backup cronjob deployment failed"
+
     sleep 10  # Let PostgreSQL stabilize
     
     deploy_phase 6 "05-redis.yaml" "Redis Cache" || { log_fail "Redis deployment failed"; rollback; exit 1; }

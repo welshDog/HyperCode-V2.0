@@ -38,6 +38,10 @@ spec:
         image: hypercode-v20-crew-orchestrator:latest  # Build and push your image
         imagePullPolicy: IfNotPresent
         env:
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
         - name: REDIS_URL
           valueFrom:
             configMapKeyRef:

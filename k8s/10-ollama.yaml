@@ -67,7 +67,13 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 10
-      volumes:
-      - name: ollama-data
-        persistentVolumeClaim:
-          claimName: ollama-data
+  volumeClaimTemplates:
+  - metadata:
+      name: ollama-data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      storageClassName: hostpath
+      resources:
+        requests:
+          storage: 10Gi
