@@ -30,7 +30,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: redis
-    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save 60 1000
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save 60 1000 --protected-mode no
     ports:
       - "6379:6379"
     volumes:
@@ -818,22 +818,23 @@ services:
     environment:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=frontend-specialist
-      - AGENT_PORT=8002
+      - AGENT_PORT=8012
     volumes:
       - ./agents/01-frontend-specialist:/app
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/shared:/app/shared:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
       - backend-net
     ports:
-      - "8002:8002"
+      - "8012:8012"
     depends_on:
       hypercode-core:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8012/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -859,6 +860,7 @@ services:
       - ./agents/02-backend-specialist:/app
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/shared:/app/shared:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
@@ -895,6 +897,7 @@ services:
       - ./agents/03-database-architect:/app
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/shared:/app/shared:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
@@ -931,6 +934,7 @@ services:
       - ./agents/04-qa-engineer:/app
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/shared:/app/shared:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
@@ -967,6 +971,7 @@ services:
       - ./agents/05-devops-engineer:/app
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/shared:/app/shared:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
@@ -1003,6 +1008,7 @@ services:
       - ./agents/06-security-engineer:/app
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/shared:/app/shared:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
@@ -1039,6 +1045,7 @@ services:
       - ./agents/07-system-architect:/app
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/shared:/app/shared:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:

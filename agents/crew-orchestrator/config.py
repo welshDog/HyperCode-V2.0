@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     # Agent Service URLs (Defaults based on docker-compose service names)
     agents: Dict[str, str] = {
         "project_strategist": "http://project-strategist:8001",
-        "frontend_specialist": "http://frontend-specialist:8002",
+        "frontend_specialist": "http://frontend-specialist:8012",
         "backend_specialist": "http://backend-specialist:8003",
         "database_architect": "http://database-architect:8004",
         "qa_engineer": "http://qa-engineer:8005",
