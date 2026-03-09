@@ -331,6 +331,7 @@ spec:
       containers:
       - name: devops-engineer
         image: hypercode-v20-devops-engineer:latest
+        imagePullPolicy: IfNotPresent
         env:
         - name: REDIS_URL
           valueFrom:
@@ -552,7 +553,8 @@ spec:
         runAsUser: 1000
       containers:
       - name: project-strategist
-        image: project-strategist:latest
+        image: hypercode-v20-project-strategist:latest
+        imagePullPolicy: IfNotPresent
         env:
         - name: REDIS_URL
           valueFrom:
