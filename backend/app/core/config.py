@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: Optional[str] = None
     PERPLEXITY_API_KEY: Optional[str] = None
     HYPERCODE_MEMORY_KEY: Optional[str] = None
+    OLLAMA_HOST: str = "http://hypercode-ollama:11434"
+    DEFAULT_LLM_MODEL: str = "mistral"
+    PERPLEXITY_SESSION_AUTH: bool = False
 
     # Storage (MinIO/S3)
     MINIO_ENDPOINT: str = "http://minio:9000" # Internal Docker Hostname
