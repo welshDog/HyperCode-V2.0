@@ -1,5 +1,5 @@
 from typing import Any, List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models import models
@@ -98,12 +98,13 @@ def get_dashboard_logs(
     
     logs = []
     for t in tasks:
+        task_id = int(t.id) if t.id is not None else 0
         # Created Log
         logs.append({
-            "id": t.id * 10, # Fake ID to avoid collision
+            "id": task_id * 10, # Fake ID to avoid collision
             "agent": "Orchestrator",
             "level": "info",
-            "msg": f"Task {t.id} queued: {t.title}",
+            "msg": f"Task {task_id} queued: {t.title}",
             "time": t.created_at.strftime("%H:%M:%S") if t.created_at else "Now"
         })
         

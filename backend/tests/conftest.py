@@ -1,8 +1,11 @@
 import pytest
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from starlette.testclient import TestClient
+
+os.environ.setdefault("OTLP_EXPORTER_DISABLED", "true")
 
 from app.main import app
 from app.db.session import get_db

@@ -1,7 +1,6 @@
 from typing import Any, List
 
-from fastapi import APIRouter, Body, Depends, HTTPException
-from fastapi.encoders import jsonable_encoder
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -41,11 +40,14 @@ def create_user(
             status_code=400,
             detail="The user with this username already exists in the system.",
         )
+    role = None
+    if user_in.role is not None:
+        role = models.UserRole(user_in.role.value)
     user = models.User(
         email=user_in.email,
         hashed_password=security.get_password_hash(user_in.password),
         full_name=user_in.full_name,
-        role=user_in.role,
+        role=role,
         is_superuser=False, # Default to false, manual update required for superuser
     )
     db.add(user)

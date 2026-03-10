@@ -1,5 +1,5 @@
-from typing import Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Any, Optional
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.core.rag import rag
 

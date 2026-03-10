@@ -1,7 +1,7 @@
 import logging
 import httpx
 from app.core.config import settings
-import ssl
+from app.llm.ollama import OllamaModelResolver
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,13 @@ class Brain:
         self.base_url = "https://api.perplexity.ai"
         # Using sonar-pro as it's the most capable model currently
         self.model = "sonar-pro" 
+        preferred_patterns = [p.strip() for p in settings.OLLAMA_MODEL_PREFERRED.split(",") if p.strip()]
+        self._ollama_model_resolver = OllamaModelResolver(
+            ollama_host=settings.OLLAMA_HOST,
+            preferred_patterns=preferred_patterns,
+            max_size_mb=settings.OLLAMA_MAX_MODEL_SIZE_MB,
+            refresh_seconds=settings.OLLAMA_MODEL_REFRESH_SECONDS,
+        )
 
     async def recall_context(self, query: str = None, limit: int = 5) -> str:
         """
@@ -37,7 +44,8 @@ class Brain:
 
         # 2. Fallback to Recent Files (Temporal)
         try:
-            from app.core.storage import storage
+            from app.core.storage import get_storage
+            storage = get_storage()
             files = storage.list_files(limit=limit)
             for file_key in files:
                 if file_key.endswith(".md"):
@@ -70,14 +78,28 @@ class Brain:
         # 1. Local LLM (Ollama)
         if settings.OLLAMA_HOST:
             try:
-                logger.info(f"[BRAIN] Routing to Local LLM (Ollama: {settings.DEFAULT_LLM_MODEL})...")
+                prompt = (
+                    f"You are a {role}.\n"
+                    "Always respond in two phases:\n"
+                    "1) TL;DR (1-3 lines)\n"
+                    "2) Details (headings + bullets)\n"
+                    "Break work into micro-tasks and propose the next single step.\n\n"
+                    f"Task:\n{task_description}"
+                )
                 async with httpx.AsyncClient(timeout=120.0) as client:
+                    model = settings.DEFAULT_LLM_MODEL
+                    if model.strip().lower() == "auto":
+                        resolved = await self._ollama_model_resolver.resolve(client)
+                        if resolved:
+                            model = resolved
+                    logger.info(f"[BRAIN] Routing to Local LLM (Ollama: {model})...")
                     response = await client.post(
                         f"{settings.OLLAMA_HOST}/api/generate",
                         json={
-                            "model": settings.DEFAULT_LLM_MODEL,
-                            "prompt": f"You are a {role}. {task_description}",
-                            "stream": False
+                            "model": model,
+                            "prompt": prompt,
+                            "stream": False,
+                            "options": settings.ollama_generate_options(),
                         }
                     )
                     if response.status_code == 200:

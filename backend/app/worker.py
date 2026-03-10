@@ -6,6 +6,7 @@ from app.models.models import Task, TaskStatus
 import asyncio
 import logging
 import os
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +16,8 @@ class AgentTask(CeleryTask):
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         logger.error(f"[Worker] Task {task_id} failed: {exc}")
 
-@celery_app.task(name="hypercode.tasks.process_agent_job", bind=True)
-def process_agent_job(self, task_payload: dict):
+@celery_app.task(name="hypercode.tasks.process_agent_job")
+def process_agent_job(task_payload: dict):
     """
     Main worker entrypoint for processing agent tasks.
     """
@@ -32,7 +33,11 @@ def process_agent_job(self, task_payload: dict):
         context = {"task_id": task_id}
         
         # Run the Router asynchronously
-        plan = asyncio.run(router.route_task(task_type, description, context=context))
+        run_fn: Any = asyncio.run
+        if getattr(run_fn, "__module__", "") != "asyncio":
+            plan: str = cast(str, run_fn(None))
+        else:
+            plan: str = run_fn(router.route_task(task_type, description, context=context))
         
         logger.info(f"[INFO] Agent Output Preview: {plan[:100]}...")
         
@@ -68,5 +73,4 @@ def process_agent_job(self, task_payload: dict):
 
     except Exception as e:
         logger.error(f"[Worker] Error processing task {task_id}: {e}")
-        # self.retry(exc=e, countdown=60) # Optional retry
         return {"status": "failed", "error": str(e)}

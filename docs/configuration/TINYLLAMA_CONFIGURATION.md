@@ -7,21 +7,19 @@
 
 ### 1. Docker Compose Updates
 
-**Memory Optimization:**
-- Changed Ollama memory limit: `4G` → `2G`
-- Changed CPU limit: `1.5` → `1.0`
-- Increased healthcheck start period: `30s` → `60s` (allows more time for model loading)
-- Removed `OLLAMA_MODEL` environment variable (pulled manually instead)
+**Resource Optimization:**
+- Keep Ollama on a smaller quantized model by default (`tinyllama`) to avoid OOM on low-memory machines
+- Use auto-selection to fall back to the smallest available quantized model if TinyLlama is missing
 
 **Resource Allocation:**
 ```yaml
 deploy:
   resources:
     limits:
-      cpus: '1.0'
-      memory: 2G
+      cpus: "2"
+      memory: 3G
     reservations:
-      cpus: '0.5'
+      cpus: "1"
       memory: 1G
 ```
 
@@ -36,13 +34,27 @@ deploy:
 
 ### 3. Agent Configuration
 
-All agents already configured to use TinyLlama:
+All agents should default to TinyLlama:
 ```json
 {
   "model": "tinyllama",
-  "ollama_host": "http://hypercode-llama:11434",
-  "temperature": 0.7
+  "ollama_host": "http://hypercode-ollama:11434",
+  "temperature": 0.3
 }
+```
+
+Auto-selection + tuning (recommended):
+
+```text
+DEFAULT_LLM_MODEL=auto
+OLLAMA_MODEL_PREFERRED=tinyllama:latest,tinyllama,phi3:latest,phi3
+OLLAMA_MAX_MODEL_SIZE_MB=2500
+OLLAMA_TEMPERATURE=0.3
+OLLAMA_TOP_P=0.9
+OLLAMA_TOP_K=40
+OLLAMA_REPEAT_PENALTY=1.1
+OLLAMA_NUM_CTX=2048
+OLLAMA_NUM_PREDICT=256
 ```
 
 **Configured agents:**
@@ -101,7 +113,7 @@ curl http://localhost:11434/api/generate -d '{
 
 ### From Inside Container
 ```bash
-docker exec -it hypercode-llama ollama run tinyllama
+docker exec -it hypercode-ollama ollama run tinyllama
 ```
 
 ## Next Steps

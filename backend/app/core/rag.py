@@ -1,6 +1,5 @@
 import logging
 import chromadb
-from chromadb.config import Settings as ChromaSettings
 from chromadb.utils import embedding_functions
 from app.core.config import settings
 from typing import List, Dict, Any

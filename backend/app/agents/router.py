@@ -4,8 +4,6 @@ from app.agents.researcher import researcher
 from app.agents.translator import translator
 from app.agents.pulse import pulse
 from app.agents.architect import architect
-from app.agents.brain import brain
-import logging
 
 logger = logging.getLogger(__name__)
 

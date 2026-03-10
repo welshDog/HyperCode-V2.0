@@ -1,7 +1,8 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
+from opentelemetry import trace
 from app.core.config import settings
 from app.core.telemetry import setup_telemetry
 from app.api.api import api_router
@@ -64,7 +65,6 @@ async def root():
     return JSONResponse({"message": "Welcome to HyperCode Core API"})
 
 # Example Endpoint for Custom Tracing
-from opentelemetry import trace
 tracer = trace.get_tracer(__name__)
 
 @app.get("/api/v1/trace-example")

@@ -1,6 +1,6 @@
 import logging
 from app.agents.brain import brain
-from app.core.storage import storage
+from app.core.storage import get_storage
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -52,6 +52,7 @@ class ResearchAgent:
             
             try:
                 # Upload using the robust storage service
+                storage = get_storage()
                 s3_key = storage.upload_file(report_content, filename, metadata)
                 if s3_key:
                     logger.info(f"[{self.role}] Report uploaded to Object Storage: {s3_key}")
