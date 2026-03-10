@@ -50,19 +50,18 @@ instrumentator = Instrumentator().instrument(app).expose(app)
 # Include API Router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
-# Health Check Endpoint
 @app.get("/health")
 async def health_check():
-    return {
+    return JSONResponse({
         "status": "ok",
         "service": settings.SERVICE_NAME,
         "version": settings.VERSION,
         "environment": settings.ENVIRONMENT
-    }
+    })
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to HyperCode Core API"}
+    return JSONResponse({"message": "Welcome to HyperCode Core API"})
 
 # Example Endpoint for Custom Tracing
 from opentelemetry import trace

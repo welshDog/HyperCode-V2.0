@@ -31,7 +31,7 @@ spec:
               key: HYPERCODE_DB_URL
         resources:
           limits:
-            memory: "1Gi"
+            memory: "512Mi"
             cpu: "1000m"
           requests:
             memory: "256Mi"

@@ -14,7 +14,7 @@ data:
   CORE_URL: "http://hypercode-core:8000"
   OLLAMA_HOST: "0.0.0.0"
   OLLAMA_ORIGINS: "*"
-  OLLAMA_MODEL: "tinyllama"
+  OLLAMA_MODEL: "phi"
 ---
 apiVersion: v1
 kind: ConfigMap
