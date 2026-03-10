@@ -1,23 +1,20 @@
-what to do and you can share/upgrade them cleanly.
+# Goal for the Agents
 
-1. Goal for the agents
+**Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-10
+
 You want a team that can:
 
-Use TinyLlama (Model Runner) as safe default brain.
+- Use TinyLlama (model runner) as the safe default brain.
+- Be packaged + versioned as a Docker agent config.
+- Be shared via registry and used from editors / MCP clients.
 
-Be packaged + versioned as a Docker Agent config.
-
-Be shared via registry and used from editors / MCP clients.
-
-We’ll give them instructions + a sharing flow.
-
-Local model defaults (resource-safe)
+## Local Model Defaults (Resource-safe)
 
 Use TinyLlama as the default brain, but allow automatic fallback to the smallest available quantized model when TinyLlama is not present.
 
 Recommended env defaults:
 
-text
+```text
 DEFAULT_LLM_MODEL=auto
 OLLAMA_MODEL_PREFERRED=tinyllama:latest,tinyllama,phi3:latest,phi3
 OLLAMA_MAX_MODEL_SIZE_MB=2500
@@ -27,6 +24,7 @@ OLLAMA_TOP_K=40
 OLLAMA_REPEAT_PENALTY=1.1
 OLLAMA_NUM_CTX=2048
 OLLAMA_NUM_PREDICT=256
+```
 
 2. Minimal hyperfocus-team.yaml (agents + TinyLlama)
 Example agent config you can adapt (high level, not exact schema):

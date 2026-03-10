@@ -1,7 +1,7 @@
 # TinyLlama Configuration - Completed
 
-**Date:** 2026-02-06  
-**Status:** ✅ Configured and Running  
+**Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-10  
+**Status:** ✅ Current defaults (TinyLlama-first + auto model selection)  
 
 ## Changes Made
 
@@ -30,7 +30,7 @@ deploy:
 - **Size:** 637 MB (0.6 GB)
 - **ID:** 2644915ede35
 - **Location:** `/root/.ollama` in container
-- **Persistent Storage:** `./data/ollama` (host)
+- **Persistent Storage:** `ollama-data` Docker volume (host-managed)
 
 ### 3. Agent Configuration
 
@@ -73,7 +73,7 @@ OLLAMA_NUM_PREDICT=256
 ✅ All 17 containers are up and healthy:
 - **Infrastructure:** postgres, redis, jaeger, prometheus, grafana
 - **Core:** hypercode-core, hypercode-dashboard
-- **LLM:** hypercode-llama (with TinyLlama model)
+- **LLM:** hypercode-ollama (with TinyLlama model)
 - **Agents:** 8 specialist agents + crew-orchestrator
 
 ### Memory Usage (Current)
@@ -132,8 +132,8 @@ If you need better quality responses, consider:
 
 **Slightly Larger Models (still fit in 8GB RAM):**
 ```bash
-docker exec hypercode-llama ollama pull phi           # 2.6 GB
-docker exec hypercode-llama ollama pull orca-mini     # 1.3 GB
+docker exec hypercode-ollama ollama pull phi           # 2.6 GB
+docker exec hypercode-ollama ollama pull orca-mini     # 1.3 GB
 ```
 
 **Update agent configs to use new model:**
@@ -153,13 +153,13 @@ docker exec hypercode-llama ollama pull orca-mini     # 1.3 GB
 ### If Ollama Container is Unhealthy
 ```bash
 # Check logs
-docker logs hypercode-llama
+docker logs hypercode-ollama
 
 # Restart container
-docker restart hypercode-llama
+docker restart hypercode-ollama
 
 # Re-pull model if needed
-docker exec hypercode-llama ollama pull tinyllama
+docker exec hypercode-ollama ollama pull tinyllama
 ```
 
 ### If Memory Issues Occur
@@ -176,13 +176,13 @@ docker stats --no-stream
 ### If Agents Can't Connect to LLM
 ```bash
 # Verify network connectivity
-docker exec frontend-specialist ping -c 2 hypercode-llama
+docker exec frontend-specialist ping -c 2 hypercode-ollama
 
 # Check if model is loaded
-docker exec hypercode-llama ollama list
+docker exec hypercode-ollama ollama list
 
 # Test from within network
-docker exec hypercode-core curl http://hypercode-llama:11434/api/tags
+docker exec hypercode-core curl http://hypercode-ollama:11434/api/tags
 ```
 
 ## Performance Notes
@@ -203,7 +203,7 @@ Consider switching to cloud APIs or larger models if you need:
 
 ## Configuration Files Modified
 
-1. ✅ `docker-compose.yml` - Updated llama service resource limits
+1. ✅ `docker-compose.yml` - Updated Ollama service resource limits + tuning defaults
 2. ✅ `agents/*/config.json` - Already configured for TinyLlama (no changes needed)
 
 ## Verification Checklist

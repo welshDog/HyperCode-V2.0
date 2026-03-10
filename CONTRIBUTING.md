@@ -1,5 +1,7 @@
 # Contributing to HyperCode V2.0
 
+**Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-10
+
 Welcome to the HyperCode project! We're building the future of neurodivergent-first AI development tools. This guide will help you get started.
 
 Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
@@ -15,8 +17,8 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 ### Installation
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-org/hypercode-v2.git
-   cd hypercode-v2
+   git clone https://github.com/welshDog/HyperCode-V2.0.git
+   cd HyperCode-V2.0
    ```
 
 2. **Setup Environment**
@@ -28,16 +30,16 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 3. **Start the Platform**
    ```bash
    # Start core services
-   docker-compose up -d
+   docker compose up -d
 
    # Start with agents
-   docker-compose --profile agents up -d
+   docker compose --profile agents up -d
 
    # Start with monitoring (Prometheus, Grafana, Jaeger)
-   docker-compose --profile monitoring up -d
+   docker compose --profile monitoring up -d
 
    # Start production stack (includes Nginx Gateway)
-   docker-compose --profile production --profile agents --profile monitoring up -d
+   docker compose --profile production --profile agents --profile monitoring up -d
    ```
 
 ### Verifying the Launch
@@ -64,7 +66,7 @@ To validate your deployment, run the verification script (PowerShell):
 Run the test suite before submitting PRs:
 ```bash
 # Run core tests
-docker-compose --profile agents run hypercode-core pytest
+docker compose --profile agents run --rm hypercode-core python -m pytest -q
 
 # Run agent tests
 # (Check specific agent directories)
@@ -75,7 +77,7 @@ docker-compose --profile agents run hypercode-core pytest
 ### Common Issues
 - **Docker Loops/Conflicts**: Ensure you aren't running multiple compose files. Use `docker-compose.yml` with profiles.
 - **Port Conflicts**: Check if ports 8000, 3000, 5432, or 6379 are in use.
-- **Health Checks**: If a service is unhealthy, check logs: `docker-compose logs <service_name>`.
+- **Health Checks**: If a service is unhealthy, check logs: `docker compose logs <service_name>`.
 
 ### Reporting Issues
 Please use the GitHub Issue Tracker. Include:
