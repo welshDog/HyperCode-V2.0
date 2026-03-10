@@ -34,10 +34,11 @@ def process_agent_job(task_payload: dict):
         
         # Run the Router asynchronously
         run_fn: Any = asyncio.run
+        plan: str
         if getattr(run_fn, "__module__", "") != "asyncio":
-            plan: str = cast(str, run_fn(None))
+            plan = cast(str, run_fn(None))
         else:
-            plan: str = run_fn(router.route_task(task_type, description, context=context))
+            plan = run_fn(router.route_task(task_type, description, context=context))
         
         logger.info(f"[INFO] Agent Output Preview: {plan[:100]}...")
         
