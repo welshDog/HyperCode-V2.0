@@ -1,5 +1,9 @@
 # HyperAIFS - Complete Project Index
 
+**Snapshot Notice:** This document is a historical “HyperAIFS” project index and is not the current HyperCode V2.0 stack. For current docs, start with [README.md](../../README.md) and [docs/index.md](../index.md).
+
+**Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-10
+
 ## 📦 Project Overview
 
 **Full HyperCode AI File System Implementation**
@@ -583,4 +587,3 @@ GitHub Actions:
 - ✅ Production ready
 
 **Everything needed to deploy and use HyperAIFS immediately!**
-

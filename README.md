@@ -1,5 +1,7 @@
 # HyperCode V2.0 - The Cognitive Architecture
 
+**Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-10
+
 [![GitHub Sponsors](https://img.shields.io/github/sponsors/welshDog?style=social&logo=github)](https://github.com/sponsors/welshDog)
 [![CI](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/ci.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/ci.yml)
 [![Docker Build](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/docker.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/docker.yml)
@@ -460,7 +462,7 @@ Once launched, the system opens automatically. You can also access services manu
 - 🧠 **Crew Orchestrator**: `http://localhost:8081` (Agent Management)
 - ❤️ **Healer Agent**: `http://localhost:8008` (Self-Healing System)
 - 📝 **Core API Docs**: `http://localhost:8000/docs`
-- 📊 **Grafana**: `http://localhost:3001` (User: `admin` / Pass: `admin`)
+- 📊 **Grafana**: `http://localhost:3001` (credentials via `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD`; see `.env.example`)
 
 > **See [docs/index.md](docs/index.md) for full documentation.**
 

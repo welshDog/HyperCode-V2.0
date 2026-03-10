@@ -51,6 +51,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 grafana_quota.log
+*.bundle
 
 # Testing & reports
 playwright-report/

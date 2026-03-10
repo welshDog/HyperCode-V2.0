@@ -1,11 +1,12 @@
 # 👁️ Observability & Monitoring Guide
 
-HyperCode V2.0 features an enterprise-grade observability stack built on **Prometheus**, **Grafana**, **Jaeger**, **Loki**, and **Tempo**.
+**Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-10
+
+HyperCode V2.0 ships an observability stack built on **Prometheus**, **Grafana**, **Loki**, **Promtail**, and **Tempo**.
 
 > **Dashboards**
-> *   **Grafana**: [http://localhost:3001](http://localhost:3001) (User: `admin` / Pass: `admin`)
+> *   **Grafana**: [http://localhost:3001](http://localhost:3001) (credentials via `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD`)
 > *   **Prometheus**: [http://localhost:9090](http://localhost:9090)
-> *   **Jaeger**: [http://localhost:16686](http://localhost:16686)
 
 ## 1. Metrics (Prometheus)
 
@@ -35,7 +36,7 @@ Use the **Explore** tab in Grafana and select `Loki` as the datasource.
 {container_name="hypercode-core"} |= "error"
 ```
 
-## 3. Tracing (Jaeger & Tempo)
+## 3. Tracing (Tempo)
 
 Distributed tracing allows you to visualize the flow of requests through the system.
 

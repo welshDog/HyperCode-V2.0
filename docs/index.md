@@ -1,30 +1,26 @@
 # HyperCode V2.0 Documentation
 
+**Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-10
+
 Welcome to the **HyperCode V2.0** documentation hub. HyperCode is a next-generation "Cognitive Architecture" designed to help you build, deploy, and evolve AI agent swarms.
 
 ## 📚 Core Documentation
 
 ### 🚀 Getting Started
 *   [**Installation Guide**](getting-started/installation.md) - Set up the full stack in 2 minutes.
-*   [**Quick Start**](getting-started/quick-start.md) - Launch your first agent swarm.
 *   [**Architecture Overview**](architecture/architecture.md) - Understand the system design.
 
 ### 🧠 AI & Cognitive Engine
-*   **[The Brain (Perplexity)](ai/brain-architecture.md)** - How the cognitive core works.
+*   **[The Brain (LLM Routing)](ai/brain-architecture.md)** - How the cognitive core works (Ollama-first, cloud optional).
 *   **[Cognitive Uplink](ai/cognitive-uplink.md)** - The neural interface for agent communication.
-*   **[Agent Swarms](ai/agent-swarms.md)** - Creating and managing autonomous agents.
-*   **[Memory Systems](ai/memory.md)** - Redis, PostgreSQL, and Vector Stores.
+*   **[AI Integration Notes](notes/ai-integration-notes.md)** - Current local-first Ollama integration.
 
 ### 🛠️ Development & Engineering
-*   **[Backend Development](development/backend.md)** - FastAPI, SQLAlchemy, and Pydantic.
 *   **[MinIO Integration](architecture/minio-integration.md)** - Object storage for long-term memory.
 *   **[Testing Guide](development/testing-guide.md)** - Writing tests and running CI/CD.
-*   **[Frontend Dashboard](development/frontend.md)** - Next.js 16 and Real-time Visualization.
 
 ### 👁️ Observability & Operations
 *   [**Monitoring Guide**](observability/monitoring-guide.md) - Prometheus, Grafana, and Celery.
-*   [**Tracing**](observability/tracing.md) - Jaeger and OpenTelemetry.
-*   [**Logs**](observability/logs.md) - Loki and Promtail.
 
 ---
 

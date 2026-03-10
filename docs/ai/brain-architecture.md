@@ -1,6 +1,10 @@
 # 🧠 The Brain (Cognitive Core)
 
-The **Brain** is the intelligence engine of HyperCode, powered by **Perplexity AI (Sonar Pro)**. It enables agents to perform complex reasoning, research, and coding tasks.
+**Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-10
+
+The **Brain** is the routing + prompt engine of HyperCode. It selects an LLM provider, applies system instructions for predictable output, and (optionally) pulls context from memory systems.
+
+Current default behavior is **local-first** using **Ollama**, with optional cloud fallback via Perplexity.
 
 ## 1. Architecture
 
@@ -10,22 +14,36 @@ The Brain operates as an asynchronous service within the `hypercode-core` backen
 graph LR
     A[API / Task] --> B[Celery Worker]
     B --> C[Brain.think()]
-    C --> D[Perplexity API]
+    C --> D[Ollama API (/api/tags, /api/generate)]
+    C --> E[Perplexity API (optional)]
     D --> C
+    E --> C
     C --> B
     B --> E[Result / Database]
 ```
 
 ## 2. Configuration
 
-The Brain requires a valid `PERPLEXITY_API_KEY` in the `.env` file.
+### Local LLM (recommended)
+
+Set Ollama host and enable automatic model selection:
+
+```bash
+OLLAMA_HOST=http://hypercode-ollama:11434
+DEFAULT_LLM_MODEL=auto
+```
+
+When `DEFAULT_LLM_MODEL=auto`, the backend selects the best available model from the installed list (TinyLlama-first, size-capped) and caches the selection.
+
+### Cloud LLM (optional)
+
+If you want a cloud fallback, provide a Perplexity API key:
 
 ```bash
 PERPLEXITY_API_KEY=pplx-xxxxxxxxxxxxxxxx
 ```
 
-### Models
-Currently configured to use `sonar-pro` for maximum reasoning capability.
+If `PERPLEXITY_API_KEY` is set and local Ollama is not configured, the Brain can call the cloud API. For development environments, there is also a session-auth simulation toggle used for local-only workflows.
 
 ## 3. Usage
 
