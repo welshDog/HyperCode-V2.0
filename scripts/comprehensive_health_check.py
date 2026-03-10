@@ -84,7 +84,7 @@ def main():
         ("HyperCode Core", "http://localhost:8000/health"),
         ("Orchestrator", "http://localhost:8081/health"),
         ("Dashboard", "http://localhost:3000"),
-        ("Grafana", "http://localhost:3000"), # Port mapped
+        ("Grafana", "http://localhost:3001"), # Port mapped
         # Add agent endpoints if accessible directly, usually they are internal
     ]
     
