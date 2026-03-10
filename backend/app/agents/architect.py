@@ -1,7 +1,7 @@
 import logging
 import json
 from app.agents.brain import brain
-from app.core.storage import storage
+from app.core.storage import get_storage
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ class ArchitectAgent:
             # Strip markdown code blocks if present
             clean_json = plan_json_str.replace("```json", "").replace("```", "").strip()
             steps = json.loads(clean_json)
-        except Exception as e:
+        except Exception:
             logger.warning(f"[{self.role}] Failed to parse JSON plan. Using raw text fallback.")
             steps = [{"title": "Execute Goal", "description": goal}]
 
@@ -80,6 +80,8 @@ class ArchitectAgent:
             f"## 3. Security Review\n"
             f"{review}\n"
         )
+
+        storage = get_storage()
 
         # 5. ARCHIVE
         if context and context.get("task_id"):

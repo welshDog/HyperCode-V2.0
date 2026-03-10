@@ -2,6 +2,8 @@
 
 Welcome to the HyperCode project! We're building the future of neurodivergent-first AI development tools. This guide will help you get started.
 
+Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## 🚀 Getting Started
 
 ### Prerequisites

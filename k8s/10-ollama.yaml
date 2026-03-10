@@ -39,17 +39,17 @@ spec:
         - name: OLLAMA_ORIGINS
           value: "*"
         - name: OLLAMA_MODEL
-          value: "qwen2.5-coder:7b"
+          value: "tinyllama"
         ports:
         - containerPort: 11434
           name: http
         resources:
           requests:
             cpu: 1000m
-            memory: 2Gi
+            memory: 1Gi
           limits:
             cpu: 2000m
-            memory: 4Gi
+            memory: 3Gi
         volumeMounts:
         - name: ollama-data
           mountPath: /root/.ollama

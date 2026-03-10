@@ -12,8 +12,8 @@ class HyperCodeCrew:
         self.llm = ChatOpenAI(
             openai_api_base=os.getenv("LLM_API_BASE", "http://localhost:11434/v1"),
             openai_api_key=os.getenv("LLM_API_KEY", "NA"),
-            model_name=os.getenv("LLM_MODEL", "llama3"),
-            temperature=0.7
+            model_name=os.getenv("LLM_MODEL", "tinyllama"),
+            temperature=float(os.getenv("LLM_TEMPERATURE", "0.3"))
         )
         self.agents = self._initialize_agents()
         self.crew = Crew(

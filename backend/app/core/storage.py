@@ -1,10 +1,10 @@
 import logging
 import boto3
-from botocore.exceptions import ClientError, NoCredentialsError
+from botocore.exceptions import ClientError
 from tenacity import retry, stop_after_attempt, wait_exponential
 from app.core.config import settings
-from datetime import datetime
 import io
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class StorageService:
         self.bucket_name = settings.MINIO_BUCKET_REPORTS
         self.secure = settings.MINIO_SECURE
         
-        # Initialize Boto3 Client
+        # Initialize Boto3 Client (no network calls here)
         try:
             self.s3_client = boto3.client(
                 's3',
@@ -32,7 +32,6 @@ class StorageService:
                 config=boto3.session.Config(signature_version='s3v4') 
             )
             logger.info(f"[Storage] Initialized MinIO client at {self.endpoint}")
-            self._ensure_bucket_exists()
         except Exception as e:
             logger.error(f"[Storage] Failed to initialize client: {e}")
             self.s3_client = None
@@ -60,7 +59,7 @@ class StorageService:
                 logger.error(f"[Storage] Error checking bucket: {e}")
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-    def upload_file(self, file_content: str, filename: str, metadata: dict = None) -> str:
+    def upload_file(self, file_content: str, filename: str, metadata: dict[str, Any] | None = None) -> str | None:
         """
         Uploads a string content as a file to MinIO.
         Returns the object URL or Key.
@@ -70,6 +69,7 @@ class StorageService:
             return None
 
         try:
+            self._ensure_bucket_exists()
             # Convert string to bytes stream
             file_stream = io.BytesIO(file_content.encode('utf-8'))
             
@@ -118,5 +118,11 @@ class StorageService:
             logger.error(f"[Storage] Failed to get file {key}: {e}")
             return ""
 
-# Global Instance
-storage = StorageService()
+_storage_service: StorageService | None = None
+
+
+def get_storage() -> StorageService:
+    global _storage_service
+    if _storage_service is None:
+        _storage_service = StorageService()
+    return _storage_service

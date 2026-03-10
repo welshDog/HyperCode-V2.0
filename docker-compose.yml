@@ -156,7 +156,16 @@ services:
       - JWT_SECRET=${HYPERCODE_JWT_SECRET} # Ensure backward compatibility
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY} # Cloud API Key (Optional)
       - OLLAMA_HOST=http://hypercode-ollama:11434
-      - DEFAULT_LLM_MODEL=mistral
+      - DEFAULT_LLM_MODEL=auto
+      - OLLAMA_MODEL_PREFERRED=tinyllama:latest,tinyllama,phi3:latest,phi3
+      - OLLAMA_MAX_MODEL_SIZE_MB=2500
+      - OLLAMA_MODEL_REFRESH_SECONDS=300
+      - OLLAMA_TEMPERATURE=0.3
+      - OLLAMA_TOP_P=0.9
+      - OLLAMA_TOP_K=40
+      - OLLAMA_REPEAT_PENALTY=1.1
+      - OLLAMA_NUM_CTX=2048
+      - OLLAMA_NUM_PREDICT=256
       - PERPLEXITY_SESSION_AUTH=true
       - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED}
       - OTLP_ENDPOINT=http://tempo:4317
@@ -173,8 +182,10 @@ services:
     ports:
       - "127.0.0.1:8000:8000" # Localhost only for security
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
+      timeout: 10s
+      retries: 5
     restart: unless-stopped
     deploy:
       resources:
@@ -575,11 +586,11 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY}
     healthcheck:
-      test: ["CMD-SHELL", "python -m celery -A app.core.celery_app inspect ping || exit 1"]
+      test: ["CMD-SHELL", "python -m celery -A app.core.celery_app inspect ping --timeout=5 || exit 1"]
       interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 60s
     depends_on:
       redis:
         condition: service_healthy
@@ -842,7 +853,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health').read()"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -1250,10 +1261,10 @@ services:
       resources:
         limits:
           cpus: "2"
-          memory: 4G
+          memory: 3G
         reservations:
           cpus: "1"
-          memory: 2G
+          memory: 1G
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 30s

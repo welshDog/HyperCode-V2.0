@@ -1,9 +1,9 @@
-🦙 LLAMA 3.2 INTEGRATION - BATTLE PLAN
+🦙 LOCAL OLLAMA (TINYLLAMA DEFAULT) - BATTLE PLAN
 Time Estimate: 1-2 hours
 Difficulty: Medium
 Payoff: HUGE
 
-📋 PHASE 1: ADD LLAMA TO DOCKER COMPOSE (15 min)
+📋 PHASE 1: ADD OLLAMA TO DOCKER COMPOSE (15 min)
 Step 1.1: Edit docker-compose.yml
 Open your main docker-compose.yml file:
 
@@ -11,13 +11,13 @@ powershell
 cd "C:\Users\Lyndz\Downloads\HyperCode-V2.0"
 code docker-compose.yml
 # Or use notepad: notepad docker-compose.yml
-Step 1.2: Add Llama Service
+Step 1.2: Add Ollama Service
 Find the services: section and add this at the end (keep proper indentation):
 
 text
-  llama:
+  hypercode-ollama:
     image: ollama/ollama:latest
-    container_name: hypercode-llama
+    container_name: hypercode-ollama
     ports:
       - "11434:11434"
     volumes:
@@ -52,7 +52,7 @@ powershell
 docker-compose config
 If you see errors, check your indentation (YAML is strict about spaces).
 
-🚀 PHASE 2: START LLAMA CONTAINER (10 min)
+🚀 PHASE 2: START OLLAMA CONTAINER (10 min)
 Step 2.1: Pull and Start Services
 powershell
 # Pull the Ollama image (might take 5 min)
@@ -61,19 +61,19 @@ docker pull ollama/ollama:latest
 # Start all services (including new Llama container)
 docker-compose up -d
 
-# Check if Llama is running
-docker ps | Select-String "hypercode-llama"
-# Should show: hypercode-llama ... Up ...
-Step 2.2: Wait for Llama to Be Ready
+# Check if Ollama is running
+docker ps | Select-String "hypercode-ollama"
+# Should show: hypercode-ollama ... Up ...
+Step 2.2: Wait for Ollama to Be Ready
 powershell
 # Check health status (wait until healthy)
-docker inspect hypercode-llama --format='{{.State.Health.Status}}'
+docker inspect hypercode-ollama --format='{{.State.Health.Status}}'
 # Keep checking every 30 seconds until you see: "healthy"
-🦙 PHASE 3: INSTALL LLAMA 3.2 MODEL (20 min)
+🦙 PHASE 3: INSTALL A SMALL QUANTIZED MODEL (20 min)
 Step 3.1: Pull the Model
 powershell
-# Pull Llama 3.2 (3B model - good balance of speed/quality)
-docker exec hypercode-llama ollama pull llama3.2:3b
+# Pull TinyLlama (resource-safe default)
+docker exec hypercode-ollama ollama pull tinyllama
 
 # This downloads ~2GB, might take 10-15 minutes depending on your internet
 While it's downloading, you'll see progress:
@@ -87,7 +87,7 @@ success
 Step 3.2: Verify Model is Installed
 powershell
 # List installed models
-docker exec hypercode-llama ollama list
+docker exec hypercode-ollama ollama list
 
 # Should show:
 # NAME            ID          SIZE    MODIFIED
@@ -95,7 +95,7 @@ docker exec hypercode-llama ollama list
 Step 3.3: Test the Model
 powershell
 # Quick test
-docker exec hypercode-llama ollama run llama3.2:3b "Hello, what is 2+2?"
+docker exec hypercode-ollama ollama run tinyllama "Hello, what is 2+2?"
 
 # Should respond with something like:
 # "Hello! 2+2 equals 4."
@@ -112,11 +112,17 @@ code .env
 Replace the OpenAI section with:
 
 bash
-# LLM Configuration - Using Local Llama
-LLM_PROVIDER=ollama
-OLLAMA_URL=http://llama:11434
-OLLAMA_MODEL=llama3.2:3b
-ENABLE_AI_FEATURES=true
+# Local LLM (Ollama)
+OLLAMA_HOST=http://hypercode-ollama:11434
+DEFAULT_LLM_MODEL=auto
+OLLAMA_MODEL_PREFERRED=tinyllama:latest,tinyllama,phi3:latest,phi3
+OLLAMA_MAX_MODEL_SIZE_MB=2500
+OLLAMA_TEMPERATURE=0.3
+OLLAMA_TOP_P=0.9
+OLLAMA_TOP_K=40
+OLLAMA_REPEAT_PENALTY=1.1
+OLLAMA_NUM_CTX=2048
+OLLAMA_NUM_PREDICT=256
 
 # Legacy (keep for backward compatibility)
 OPENAI_API_KEY=sk-placeholder-not-used

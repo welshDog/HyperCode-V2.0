@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional, List
+from typing import Optional
 
 class Settings(BaseSettings):
     # App
@@ -23,8 +23,31 @@ class Settings(BaseSettings):
     PERPLEXITY_API_KEY: Optional[str] = None
     HYPERCODE_MEMORY_KEY: Optional[str] = None
     OLLAMA_HOST: str = "http://hypercode-ollama:11434"
-    DEFAULT_LLM_MODEL: str = "mistral"
+    DEFAULT_LLM_MODEL: str = "auto"
+    OLLAMA_MODEL_PREFERRED: str = "tinyllama:latest,tinyllama,phi3:latest,phi3"
+    OLLAMA_MAX_MODEL_SIZE_MB: int = 2500
+    OLLAMA_MODEL_REFRESH_SECONDS: int = 300
+    OLLAMA_TEMPERATURE: float = 0.3
+    OLLAMA_TOP_P: float = 0.9
+    OLLAMA_TOP_K: int = 40
+    OLLAMA_REPEAT_PENALTY: float = 1.1
+    OLLAMA_NUM_CTX: int = 2048
+    OLLAMA_NUM_PREDICT: int = 256
+    OLLAMA_SEED: Optional[int] = None
     PERPLEXITY_SESSION_AUTH: bool = False
+
+    def ollama_generate_options(self) -> dict:
+        options: dict = {
+            "temperature": self.OLLAMA_TEMPERATURE,
+            "top_p": self.OLLAMA_TOP_P,
+            "top_k": self.OLLAMA_TOP_K,
+            "repeat_penalty": self.OLLAMA_REPEAT_PENALTY,
+            "num_ctx": self.OLLAMA_NUM_CTX,
+            "num_predict": self.OLLAMA_NUM_PREDICT,
+        }
+        if self.OLLAMA_SEED is not None:
+            options["seed"] = self.OLLAMA_SEED
+        return options
 
     # Storage (MinIO/S3)
     MINIO_ENDPOINT: str = "http://minio:9000" # Internal Docker Hostname
