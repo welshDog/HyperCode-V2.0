@@ -64,6 +64,9 @@ scripts/verify_env.py
 k8s/01-secrets.yaml
 k8s/02-secrets.yaml
 k8s/patch-secret.yaml
+HEALTH_CHECK_STATUS_REPORT_*.md
+full-docker-health-report.json
+health_check_inventory.json
 
 # Ignore specific sensitive files found during scan
 docs/archive/Docker help

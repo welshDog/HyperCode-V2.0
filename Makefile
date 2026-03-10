@@ -98,6 +98,16 @@ clean:
 	docker-compose -f docker-compose.agents.yml down -v --remove-orphans
 	docker system prune -f
 
+# Full Docker Health Check System
+full-docker-health:
+	@echo "🚀 Starting Full Docker Health Check Pipeline..."
+	@echo "1. Installing dependencies..."
+	@pip install -q pyyaml requests
+	@echo "2. Inventorying K8s manifests & Monitoring configs..."
+	@python scripts/generate_health_check_compose.py
+	@echo "3. Running Health Check Controller..."
+	@python scripts/health_check_controller.py
+
 # Test orchestrator API
 test:
 	@echo "Testing orchestrator health..."

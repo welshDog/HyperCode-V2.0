@@ -14,14 +14,59 @@ networks:
 
 volumes:
   redis-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT}/redis
   postgres-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT}/postgres
   grafana-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT}/grafana
   prometheus-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT}/prometheus
   ollama-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT}/ollama
   agent_memory:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT}/agent_memory
   minio_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT}/minio
   chroma_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT}/chroma
   tempo-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT}/tempo
 
 services:
   # ====================
@@ -1204,11 +1249,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "4"
-          memory: 8G
+          cpus: "2"
+          memory: 4G
         reservations:
           cpus: "1"
-          memory: 4G
+          memory: 2G
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 30s

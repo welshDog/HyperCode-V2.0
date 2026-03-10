@@ -39,7 +39,7 @@ spec:
         - name: OLLAMA_ORIGINS
           value: "*"
         - name: OLLAMA_MODEL
-          value: "tinyllama"
+          value: "qwen2.5-coder:7b"
         ports:
         - containerPort: 11434
           name: http
@@ -57,14 +57,14 @@ spec:
           httpGet:
             path: /
             port: 11434
-          initialDelaySeconds: 60
+          initialDelaySeconds: 120
           periodSeconds: 30
           timeoutSeconds: 10
         readinessProbe:
           httpGet:
             path: /
             port: 11434
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60
           periodSeconds: 10
           timeoutSeconds: 10
   volumeClaimTemplates:
