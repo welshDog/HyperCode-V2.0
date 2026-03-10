@@ -1,8 +1,14 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, Enum, Text
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
-from app.db.base_class import Base
+from __future__ import annotations
+
 import enum
+from datetime import datetime
+from typing import Optional
+
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.sql import func
+
+from app.db.base_class import Base
 
 class UserRole(str, enum.Enum):
     ADMIN = "admin"
@@ -23,46 +29,46 @@ class TaskStatus(str, enum.Enum):
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
-    full_name = Column(String)
-    is_active = Column(Boolean, default=True)
-    is_superuser = Column(Boolean, default=False)
-    role = Column(Enum(UserRole), default=UserRole.DEVELOPER)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String, nullable=False)
+    full_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
+    role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.DEVELOPER)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())
 
-    projects = relationship("Project", back_populates="owner")
-    tasks = relationship("Task", back_populates="assignee")
+    projects: Mapped[list[Project]] = relationship(back_populates="owner")
+    tasks: Mapped[list[Task]] = relationship(back_populates="assignee")
 
 class Project(Base):
     __tablename__ = "projects"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True, nullable=False)
-    description = Column(Text)
-    status = Column(Enum(ProjectStatus), default=ProjectStatus.DRAFT)
-    owner_id = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[ProjectStatus] = mapped_column(Enum(ProjectStatus), default=ProjectStatus.DRAFT)
+    owner_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())
 
-    owner = relationship("User", back_populates="projects")
-    tasks = relationship("Task", back_populates="project")
+    owner: Mapped[User] = relationship(back_populates="projects")
+    tasks: Mapped[list[Task]] = relationship(back_populates="project")
 
 class Task(Base):
     __tablename__ = "tasks"
 
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, index=True, nullable=False)
-    description = Column(Text)
-    output = Column(Text, nullable=True) # Result from agent execution
-    status = Column(Enum(TaskStatus), default=TaskStatus.TODO)
-    priority = Column(String, default="medium")
-    project_id = Column(Integer, ForeignKey("projects.id"))
-    assignee_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    output: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[TaskStatus] = mapped_column(Enum(TaskStatus), default=TaskStatus.TODO)
+    priority: Mapped[str] = mapped_column(String, default="medium")
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id"))
+    assignee_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())
 
-    project = relationship("Project", back_populates="tasks")
-    assignee = relationship("User", back_populates="tasks")
+    project: Mapped[Project] = relationship(back_populates="tasks")
+    assignee: Mapped[Optional[User]] = relationship(back_populates="tasks")
