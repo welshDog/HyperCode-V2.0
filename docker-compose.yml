@@ -1136,6 +1136,10 @@ services:
       - DOCKER_HOST=unix:///var/run/docker.sock
       - REDIS_URL=redis://redis:6379
       - ORCHESTRATOR_URL=http://crew-orchestrator:8080
+      - HEALER_WATCHDOG_ENABLED=${HEALER_WATCHDOG_ENABLED:-false}
+      - HEALER_WATCHDOG_INTERVAL_SECONDS=${HEALER_WATCHDOG_INTERVAL_SECONDS:-60}
+      - HEALER_SMOKE_API_KEY=${HEALER_SMOKE_API_KEY:-}
+      - HEALER_ORCHESTRATOR_API_KEY=${HEALER_ORCHESTRATOR_API_KEY:-}
     volumes:
       - ./agents/healer:/app/healer
       - ./Configuration_Kit:/app/hive_mind:ro

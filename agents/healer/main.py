@@ -36,6 +36,10 @@ logger.setLevel(logging.INFO)
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")
 ORCHESTRATOR_URL = os.getenv("ORCHESTRATOR_URL", "http://crew-orchestrator:8080")
+WATCHDOG_ENABLED = os.getenv("HEALER_WATCHDOG_ENABLED", "false").strip().lower() == "true"
+WATCHDOG_INTERVAL_SECONDS = float(os.getenv("HEALER_WATCHDOG_INTERVAL_SECONDS", "60").strip() or "60")
+WATCHDOG_SMOKE_API_KEY = os.getenv("HEALER_SMOKE_API_KEY", "").strip()
+WATCHDOG_ORCHESTRATOR_API_KEY = os.getenv("HEALER_ORCHESTRATOR_API_KEY", "").strip()
 
 redis_client: Optional[redis.Redis] = None
 docker_adapter: Optional[DockerAdapter] = None
@@ -86,6 +90,8 @@ async def lifespan(app: FastAPI):
     
     # Subscribe to orchestrator alerts
     asyncio.create_task(alert_listener())
+    if WATCHDOG_ENABLED:
+        asyncio.create_task(watchdog_loop())
     
     logger.info("Healer Agent started - monitoring system health")
     
@@ -117,6 +123,97 @@ async def fetch_system_health() -> Dict[str, Dict]:
     except Exception as e:
         logger.error(f"Error fetching system health: {e}")
         return {}
+
+
+async def fetch_agent_roster() -> Dict[str, str]:
+    try:
+        headers = {"Content-Type": "application/json"}
+        if WATCHDOG_ORCHESTRATOR_API_KEY:
+            headers["X-API-Key"] = WATCHDOG_ORCHESTRATOR_API_KEY
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(f"{ORCHESTRATOR_URL}/agents", headers=headers)
+            if r.status_code != 200:
+                return {}
+            data = r.json()
+            if not isinstance(data, list):
+                return {}
+            roster: Dict[str, str] = {}
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+                agent_id = item.get("id")
+                url = item.get("url")
+                if isinstance(agent_id, str) and isinstance(url, str) and agent_id and url:
+                    roster[agent_id] = url
+            return roster
+    except Exception:
+        return {}
+
+
+async def watchdog_cycle() -> None:
+    if not WATCHDOG_SMOKE_API_KEY:
+        return
+
+    headers = {
+        "Content-Type": "application/json",
+        "X-API-Key": WATCHDOG_SMOKE_API_KEY,
+        "X-Smoke-Mode": "true",
+    }
+
+    roster = await fetch_agent_roster()
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.post(
+                f"{ORCHESTRATOR_URL}/execute/smoke",
+                headers=headers,
+                json={"mode": "probe_health"},
+            )
+    except Exception:
+        return
+
+    if r.status_code != 200:
+        return
+
+    try:
+        payload = r.json()
+    except Exception:
+        return
+
+    agents = payload.get("agents")
+    if not isinstance(agents, dict):
+        return
+
+    heal_tasks = []
+    for agent_id, result in agents.items():
+        if not isinstance(agent_id, str) or not isinstance(result, dict):
+            continue
+        status = result.get("status")
+        if status not in {"unhealthy", "down"}:
+            continue
+        agent_url = roster.get(agent_id)
+        if not agent_url:
+            continue
+        heal_tasks.append(attempt_heal_agent(agent_id, agent_url, attempts=2, timeout=5.0))
+
+    if not heal_tasks:
+        return
+
+    try:
+        await asyncio.wait_for(asyncio.gather(*heal_tasks, return_exceptions=True), timeout=120.0)
+    except Exception:
+        return
+
+
+async def watchdog_loop() -> None:
+    if not WATCHDOG_SMOKE_API_KEY:
+        logger.warning("Watchdog enabled but HEALER_SMOKE_API_KEY is not set")
+    while True:
+        try:
+            await watchdog_cycle()
+        except Exception:
+            pass
+        await asyncio.sleep(max(WATCHDOG_INTERVAL_SECONDS, 5.0))
 
 
 async def ping_agent_health(agent_url: str, timeout: float) -> bool:
