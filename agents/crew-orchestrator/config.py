@@ -1,9 +1,11 @@
 from pydantic_settings import BaseSettings
-from typing import Dict
+from typing import Dict, List, Optional
 
 class Settings(BaseSettings):
     redis_url: str = "redis://redis:6379"
     log_level: str = "INFO"
+    api_key: Optional[str] = None
+    cors_allow_origins: str = "http://localhost:8088,http://localhost:3000"
     
     # Agent Service URLs (Defaults based on docker-compose service names)
     agents: Dict[str, str] = {
@@ -20,5 +22,8 @@ class Settings(BaseSettings):
 
     class Config:
         env_prefix = "ORCHESTRATOR_"
+
+    def parsed_cors_allow_origins(self) -> List[str]:
+        return [o.strip() for o in self.cors_allow_origins.split(",") if o.strip()]
 
 settings = Settings()

@@ -14,12 +14,21 @@ reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/login/access-token"
 )
 
+optional_oauth2 = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.API_V1_STR}/login/access-token",
+    auto_error=False,
+)
+
 def get_current_user(
     db: Session = Depends(get_db), token: str = Depends(reusable_oauth2)
 ) -> models.User:
     try:
         payload = jwt.decode(
-            token, settings.JWT_SECRET, algorithms=[security.ALGORITHM]
+            token,
+            settings.JWT_SECRET,
+            algorithms=[security.ALGORITHM],
+            audience=settings.JWT_AUDIENCE,
+            issuer=settings.JWT_ISSUER,
         )
         token_data = schemas.TokenPayload(**payload)
     except (JWTError, ValidationError):
@@ -43,6 +52,30 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+def get_optional_current_user(
+    db: Session = Depends(get_db), token: str | None = Depends(optional_oauth2)
+) -> models.User | None:
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET,
+            algorithms=[security.ALGORITHM],
+            audience=settings.JWT_AUDIENCE,
+            issuer=settings.JWT_ISSUER,
+        )
+        token_data = schemas.TokenPayload(**payload)
+    except (JWTError, ValidationError):
+        return None
+    if not token_data.sub:
+        return None
+    try:
+        user_id = int(token_data.sub)
+    except ValueError:
+        return None
+    return db.query(models.User).filter(models.User.id == user_id).first()
 
 def get_current_active_user(
     current_user: models.User = Depends(get_current_user),

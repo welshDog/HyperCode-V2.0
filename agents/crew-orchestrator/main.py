@@ -2,13 +2,12 @@
 FastAPI Orchestration Layer for HyperCode Agent Crew
 Manages communication between 8 specialized agents
 """
-from fastapi import FastAPI, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect, Body, Request
+from fastapi import FastAPI, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect, Request, Depends, Security, status
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from typing import List, Dict, Optional, Any
 import httpx
-import os
 import json
 import logging
 import asyncio
@@ -124,11 +123,24 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=settings.parsed_cors_allow_origins(),
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+async def require_api_key(api_key: str = Security(api_key_header)) -> str:
+    expected = settings.api_key
+    if not expected:
+        return "dev_mode"
+    if not api_key or api_key != expected:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing API key",
+        )
+    return api_key
 
 # --- EXECUTION ENDPOINTS ---
 
@@ -204,7 +216,11 @@ async def request_approval(task_id: str, description: str, agent: Optional[str] 
     return status
 
 @app.post("/execute")
-async def execute_task(request: ExecuteRequest, background_tasks: BackgroundTasks):
+async def execute_task(
+    request: ExecuteRequest,
+    background_tasks: BackgroundTasks,
+    api_key: str = Depends(require_api_key),
+):
     task = request.task
     
     # 1. Log Receipt
@@ -304,13 +320,14 @@ async def execute_task(request: ExecuteRequest, background_tasks: BackgroundTask
                     await log_event(agent_name, "success", "Task completed successfully")
                     results[agent_name] = result
                 else:
-                    await log_event(agent_name, "error", f"Failed: {response.text}")
-                    results[agent_name] = {"status": "error", "message": f"Agent error: {response.text}"}
-                    return {"status": "error", "message": f"Agent {agent_name} failed"}
+                    await log_event(agent_name, "error", f"Failed: status={response.status_code}")
+                    results[agent_name] = {"status": "error", "message": "Agent execution failed"}
+                    return {"status": "error", "message": "Agent execution failed"}
                     
         except Exception as e:
-            await log_event(agent_name, "error", f"Exception: {str(e)}")
-            return {"status": "error", "message": str(e)}
+            await log_event(agent_name, "error", "Exception during agent execution")
+            logger.exception("Agent execution exception")
+            return {"status": "error", "message": "Agent execution failed"}
         finally:
             # Mark agent as idle
             if redis_client:
@@ -335,9 +352,17 @@ class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket) -> bool:
+        expected = settings.api_key
+        if expected:
+            provided = websocket.headers.get("x-api-key") or websocket.query_params.get("api_key")
+            if provided != expected:
+                await websocket.accept()
+                await websocket.close(code=1008)
+                return False
         await websocket.accept()
         self.active_connections.append(websocket)
+        return True
 
     def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
@@ -353,7 +378,8 @@ manager = ConnectionManager()
 
 @app.websocket("/ws/uplink")
 async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
+    if not await manager.connect(websocket):
+        return
     try:
         while True:
             data = await websocket.receive_text()
@@ -375,6 +401,13 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @app.websocket("/ws/approvals")
 async def websocket_approvals(websocket: WebSocket):
+    expected = settings.api_key
+    if expected:
+        provided = websocket.headers.get("x-api-key") or websocket.query_params.get("api_key")
+        if provided != expected:
+            await websocket.accept()
+            await websocket.close(code=1008)
+            return
     await websocket.accept()
     connected_dashboards.append(websocket)
     logger.info("Dashboard connected to approval stream")
@@ -400,7 +433,10 @@ async def websocket_approvals(websocket: WebSocket):
             connected_dashboards.remove(websocket)
 
 @app.post("/approvals/respond")
-async def respond_to_approval(response: Dict[str, Any]):
+async def respond_to_approval(
+    response: Dict[str, Any],
+    api_key: str = Depends(require_api_key),
+):
     """Endpoint for Dashboard to approve/reject tasks"""
     if not redis_client:
         raise HTTPException(status_code=503, detail="Redis not connected")
@@ -419,7 +455,7 @@ async def respond_to_approval(response: Dict[str, Any]):
     return {"status": "response_recorded"}
 
 @app.get("/system/health")
-async def get_system_health():
+async def get_system_health(api_key: str = Depends(require_api_key)):
     """Return cached health data for all agents"""
     if not redis_client:
         raise HTTPException(status_code=503, detail="Redis not connected")
@@ -449,7 +485,7 @@ async def health_check():
 # --- DASHBOARD ENDPOINTS ---
 
 @app.get("/agents")
-async def get_agents():
+async def get_agents(api_key: str = Depends(require_api_key)):
     """Get status of all agents"""
     # In a real system, we'd query Prometheus or Docker
     # For now, we return the configured agents with 'idle' status
@@ -492,7 +528,7 @@ async def get_agents():
     return agents_list
 
 @app.get("/tasks")
-async def get_tasks():
+async def get_tasks(api_key: str = Depends(require_api_key)):
     """Get recent tasks"""
     if not redis_client:
         return []
@@ -509,7 +545,7 @@ async def get_tasks():
     return tasks
 
 @app.get("/logs")
-async def get_logs():
+async def get_logs(api_key: str = Depends(require_api_key)):
     """Get recent system logs"""
     if not redis_client:
         return []

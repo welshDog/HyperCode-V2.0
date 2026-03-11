@@ -21,7 +21,10 @@ def read_tasks(
     """
     Retrieve tasks.
     """
-    tasks = db.query(models.Task).offset(skip).limit(limit).all()
+    query = db.query(models.Task).join(models.Project, models.Task.project_id == models.Project.id)
+    if not current_user.is_superuser:
+        query = query.filter(models.Project.owner_id == current_user.id)
+    tasks = query.offset(skip).limit(limit).all()
     return tasks
 
 @router.post("/", response_model=schemas.Task)
@@ -37,6 +40,12 @@ def create_task(
     task_data = task_in.dict()
     # Remove 'type' from task_data before creating DB model if it exists
     task_type = task_data.pop("type", "general")
+
+    project = db.query(models.Project).filter(models.Project.id == task_in.project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if not current_user.is_superuser and project.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not enough privileges")
 
     task = models.Task(
         **task_data,
@@ -73,7 +82,10 @@ def read_task(
     """
     Get task by ID.
     """
-    task = db.query(models.Task).filter(models.Task.id == id).first()
+    query = db.query(models.Task).join(models.Project, models.Task.project_id == models.Project.id).filter(models.Task.id == id)
+    if not current_user.is_superuser:
+        query = query.filter(models.Project.owner_id == current_user.id)
+    task = query.first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task

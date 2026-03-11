@@ -8,7 +8,7 @@ def test_create_user(client, db):
     """
     user_data = {
         "email": "test@example.com",
-        "password": "password123",
+        "password": "password12345",
         "full_name": "Test User",
         "role": "developer"
     }

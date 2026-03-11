@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Annotated, Optional
+from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from enum import Enum
 
@@ -28,7 +28,7 @@ class UserBase(BaseModel):
     role: Optional[UserRole] = UserRole.DEVELOPER
 
 class UserCreate(UserBase):
-    password: str
+    password: Annotated[str, Field(min_length=12, max_length=128)]
 
 class UserUpdate(UserBase):
     password: Optional[str] = None
@@ -49,8 +49,8 @@ class UserInDB(UserInDBBase):
 
 # --- PROJECT SCHEMAS ---
 class ProjectBase(BaseModel):
-    name: str
-    description: Optional[str] = None
+    name: Annotated[str, Field(min_length=1, max_length=120)]
+    description: Optional[Annotated[str, Field(max_length=5000)]] = None
     status: Optional[ProjectStatus] = ProjectStatus.DRAFT
 
 class ProjectCreate(ProjectBase):
@@ -70,16 +70,16 @@ class Project(ProjectBase):
 
 # --- TASK SCHEMAS ---
 class TaskBase(BaseModel):
-    title: str
-    description: Optional[str] = None
-    output: Optional[str] = None
+    title: Annotated[str, Field(min_length=1, max_length=200)]
+    description: Optional[Annotated[str, Field(max_length=20000)]] = None
+    output: Optional[Annotated[str, Field(max_length=200000)]] = None
     status: Optional[TaskStatus] = TaskStatus.TODO
-    priority: Optional[str] = "medium"
+    priority: Optional[Annotated[str, Field(max_length=32)]] = "medium"
 
 class TaskCreate(TaskBase):
     project_id: int
     assignee_id: Optional[int] = None
-    type: Optional[str] = "general"
+    type: Optional[Annotated[str, Field(max_length=32)]] = "general"
 
 class TaskUpdate(TaskBase):
     project_id: Optional[int] = None

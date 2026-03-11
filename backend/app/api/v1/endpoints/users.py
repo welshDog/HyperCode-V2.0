@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.models import models
 from app.schemas import schemas
 from app.core import security
+from app.core.config import settings
 from app.api import deps
 
 router = APIRouter()
@@ -29,11 +30,14 @@ def create_user(
     *,
     db: Session = Depends(get_db),
     user_in: schemas.UserCreate,
-    # current_user: models.User = Depends(deps.get_current_active_superuser),
+    current_user: models.User | None = Depends(deps.get_optional_current_user),
 ) -> Any:
     """
     Create new user.
     """
+    if not settings.ALLOW_PUBLIC_SIGNUP:
+        if not current_user or not current_user.is_superuser:
+            raise HTTPException(status_code=403, detail="Not enough privileges")
     user = db.query(models.User).filter(models.User.email == user_in.email).first()
     if user:
         raise HTTPException(

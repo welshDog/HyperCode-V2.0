@@ -4,10 +4,15 @@ REST API for neurodivergent-first avatar video generation
 Built with ❤️ by BROski♾ for the Hyperfocus Zone
 """
 
-from fastapi import FastAPI, BackgroundTasks, HTTPException, Depends
+import os
+import time
+from collections import deque
+
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Deque, Dict, Tuple
 import uuid
 from datetime import datetime
 import logging
@@ -32,12 +37,86 @@ app = FastAPI(
 )
 
 # CORS middleware for web frontend
+cors_allow_origins = [
+    o.strip()
+    for o in os.getenv("HYPERSTUDIO_CORS_ALLOW_ORIGINS", "http://localhost:3000,http://localhost:8088").split(",")
+    if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Restrict in production
-    allow_credentials=True,
+    allow_origins=cors_allow_origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+class SecurityHeadersMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_wrapper(message):
+            if message["type"] == "http.response.start":
+                headers = dict(message.get("headers", []))
+                headers.setdefault(b"x-content-type-options", b"nosniff")
+                headers.setdefault(b"x-frame-options", b"DENY")
+                headers.setdefault(b"referrer-policy", b"no-referrer")
+                headers.setdefault(b"permissions-policy", b"camera=(), microphone=(), geolocation=(), payment=(), usb=()")
+                message["headers"] = list(headers.items())
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
+
+
+class RateLimitMiddleware:
+    def __init__(self, app, *, window_seconds: int = 60, max_requests: int = 60):
+        self.app = app
+        self.window_seconds = window_seconds
+        self.max_requests = max_requests
+        self.events: Dict[Tuple[str, str], Deque[float]] = {}
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        request = Request(scope, receive=receive)
+        path = request.url.path
+        if path in {"/health", "/docs", "/openapi.json", "/redoc"}:
+            await self.app(scope, receive, send)
+            return
+
+        ip = request.client.host if request.client else "unknown"
+        key = (ip, path)
+        now = time.monotonic()
+        window_start = now - self.window_seconds
+
+        dq = self.events.get(key)
+        if dq is None:
+            dq = deque()
+            self.events[key] = dq
+
+        while dq and dq[0] < window_start:
+            dq.popleft()
+
+        if len(dq) >= self.max_requests:
+            resp = JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"})
+            await resp(scope, receive, send)
+            return
+
+        dq.append(now)
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(
+    RateLimitMiddleware,
+    window_seconds=int(os.getenv("HYPERSTUDIO_RATE_LIMIT_WINDOW_SECONDS", "60")),
+    max_requests=int(os.getenv("HYPERSTUDIO_RATE_LIMIT_MAX_REQUESTS", "60")),
 )
 
 
