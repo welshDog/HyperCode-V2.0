@@ -783,6 +783,9 @@ services:
       - ORCHESTRATOR_REDIS_PORT=6379
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - SMOKE_ENDPOINT_ENABLED=${SMOKE_ENDPOINT_ENABLED:-false}
+      - SMOKE_KEY_ALLOWLIST=${SMOKE_KEY_ALLOWLIST:-}
+      - SMOKE_KEY_TTL_SECONDS=${SMOKE_KEY_TTL_SECONDS:-900}
     volumes:
       - ./agents/crew-orchestrator:/app
       - ./Configuration_Kit:/app/hive_mind:ro

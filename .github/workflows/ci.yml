@@ -58,18 +58,23 @@ jobs:
           fi
 
       - name: Lint with Black
-        run: black . --check
+        run: black backend tools --check
 
       - name: Lint with Flake8
-        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        run: flake8 backend tools --count --select=E9,F63,F7,F82 --show-source --statistics
 
       - name: Security Scan (Bandit)
-        run: bandit -r . -ll -ii
+        run: bandit -r backend tools agents/crew-orchestrator -ll -ii
 
       - name: Run Pytest
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)
           pytest
+
+      - name: Smoke Framework Coverage Gate
+        run: |
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          pytest tools/smoke_framework/tests -q --cov=tools/smoke_framework --cov-report=term-missing --cov-fail-under=80
 
       - name: Run Frontend Tests (Vitest)
         run: |

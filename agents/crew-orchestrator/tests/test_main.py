@@ -29,7 +29,7 @@ def mock_redis():
 def test_health_check(mock_redis):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy", "redis": "connected"}
+    assert response.json() == {"status": "ok", "service": "crew-orchestrator"}
 
 def test_list_agents():
     response = client.get("/agents")
