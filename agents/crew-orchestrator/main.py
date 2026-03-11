@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException, BackgroundTasks, WebSocket, WebSocke
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Union
 import httpx
 import json
 import logging
@@ -154,7 +154,15 @@ class TaskDefinition(BaseModel):
     workflow: Optional[str] = None
 
 class ExecuteRequest(BaseModel):
-    task: TaskDefinition
+    task: Optional[Union[TaskDefinition, str]] = None
+    id: Optional[str] = None
+    type: Optional[str] = None
+    description: Optional[str] = None
+    agent: Optional[str] = None
+    agents: Optional[List[str]] = None
+    agent_type: Optional[str] = None
+    task_id: Optional[str] = None
+    requires_approval: Optional[bool] = None
 
 # Helper to log to Redis
 async def log_event(agent: str, level: str, msg: str):
@@ -221,7 +229,32 @@ async def execute_task(
     background_tasks: BackgroundTasks,
     api_key: str = Depends(require_api_key),
 ):
-    task = request.task
+    task: TaskDefinition
+    if isinstance(request.task, TaskDefinition):
+        task = request.task
+    else:
+        legacy_description = request.description
+        if not legacy_description and isinstance(request.task, str):
+            legacy_description = request.task
+
+        legacy_agent = request.agent or request.agent_type
+        legacy_agents = request.agents
+
+        task_id = request.id or request.task_id or f"legacy-{int(datetime.now().timestamp() * 1000)}"
+        task_type = request.type or "legacy"
+        requires_approval = request.requires_approval if request.requires_approval is not None else False
+
+        if not legacy_description:
+            raise HTTPException(status_code=422, detail="Missing task description")
+
+        task = TaskDefinition(
+            id=task_id,
+            type=task_type,
+            description=legacy_description,
+            agent=legacy_agent,
+            agents=legacy_agents,
+            requires_approval=requires_approval,
+        )
     
     # 1. Log Receipt
     logger.info(json.dumps({
