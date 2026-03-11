@@ -1,3 +1,13 @@
+##
+# Workflow retirement note (2026-03-11)
+#
+# `test.yml` and `deploy-validate.yml` were retired and deleted from this repo because they targeted
+# an obsolete directory layout (`THE HYPERCODE/hypercode-core/**`) that no longer represents the
+# shipping backend (`backend/**`). Keeping parallel pipelines caused CI drift, false confidence,
+# and duplicated maintenance effort. This `ci.yml` is the single source of truth for CI quality,
+# security, tests, and container scanning going forward.
+##
+
 name: HyperCode CI
 
 on:
@@ -5,6 +15,10 @@ on:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
+
+permissions:
+  contents: read
+  security-events: write
 
 jobs:
   quality-checks:
@@ -103,21 +117,45 @@ jobs:
           outputs: type=docker,dest=/tmp/hypercode-dashboard.tar
 
       - name: Run Trivy Vulnerability Scanner (Backend)
+        id: trivy_backend
+        continue-on-error: true
         uses: aquasecurity/trivy-action@master
         with:
           input: /tmp/hypercode-core.tar
-          format: 'table'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
+      - name: Upload Trivy SARIF (Backend)
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-backend
+
       - name: Run Trivy Vulnerability Scanner (Dashboard)
+        id: trivy_dashboard
+        continue-on-error: true
         uses: aquasecurity/trivy-action@master
         with:
           input: /tmp/hypercode-dashboard.tar
-          format: 'table'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy SARIF (Dashboard)
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-dashboard
+
+      - name: Fail if Trivy found HIGH/CRITICAL vulnerabilities
+        if: steps.trivy_backend.outcome == 'failure' || steps.trivy_dashboard.outcome == 'failure'
+        run: exit 1
