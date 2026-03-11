@@ -52,8 +52,18 @@ services:
   coder-agent:
     profiles: ["full"]
 
+  postgres:
+    volumes:
+      - postgres-demo-data:/var/lib/postgresql/data
+
   hypercode-core:
+    environment:
+      - HYPERCODE_REDIS_URL=redis://redis:6379/0
+      - HYPERCODE_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-hypercode}
     read_only: true
     tmpfs:
       - /tmp
       - /app/cache
+
+volumes:
+  postgres-demo-data:
