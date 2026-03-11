@@ -330,13 +330,21 @@ class HyperStudioVideoGenerator:
                 "bitrate": int(format_info.get("bit_rate", 0)),
                 "width": video_stream.get("width"),
                 "height": video_stream.get("height"),
-                "fps": eval(video_stream.get("r_frame_rate", "25/1"))
+                "fps": self._safe_fps(video_stream.get("r_frame_rate", "25/1"))
             }
         else:
             return {
                 "duration_seconds": 0,
                 "file_size_bytes": Path(video_path).stat().st_size
             }
+
+    def _safe_fps(self, rate: str) -> float:
+        from fractions import Fraction
+
+        try:
+            return float(Fraction(rate))
+        except Exception:
+            return 25.0
 
 
 # Convenience function for quick testing

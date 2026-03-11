@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional
+from typing import Optional, List
 
 class Settings(BaseSettings):
     # App
@@ -10,9 +10,12 @@ class Settings(BaseSettings):
     
     # Auth
     API_KEY: Optional[str] = None
-    JWT_SECRET: str = "dev-secret-key"  # Changed Optional to str with default for dev
+    JWT_SECRET: str = "dev-secret-key"
     HYPERCODE_JWT_SECRET: Optional[str] = None
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
+    JWT_ISSUER: Optional[str] = None
+    JWT_AUDIENCE: Optional[str] = None
+    ALLOW_PUBLIC_SIGNUP: bool = True
     
     # Database & Redis
     HYPERCODE_DB_URL: str = "postgresql://postgres:postgres@postgres:5432/hypercode"
@@ -62,9 +65,25 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2" # Fast, local model
 
     # Telemetry (OpenTelemetry)
-    OTLP_ENDPOINT: str = "http://jaeger:4317"  # Default to Jaeger OTLP gRPC port
+    OTLP_ENDPOINT: str = "http://tempo:4317"
     OTLP_EXPORTER_DISABLED: bool = False
     SERVICE_NAME: str = "hypercode-core"
+
+    # HTTP security
+    CORS_ALLOW_ORIGINS: str = "http://localhost:8088,http://localhost:3000"
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_WINDOW_SECONDS: int = 60
+    RATE_LIMIT_MAX_REQUESTS: int = 120
+
+    def parsed_cors_allow_origins(self) -> List[str]:
+        return [o.strip() for o in self.CORS_ALLOW_ORIGINS.split(",") if o.strip()]
+
+    def validate_security(self) -> None:
+        if self.ENVIRONMENT.lower() in {"production", "staging"}:
+            if not self.JWT_SECRET or self.JWT_SECRET == "dev-secret-key":
+                raise ValueError("JWT_SECRET must be set to a strong value for non-development environments")
+            if self.MINIO_ACCESS_KEY == "minioadmin" and self.MINIO_SECRET_KEY == "minioadmin":
+                raise ValueError("MinIO credentials must be set to non-default values for non-development environments")
     
     model_config = SettingsConfigDict(
         env_file=".env",

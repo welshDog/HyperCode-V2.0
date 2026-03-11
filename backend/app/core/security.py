@@ -15,7 +15,11 @@ def create_access_token(
         expire = datetime.utcnow() + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
-    to_encode = {"exp": expire, "sub": str(subject)}
+    to_encode: dict[str, Any] = {"exp": expire, "sub": str(subject), "iat": datetime.utcnow()}
+    if settings.JWT_ISSUER:
+        to_encode["iss"] = settings.JWT_ISSUER
+    if settings.JWT_AUDIENCE:
+        to_encode["aud"] = settings.JWT_AUDIENCE
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=ALGORITHM)
     return encoded_jwt
 

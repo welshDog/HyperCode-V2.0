@@ -23,7 +23,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-asyncio pytest-cov httpx ruff pip-audit safety
+          pip install pytest pytest-asyncio pytest-cov httpx ruff pip-audit safety bandit
 
       - name: Lint with ruff
         working-directory: backend
@@ -65,3 +65,8 @@ jobs:
         working-directory: backend
         run: |
           safety check --full-report || echo "safety found issues - review required"
+
+      - name: bandit static security scan
+        working-directory: backend
+        run: |
+          bandit -r app -f json -o bandit-report.json -ll || echo "bandit found issues - review required"

@@ -20,7 +20,10 @@ def read_projects(
     """
     Retrieve projects.
     """
-    projects = db.query(models.Project).offset(skip).limit(limit).all()
+    query = db.query(models.Project)
+    if not current_user.is_superuser:
+        query = query.filter(models.Project.owner_id == current_user.id)
+    projects = query.offset(skip).limit(limit).all()
     return projects
 
 @router.post("/", response_model=schemas.Project)

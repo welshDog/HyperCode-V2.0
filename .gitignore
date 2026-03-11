@@ -17,6 +17,12 @@ secrets/
 credentials.json
 client_secret.json
 
+# .cursorignore / .traeIgnore / .aiexclude
+.env
+.env.local
+.env.production
+*.secret
+
 # IDE and Editor files
 .idea/
 .vscode/

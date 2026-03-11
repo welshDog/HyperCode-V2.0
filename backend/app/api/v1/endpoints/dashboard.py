@@ -88,13 +88,18 @@ def execute_command(
 def get_dashboard_logs(
     db: Session = Depends(get_db),
     skip: int = 0, 
-    limit: int = 50
+    limit: int = 50,
+    current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
     Returns recent system events formatted for the Dashboard "Live Ops" feed.
     Currently pulls from the Tasks table as a proxy for logs.
     """
-    tasks = db.query(models.Task).order_by(models.Task.id.desc()).limit(limit).all()
+    capped_limit = min(limit, 200)
+    query = db.query(models.Task).join(models.Project, models.Task.project_id == models.Project.id).order_by(models.Task.id.desc())
+    if not current_user.is_superuser:
+        query = query.filter(models.Project.owner_id == current_user.id)
+    tasks = query.offset(skip).limit(capped_limit).all()
     
     logs = []
     for t in tasks:
