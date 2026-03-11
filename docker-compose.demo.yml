@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+  project-strategist-v2:
+    profiles: ["full"]
+
+  broski-bot:
+    profiles: ["full"]
+
+  prometheus:
+    profiles: ["full"]
+
+  grafana:
+    profiles: ["full"]
+
+  node-exporter:
+    profiles: ["full"]
+
+  cadvisor:
+    profiles: ["full"]
+
+  minio:
+    profiles: ["full"]
+
+  chroma:
+    profiles: ["full"]
+
+  loki:
+    profiles: ["full"]
+
+  tempo:
+    profiles: ["full"]
+
+  promtail:
+    profiles: ["full"]
+
+  celery-worker:
+    profiles: ["full"]
+
+  celery-exporter:
+    profiles: ["full"]
+
+  docker-janitor:
+    profiles: ["full"]
+
+  auto-prune:
+    profiles: ["full"]
+
+  security-scanner:
+    profiles: ["full"]
+
+  coder-agent:
+    profiles: ["full"]
+
+  hypercode-core:
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/cache
