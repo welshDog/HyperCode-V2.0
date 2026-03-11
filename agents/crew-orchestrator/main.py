@@ -2,7 +2,18 @@
 FastAPI Orchestration Layer for HyperCode Agent Crew
 Manages communication between 8 specialized agents
 """
-from fastapi import FastAPI, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect, Request, Depends, Security, status
+
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    BackgroundTasks,
+    WebSocket,
+    WebSocketDisconnect,
+    Request,
+    Depends,
+    Security,
+    status,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
@@ -11,10 +22,14 @@ import httpx
 import json
 import logging
 import asyncio
+import os
+import hashlib
+from time import perf_counter
 from contextlib import asynccontextmanager
 from task_queue import get_redis_pool
 import redis.asyncio as redis
-from datetime import datetime
+from datetime import datetime, timezone
+from prometheus_client import Counter, make_asgi_app
 
 # Import configuration
 from config import settings
@@ -26,9 +41,10 @@ logger = logging.getLogger("crew-orchestrator")
 redis_client: Optional[redis.Redis] = None
 
 # Forward declaration of app
-app: FastAPI = None # type: ignore
+app: FastAPI = None  # type: ignore
 
 # --- LIFECYCLE ---
+
 
 async def monitor_agent_health():
     """Background task to monitor agent health status"""
@@ -37,57 +53,60 @@ async def monitor_agent_health():
             if not redis_client:
                 await asyncio.sleep(5)
                 continue
-                
+
             failed_agents = []
             results = {}
-            
+
             for agent_name, url in settings.agents.items():
                 try:
                     async with httpx.AsyncClient(timeout=5.0) as client:
                         start_time = datetime.now()
                         response = await client.get(f"{url}/health")
                         latency = (datetime.now() - start_time).total_seconds() * 1000
-                        
+
                         if response.status_code == 200:
                             results[agent_name] = {
                                 "status": "healthy",
                                 "latency_ms": latency,
-                                "last_checked": datetime.now().isoformat()
+                                "last_checked": datetime.now().isoformat(),
                             }
                         else:
                             failed_agents.append(agent_name)
                             results[agent_name] = {
                                 "status": "unhealthy",
                                 "error": f"Status {response.status_code}",
-                                "last_checked": datetime.now().isoformat()
+                                "last_checked": datetime.now().isoformat(),
                             }
                 except Exception as e:
                     failed_agents.append(agent_name)
                     results[agent_name] = {
                         "status": "down",
                         "error": str(e),
-                        "last_checked": datetime.now().isoformat()
+                        "last_checked": datetime.now().isoformat(),
                     }
-            
+
             # Store health results in Redis for dashboard
             await redis_client.set("system:health", json.dumps(results))
-            
+
             # Alert if threshold reached
             if len(failed_agents) >= 4:
                 alert_msg = {
                     "type": "CRITICAL_ALERT",
                     "message": f"CRITICAL: {len(failed_agents)} agents are DOWN!",
                     "failed_agents": failed_agents,
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": datetime.now().isoformat(),
                 }
                 # Publish to dashboard via existing approval channel or new alert channel
                 await redis_client.publish("approval_requests", json.dumps(alert_msg))
-                logger.critical(f"HEALTH ALERT: {len(failed_agents)} agents down: {failed_agents}")
-                
+                logger.critical(
+                    f"HEALTH ALERT: {len(failed_agents)} agents down: {failed_agents}"
+                )
+
         except Exception as e:
             logger.error(f"Health monitor error: {e}")
-            
-        await asyncio.sleep(30) # Run every 30 seconds
+
+        await asyncio.sleep(30)  # Run every 30 seconds
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -95,12 +114,12 @@ async def lifespan(app: FastAPI):
     # Startup
     redis_client = await get_redis_pool()
     logger.info("Redis connected")
-    
+
     # Start background health monitoring
     monitor_task = asyncio.create_task(monitor_agent_health())
-    
+
     yield
-    
+
     # Shutdown
     if monitor_task:
         monitor_task.cancel()
@@ -108,16 +127,17 @@ async def lifespan(app: FastAPI):
             await monitor_task
         except asyncio.CancelledError:
             pass
-            
+
     if redis_client:
         await redis_client.close()
         logger.info("Redis connection closed")
 
+
 app = FastAPI(
-    title="HyperCode Agent Crew Orchestrator", 
+    title="HyperCode Agent Crew Orchestrator",
     description="Coordinates specialized AI agents for software development",
-    version="2.0", 
-    lifespan=lifespan
+    version="2.0",
+    lifespan=lifespan,
 )
 
 # CORS configuration
@@ -131,6 +151,7 @@ app.add_middleware(
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
+
 async def require_api_key(api_key: str = Security(api_key_header)) -> str:
     expected = settings.api_key
     if not expected:
@@ -142,7 +163,85 @@ async def require_api_key(api_key: str = Security(api_key_header)) -> str:
         )
     return api_key
 
+
+_smoke_request_total = Counter(
+    "smoke_request_total", "Total /execute/smoke requests", ["mode", "result"]
+)
+_smoke_redis_skip_total = Counter(
+    "smoke_redis_skip_total", "Redis writes skipped by smoke endpoint"
+)
+
+_smoke_key_issued_at: Dict[str, datetime] = {}
+_smoke_key_revoked_at: Dict[str, datetime] = {}
+
+app.mount("/metrics", make_asgi_app())
+
+
+def _smoke_enabled() -> bool:
+    return os.getenv("SMOKE_ENDPOINT_ENABLED", "false").strip().lower() == "true"
+
+
+def _smoke_key_allowlist() -> set[str]:
+    raw = os.getenv("SMOKE_KEY_ALLOWLIST", "").strip()
+    if not raw:
+        return set()
+    return {h.strip() for h in raw.split(",") if h.strip()}
+
+
+def _smoke_key_ttl_seconds() -> int:
+    raw = os.getenv("SMOKE_KEY_TTL_SECONDS", "900").strip()
+    try:
+        value = int(raw)
+        return value if value >= 0 else 900
+    except Exception:
+        return 900
+
+
+def _hash_key(raw_key: str) -> str:
+    return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
+
+
+def _enforce_smoke_guardrails(req: Request) -> None:
+    if not _smoke_enabled():
+        raise HTTPException(status_code=404, detail="Smoke endpoint disabled")
+
+    if req.headers.get("x-smoke-mode") != "true":
+        raise HTTPException(status_code=403, detail="Missing X-Smoke-Mode: true")
+
+    raw_key = req.headers.get("x-api-key")
+    if not raw_key:
+        raise HTTPException(status_code=401, detail="Missing X-API-Key")
+
+    allowlist = _smoke_key_allowlist()
+    if not allowlist:
+        raise HTTPException(status_code=503, detail="Smoke allowlist not configured")
+
+    key_hash = _hash_key(raw_key)
+    if key_hash not in allowlist:
+        raise HTTPException(status_code=403, detail="Benchmark key not allowed")
+
+    now = datetime.now(timezone.utc)
+    for k, revoked_at in list(_smoke_key_revoked_at.items()):
+        if (now - revoked_at).total_seconds() > 86400:
+            _smoke_key_revoked_at.pop(k, None)
+
+    if key_hash in _smoke_key_revoked_at:
+        raise HTTPException(status_code=403, detail="Benchmark key revoked")
+
+    issued_at = _smoke_key_issued_at.get(key_hash)
+    ttl = _smoke_key_ttl_seconds()
+    if not issued_at:
+        _smoke_key_issued_at[key_hash] = now
+        return
+
+    if (now - issued_at).total_seconds() > ttl:
+        _smoke_key_issued_at.pop(key_hash, None)
+        _smoke_key_revoked_at[key_hash] = now
+        raise HTTPException(status_code=403, detail="Benchmark key TTL expired")
+
+
 # --- EXECUTION ENDPOINTS ---
+
 
 class TaskDefinition(BaseModel):
     id: str
@@ -152,6 +251,7 @@ class TaskDefinition(BaseModel):
     agents: Optional[List[str]] = None
     requires_approval: bool = True
     workflow: Optional[str] = None
+
 
 class ExecuteRequest(BaseModel):
     task: Optional[Union[TaskDefinition, str]] = None
@@ -164,6 +264,34 @@ class ExecuteRequest(BaseModel):
     task_id: Optional[str] = None
     requires_approval: Optional[bool] = None
 
+
+class SmokeRequest(BaseModel):
+    mode: str = "noop"
+    agent: Optional[str] = None
+
+
+class SmokeAgentResult(BaseModel):
+    status: str
+    http_status: Optional[int] = None
+    latency_ms: Optional[float] = None
+    error: Optional[str] = None
+
+
+class SmokeResponse(BaseModel):
+    smoke: str
+    mode: str
+    latency_ms: float
+    redis_writes_skipped: int
+    approval_skipped: bool
+    agent: Optional[str] = None
+    agent_http_status: Optional[int] = None
+    agent_latency_ms: Optional[float] = None
+    healthy: Optional[int] = None
+    total: Optional[int] = None
+    agents: Optional[Dict[str, SmokeAgentResult]] = None
+    timestamp: str
+
+
 # Helper to log to Redis
 async def log_event(agent: str, level: str, msg: str):
     if redis_client:
@@ -172,12 +300,15 @@ async def log_event(agent: str, level: str, msg: str):
             "time": datetime.now().strftime("%H:%M:%S"),
             "agent": agent,
             "level": level,
-            "msg": msg
+            "msg": msg,
         }
         await redis_client.lpush("logs:global", json.dumps(entry))
-        await redis_client.ltrim("logs:global", 0, 99) # Keep last 100
+        await redis_client.ltrim("logs:global", 0, 99)  # Keep last 100
 
-async def request_approval(task_id: str, description: str, agent: Optional[str] = None) -> str:
+
+async def request_approval(
+    task_id: str, description: str, agent: Optional[str] = None
+) -> str:
     """Helper to handle approval workflow"""
     if not redis_client:
         logger.error("Redis not connected, cannot request approval")
@@ -192,36 +323,41 @@ async def request_approval(task_id: str, description: str, agent: Optional[str] 
         "task_id": task_id,
         "description": description,
         "agent": agent,
-        "plan": "Generated plan based on RAG..." if not agent else f"Execute specific tasks for {agent}",
+        "plan": (
+            "Generated plan based on RAG..."
+            if not agent
+            else f"Execute specific tasks for {agent}"
+        ),
         "risk_level": "Low",
-        "estimated_time": "2 minutes"
+        "estimated_time": "2 minutes",
     }
-    
+
     # Publish to Redis for Dashboard
     await redis_client.publish("approval_requests", json.dumps(approval_request))
     log_msg = f"Approval requested for task {task_id}"
     if agent:
         log_msg += f" ({agent})"
     await log_event("orchestrator", "warn", log_msg)
-    
+
     status = "pending"
     timeout = 60
     start_time = datetime.now()
-    
+
     while status == "pending":
         if (datetime.now() - start_time).seconds > timeout:
             await log_event("orchestrator", "error", f"Approval timeout for {task_id}")
             return "timeout"
-            
+
         response = await redis_client.get(f"approval:{approval_id}:response")
         if response:
             data = json.loads(response)
             status = data.get("status")
         else:
             await asyncio.sleep(1)
-    
+
     await log_event("orchestrator", "success", f"Approval received: {status}")
     return status
+
 
 @app.post("/execute")
 async def execute_task(
@@ -240,9 +376,17 @@ async def execute_task(
         legacy_agent = request.agent or request.agent_type
         legacy_agents = request.agents
 
-        task_id = request.id or request.task_id or f"legacy-{int(datetime.now().timestamp() * 1000)}"
+        task_id = (
+            request.id
+            or request.task_id
+            or f"legacy-{int(datetime.now().timestamp() * 1000)}"
+        )
         task_type = request.type or "legacy"
-        requires_approval = request.requires_approval if request.requires_approval is not None else False
+        requires_approval = (
+            request.requires_approval
+            if request.requires_approval is not None
+            else False
+        )
 
         if not legacy_description:
             raise HTTPException(status_code=422, detail="Missing task description")
@@ -255,14 +399,18 @@ async def execute_task(
             agents=legacy_agents,
             requires_approval=requires_approval,
         )
-    
+
     # 1. Log Receipt
-    logger.info(json.dumps({
-        "event": "task_received",
-        "task_id": task.id,
-        "agent": task.agent or task.agents
-    }))
-    
+    logger.info(
+        json.dumps(
+            {
+                "event": "task_received",
+                "task_id": task.id,
+                "agent": task.agent or task.agents,
+            }
+        )
+    )
+
     # Store Task in Redis
     if redis_client:
         task_data = task.dict()
@@ -273,21 +421,22 @@ async def execute_task(
         await redis_client.set(f"task:{task.id}:details", json.dumps(task_data))
         await redis_client.lpush("tasks:history", task.id)
         await redis_client.ltrim("tasks:history", 0, 99)
-        
+
         await log_event("orchestrator", "info", f"Received task: {task.id}")
 
     # 2. RAG Query (Simulated for Test 1)
-    logger.info(json.dumps({
-        "event": "rag_query",
-        "query": task.description[:50],
-        "chunks_retrieved": 3
-    }))
-    
+    logger.info(
+        json.dumps(
+            {
+                "event": "rag_query",
+                "query": task.description[:50],
+                "chunks_retrieved": 3,
+            }
+        )
+    )
+
     # 3. Plan Generation (Simulated for Test 1)
-    logger.info(json.dumps({
-        "event": "plan_generated",
-        "task_id": task.id
-    }))
+    logger.info(json.dumps({"event": "plan_generated", "task_id": task.id}))
 
     # 4. Approval Flow
     if task.requires_approval:
@@ -301,22 +450,24 @@ async def execute_task(
         agents_to_run = task.agents
     elif task.agent:
         agents_to_run = [task.agent]
-        
+
     results = {}
-    
+
     # Update progress
     if redis_client:
         task_data = json.loads(await redis_client.get(f"task:{task.id}:details"))
         task_data["progress"] = 10
         await redis_client.set(f"task:{task.id}:details", json.dumps(task_data))
-    
+
     for i, agent_name in enumerate(agents_to_run):
-        await log_event(agent_name, "info", f"Starting execution phase {i+1}/{len(agents_to_run)}")
-        
+        await log_event(
+            agent_name, "info", f"Starting execution phase {i+1}/{len(agents_to_run)}"
+        )
+
         # Mark agent as busy
         if redis_client:
             await redis_client.set(f"agent:{agent_name}:current_task", task.id)
-            
+
             # Update progress
             task_data = json.loads(await redis_client.get(f"task:{task.id}:details"))
             task_data["progress"] = 10 + int((i / len(agents_to_run)) * 80)
@@ -324,16 +475,19 @@ async def execute_task(
 
         # Approval for multi-agent (Test 2/3)
         if len(agents_to_run) > 1 and task.requires_approval:
-             desc = f"Execute phase for {agent_name}: {task.description[:50]}..."
-             status = await request_approval(task.id, desc, agent_name)
-             
-             if status != "approved":
-                 return {"status": "rejected" if status != "timeout" else "timeout", "agent": agent_name}
+            desc = f"Execute phase for {agent_name}: {task.description[:50]}..."
+            status = await request_approval(task.id, desc, agent_name)
+
+            if status != "approved":
+                return {
+                    "status": "rejected" if status != "timeout" else "timeout",
+                    "agent": agent_name,
+                }
 
         # Determine agent URL
         agent_key = agent_name.replace("-", "_")
         agent_url = settings.agents.get(agent_key)
-        
+
         if not agent_url:
             agent_url = f"http://{agent_name}:8000"
 
@@ -344,19 +498,28 @@ async def execute_task(
                     "id": task.id,
                     "task": task.description,
                     "type": task.type,
-                    "requires_approval": False
+                    "requires_approval": False,
                 }
-                
-                response = await client.post(f"{agent_url}/execute", json=agent_payload, timeout=120.0)
+
+                response = await client.post(
+                    f"{agent_url}/execute", json=agent_payload, timeout=120.0
+                )
                 if response.status_code == 200:
                     result = response.json()
-                    await log_event(agent_name, "success", "Task completed successfully")
+                    await log_event(
+                        agent_name, "success", "Task completed successfully"
+                    )
                     results[agent_name] = result
                 else:
-                    await log_event(agent_name, "error", f"Failed: status={response.status_code}")
-                    results[agent_name] = {"status": "error", "message": "Agent execution failed"}
+                    await log_event(
+                        agent_name, "error", f"Failed: status={response.status_code}"
+                    )
+                    results[agent_name] = {
+                        "status": "error",
+                        "message": "Agent execution failed",
+                    }
                     return {"status": "error", "message": "Agent execution failed"}
-                    
+
         except Exception as e:
             await log_event(agent_name, "error", "Exception during agent execution")
             logger.exception("Agent execution exception")
@@ -376,10 +539,95 @@ async def execute_task(
 
     return {"status": "completed", "message": "Workflow finished", "results": results}
 
+
+@app.post("/execute/smoke", response_model=SmokeResponse)
+async def execute_smoke(
+    request: SmokeRequest,
+    req: Request,
+    api_key: str = Depends(require_api_key),
+):
+    _enforce_smoke_guardrails(req)
+
+    mode = (request.mode or "noop").strip().lower()
+    t0 = perf_counter()
+
+    if mode == "noop":
+        _smoke_request_total.labels(mode="noop", result="pass").inc()
+        _smoke_redis_skip_total.inc(1)
+        latency_ms = (perf_counter() - t0) * 1000.0
+        return SmokeResponse(
+            smoke="pass",
+            mode="noop",
+            latency_ms=round(latency_ms, 2),
+            redis_writes_skipped=1,
+            approval_skipped=True,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+        )
+
+    if mode != "probe_health":
+        _smoke_request_total.labels(mode=mode, result="fail").inc()
+        raise HTTPException(status_code=422, detail="Invalid mode")
+
+    targets: Dict[str, str] = {}
+    if request.agent:
+        key = request.agent.replace("-", "_")
+        url = settings.agents.get(key)
+        if not url:
+            _smoke_request_total.labels(mode="probe_health", result="fail").inc()
+            raise HTTPException(status_code=404, detail="Agent not in roster")
+        targets[key] = url
+    else:
+        targets = dict(settings.agents)
+
+    async def probe(name: str, url: str) -> tuple[str, SmokeAgentResult]:
+        try:
+            start = perf_counter()
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(f"{url}/health")
+            agent_latency_ms = (perf_counter() - start) * 1000.0
+            if resp.status_code == 200:
+                return name, SmokeAgentResult(
+                    status="healthy",
+                    http_status=resp.status_code,
+                    latency_ms=round(agent_latency_ms, 2),
+                )
+            return name, SmokeAgentResult(
+                status="unhealthy",
+                http_status=resp.status_code,
+                latency_ms=round(agent_latency_ms, 2),
+            )
+        except Exception as e:
+            return name, SmokeAgentResult(status="down", error=type(e).__name__)
+
+    results = await asyncio.gather(*[probe(n, u) for n, u in targets.items()])
+    agents = {name: result for name, result in results}
+    healthy = sum(1 for r in agents.values() if r.status == "healthy")
+    total = len(agents)
+
+    smoke = "pass" if healthy == total else "partial" if healthy > 0 else "fail"
+    _smoke_request_total.labels(mode="probe_health", result=smoke).inc()
+    _smoke_redis_skip_total.inc(total + 1)
+
+    latency_ms = (perf_counter() - t0) * 1000.0
+    return SmokeResponse(
+        smoke=smoke,
+        mode="probe_health",
+        latency_ms=round(latency_ms, 2),
+        redis_writes_skipped=total + 1,
+        approval_skipped=True,
+        agent=request.agent,
+        healthy=healthy,
+        total=total,
+        agents=agents,
+        timestamp=datetime.now(timezone.utc).isoformat(),
+    )
+
+
 # --- WEBSOCKET FOR APPROVALS ---
 connected_dashboards: List[WebSocket] = []
 
 # --- WEBSOCKETS ---
+
 
 class ConnectionManager:
     def __init__(self):
@@ -388,7 +636,9 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket) -> bool:
         expected = settings.api_key
         if expected:
-            provided = websocket.headers.get("x-api-key") or websocket.query_params.get("api_key")
+            provided = websocket.headers.get("x-api-key") or websocket.query_params.get(
+                "api_key"
+            )
             if provided != expected:
                 await websocket.accept()
                 await websocket.close(code=1008)
@@ -407,7 +657,9 @@ class ConnectionManager:
             except Exception as e:
                 logger.error(f"Error broadcasting: {e}")
 
+
 manager = ConnectionManager()
+
 
 @app.websocket("/ws/uplink")
 async def websocket_endpoint(websocket: WebSocket):
@@ -422,21 +674,26 @@ async def websocket_endpoint(websocket: WebSocket):
                 response = {
                     "id": message.get("id"),
                     "type": "response",
-                    "source": "orchestrator", 
-                    "payload": {"status": "received", "echo": message.get("payload")}
+                    "source": "orchestrator",
+                    "payload": {"status": "received", "echo": message.get("payload")},
                 }
                 await websocket.send_text(json.dumps(response))
             except json.JSONDecodeError:
-                await websocket.send_text(json.dumps({"type": "error", "payload": "Invalid JSON"}))
+                await websocket.send_text(
+                    json.dumps({"type": "error", "payload": "Invalid JSON"})
+                )
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         logger.info("Client disconnected from uplink")
+
 
 @app.websocket("/ws/approvals")
 async def websocket_approvals(websocket: WebSocket):
     expected = settings.api_key
     if expected:
-        provided = websocket.headers.get("x-api-key") or websocket.query_params.get("api_key")
+        provided = websocket.headers.get("x-api-key") or websocket.query_params.get(
+            "api_key"
+        )
         if provided != expected:
             await websocket.accept()
             await websocket.close(code=1008)
@@ -444,18 +701,18 @@ async def websocket_approvals(websocket: WebSocket):
     await websocket.accept()
     connected_dashboards.append(websocket)
     logger.info("Dashboard connected to approval stream")
-    
+
     try:
         # Create a new Redis connection for subscribing
         pubsub_redis = await redis.from_url(settings.redis_url, decode_responses=True)
         pubsub = pubsub_redis.pubsub()
         await pubsub.subscribe("approval_requests")
-        
+
         async for message in pubsub.listen():
-            if message['type'] == 'message':
+            if message["type"] == "message":
                 # Forward approval request to dashboard
-                await websocket.send_text(message['data'])
-                
+                await websocket.send_text(message["data"])
+
     except WebSocketDisconnect:
         logger.info("Dashboard disconnected")
         connected_dashboards.remove(websocket)
@@ -465,6 +722,7 @@ async def websocket_approvals(websocket: WebSocket):
         if websocket in connected_dashboards:
             connected_dashboards.remove(websocket)
 
+
 @app.post("/approvals/respond")
 async def respond_to_approval(
     response: Dict[str, Any],
@@ -473,32 +731,32 @@ async def respond_to_approval(
     """Endpoint for Dashboard to approve/reject tasks"""
     if not redis_client:
         raise HTTPException(status_code=503, detail="Redis not connected")
-        
+
     approval_id = response.get("approval_id")
     if not approval_id:
         raise HTTPException(status_code=400, detail="Missing approval_id")
-        
+
     # Store the response where the waiting agent can find it
     await redis_client.set(
         f"approval:{approval_id}:response",
         json.dumps(response),
-        ex=3600 # Expire in 1 hour
+        ex=3600,  # Expire in 1 hour
     )
-    
+
     return {"status": "response_recorded"}
+
 
 @app.get("/system/health")
 async def get_system_health(api_key: str = Depends(require_api_key)):
     """Return cached health data for all agents"""
     if not redis_client:
         raise HTTPException(status_code=503, detail="Redis not connected")
-        
+
     health_data = await redis_client.get("system:health")
     if not health_data:
         return {"status": "initializing", "agents": {}}
-        
-    return json.loads(health_data)
 
+    return json.loads(health_data)
 
 
 @app.get("/")
@@ -507,15 +765,18 @@ async def root():
         "service": "HyperCode Agent Crew Orchestrator",
         "version": "2.0",
         "agents": list(settings.agents.keys()),
-        "status": "operational"
+        "status": "operational",
     }
+
 
 @app.get("/health")
 async def health_check():
     """Simple health check endpoint for Docker"""
     return {"status": "ok", "service": "crew-orchestrator"}
 
+
 # --- DASHBOARD ENDPOINTS ---
+
 
 @app.get("/agents")
 async def get_agents(api_key: str = Depends(require_api_key)):
@@ -523,66 +784,70 @@ async def get_agents(api_key: str = Depends(require_api_key)):
     # In a real system, we'd query Prometheus or Docker
     # For now, we return the configured agents with 'idle' status
     # unless we track them in Redis
-    
+
     agents_list = []
     for key, url in settings.agents.items():
         # Clean up name
         name = key.replace("_", " ").title()
         role = key.split("_")[-1].title() if "_" in key else "Agent"
-        
+
         # Check Redis for status if available
         status = "idle"
         cpu = 0
         ram = 0
-        
+
         if redis_client:
             # Check if agent is busy
             # This key would be set during execution
             current_task = await redis_client.get(f"agent:{key}:current_task")
             if current_task:
                 status = "working"
-                cpu = 45 + (len(name) * 2) # Mock variation
+                cpu = 45 + (len(name) * 2)  # Mock variation
                 ram = 30 + (len(name) * 3)
             else:
                 # Mock idle stats
                 cpu = 1 + (len(name) % 5)
                 ram = 10 + (len(name) % 10)
-                
-        agents_list.append({
-            "id": key,
-            "name": name,
-            "role": role,
-            "status": status,
-            "cpu": cpu,
-            "ram": ram,
-            "url": url
-        })
-        
+
+        agents_list.append(
+            {
+                "id": key,
+                "name": name,
+                "role": role,
+                "status": status,
+                "cpu": cpu,
+                "ram": ram,
+                "url": url,
+            }
+        )
+
     return agents_list
+
 
 @app.get("/tasks")
 async def get_tasks(api_key: str = Depends(require_api_key)):
     """Get recent tasks"""
     if not redis_client:
         return []
-        
+
     # Get last 10 tasks from a list
     task_ids = await redis_client.lrange("tasks:history", 0, 9)
     tasks = []
-    
+
     for tid in task_ids:
         task_data = await redis_client.get(f"task:{tid}:details")
         if task_data:
             tasks.append(json.loads(task_data))
-            
+
     return tasks
+
 
 @app.get("/logs")
 async def get_logs(api_key: str = Depends(require_api_key)):
     """Get recent system logs"""
     if not redis_client:
         return []
-        
+
     # Get last 50 logs
     logs = await redis_client.lrange("logs:global", 0, 49)
     return [json.loads(log) for log in logs]
