@@ -10,6 +10,7 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
     Request,
+    Response,
     Depends,
     Security,
     status,
@@ -29,7 +30,8 @@ from contextlib import asynccontextmanager
 from task_queue import get_redis_pool
 import redis.asyncio as redis
 from datetime import datetime, timezone
-from prometheus_client import Counter, make_asgi_app
+from prometheus_client import Counter
+from prometheus_client.exposition import CONTENT_TYPE_LATEST, generate_latest
 
 # Import configuration
 from config import settings
@@ -174,7 +176,13 @@ _smoke_redis_skip_total = Counter(
 _smoke_key_issued_at: Dict[str, datetime] = {}
 _smoke_key_revoked_at: Dict[str, datetime] = {}
 
-app.mount("/metrics", make_asgi_app())
+_smoke_request_total.labels(mode="noop", result="pass").inc(0)
+_smoke_redis_skip_total.inc(0)
+
+
+@app.get("/metrics", include_in_schema=False)
+async def metrics() -> Response:
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 def _smoke_enabled() -> bool:
