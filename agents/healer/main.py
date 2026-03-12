@@ -7,6 +7,7 @@ import os
 import json
 import logging
 from datetime import datetime, timedelta
+from urllib.parse import urlparse
 import redis.asyncio as redis
 from collections import defaultdict
 from healer.adapters.docker_adapter import DockerAdapter
@@ -40,6 +41,8 @@ WATCHDOG_ENABLED = os.getenv("HEALER_WATCHDOG_ENABLED", "false").strip().lower()
 WATCHDOG_INTERVAL_SECONDS = float(os.getenv("HEALER_WATCHDOG_INTERVAL_SECONDS", "60").strip() or "60")
 WATCHDOG_SMOKE_API_KEY = os.getenv("HEALER_SMOKE_API_KEY", "").strip()
 WATCHDOG_ORCHESTRATOR_API_KEY = os.getenv("HEALER_ORCHESTRATOR_API_KEY", "").strip()
+WATCHDOG_AGENT = os.getenv("HEALER_WATCHDOG_AGENT", "").strip()
+WATCHDOG_FORCE_RESTART = os.getenv("HEALER_WATCHDOG_FORCE_RESTART", "false").strip().lower() == "true"
 
 redis_client: Optional[redis.Redis] = None
 docker_adapter: Optional[DockerAdapter] = None
@@ -164,10 +167,13 @@ async def watchdog_cycle() -> None:
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
+            payload = {"mode": "probe_health"}
+            if WATCHDOG_AGENT:
+                payload["agent"] = WATCHDOG_AGENT
             r = await client.post(
                 f"{ORCHESTRATOR_URL}/execute/smoke",
                 headers=headers,
-                json={"mode": "probe_health"},
+                json=payload,
             )
     except Exception:
         return
@@ -194,7 +200,18 @@ async def watchdog_cycle() -> None:
         agent_url = roster.get(agent_id)
         if not agent_url:
             continue
-        heal_tasks.append(attempt_heal_agent(agent_id, agent_url, attempts=2, timeout=5.0))
+        parsed = urlparse(agent_url)
+        container_name = parsed.hostname or agent_id.replace("_", "-")
+        logger.warning(f"Watchdog detected {agent_id}={status} -> healing {container_name}")
+        heal_tasks.append(
+            attempt_heal_agent(
+                container_name,
+                agent_url,
+                attempts=2,
+                timeout=5.0,
+                force_restart=WATCHDOG_FORCE_RESTART,
+            )
+        )
 
     if not heal_tasks:
         return
@@ -231,7 +248,8 @@ async def attempt_heal_agent(
     agent_name: str, 
     agent_url: str, 
     attempts: int, 
-    timeout: float
+    timeout: float,
+    force_restart: bool = False,
 ) -> HealResult:
     """
     Attempt to heal an unhealthy agent with improved timeout handling.
@@ -278,7 +296,7 @@ async def attempt_heal_agent(
             timestamp=datetime.now().isoformat()
         )
     
-    restarted = await docker_adapter.restart_container(agent_name)
+    restarted = await docker_adapter.restart_container(agent_name, force=force_restart)
     if not restarted:
         logger.error(f"Docker restart failed for {agent_name}")
         circuit_breaker.record_failure(agent_name)
