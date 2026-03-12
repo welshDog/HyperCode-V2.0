@@ -62,5 +62,9 @@ async def test_watchdog_cycle_heals_unhealthy_agents(monkeypatch):
     await hm.watchdog_cycle()
 
     heal_mock.assert_awaited_once_with(
-        "backend_specialist", "http://backend-specialist:8003", attempts=2, timeout=5.0
+        "backend-specialist",
+        "http://backend-specialist:8003",
+        attempts=2,
+        timeout=5.0,
+        force_restart=False,
     )

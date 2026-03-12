@@ -26,6 +26,12 @@ class SmokeSuiteRunner:
     def __init__(self, config: SmokeRunConfig):
         self.config = config
         self._semaphore = asyncio.Semaphore(config.concurrency)
+        self._orchestrator_base = str(config.orchestrator_url).rstrip("/")
+        self._core_base = str(config.core_url).rstrip("/")
+        self._healer_base = str(config.healer_url).rstrip("/") if config.healer_url else None
+        self._dashboard_base = (
+            str(config.dashboard_url).rstrip("/") if config.dashboard_url else None
+        )
 
     async def _request(
         self,
@@ -77,9 +83,11 @@ class SmokeSuiteRunner:
         return headers
 
     async def _tasks_count(self) -> Optional[int]:
-        url = f"{self.config.orchestrator_url}/tasks"
+        url = f"{self._orchestrator_base}/tasks"
         try:
-            status, body, _ = await self._request("GET", str(url), headers=self._smoke_headers())
+            status, body, _ = await self._request(
+                "GET", str(url), headers=self._smoke_headers()
+            )
             if status != 200:
                 return None
             data = httpx.Response(status_code=200, content=body).json()
@@ -144,31 +152,31 @@ class SmokeSuiteRunner:
                 )
                 await emit(name, "failed", type(e).__name__)
 
-        orchestrator_health = f"{self.config.orchestrator_url}/health"
-        core_health = f"{self.config.core_url}/health"
+        orchestrator_health = f"{self._orchestrator_base}/health"
+        core_health = f"{self._core_base}/health"
 
         checks = [
             check_health("core_health", str(core_health)),
             check_health("orchestrator_health", str(orchestrator_health)),
         ]
 
-        if self.config.healer_url:
-            checks.append(
-                check_health("healer_health", f"{self.config.healer_url}/health")
-            )
-        if self.config.dashboard_url:
-            checks.append(
-                check_health("dashboard_http", str(self.config.dashboard_url))
-            )
+        if self._healer_base:
+            checks.append(check_health("healer_health", f"{self._healer_base}/health"))
+        if self._dashboard_base:
+            checks.append(check_health("dashboard_http", str(self._dashboard_base)))
 
         await asyncio.gather(*checks)
 
-        tasks_before = await self._tasks_count() if self.config.verify_no_task_history_pollution else None
+        tasks_before = (
+            await self._tasks_count()
+            if self.config.verify_no_task_history_pollution
+            else None
+        )
         redis_before = await self._redis_snapshot() if self.config.verify_no_redis_writes else None
 
         await emit("execute_smoke_noop", "running")
         try:
-            smoke_url = f"{self.config.orchestrator_url}/execute/smoke"
+            smoke_url = f"{self._orchestrator_base}/execute/smoke"
             status, body, latency_ms = await self._request(
                 "POST",
                 str(smoke_url),
