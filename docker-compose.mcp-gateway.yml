@@ -1,0 +1,360 @@
+# ============================================================================
+# MCP Gateway + Docker Model Runner Profile for HyperCode V2.0
+# ============================================================================
+# Enable with: docker compose -f docker-compose.yml -f docker-compose.mcp-gateway.yml up
+#
+# This profile adds:
+# 1. MCP Gateway: Central tool access control for all agents
+# 2. Docker Model Runner: Local LLM orchestration (replaces ollama over time)
+# 3. MCP Tools: GitHub, PostgreSQL, File System, RAG (ChromaDB)
+# 4. Agent Integration: Wire agents to use MCP tools via gateway
+#
+# Architecture:
+#   [Agent] -> [MCP Gateway:8820] -> [MCP Tools/Models]
+#              ^
+#              Auth, Rate Limiting, Audit Logging
+#
+# ============================================================================
+
+version: "3.9"
+
+services:
+  # ====================
+  # MCP GATEWAY
+  # ====================
+  # Central control plane for all agent tool access
+  # Provides authentication, rate limiting, audit logging, and tool discovery
+  mcp-gateway:
+    image: docker/mcp-gateway:latest
+    container_name: mcp-gateway
+    environment:
+      - GATEWAY_HOST=0.0.0.0
+      - GATEWAY_PORT=8820
+      - LOG_LEVEL=info
+      - ENABLE_AUDIT_LOG=true
+      - AUDIT_LOG_PATH=/var/log/mcp-gateway
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_PER_MINUTE=1000
+      - RATE_LIMIT_PER_HOUR=50000
+      # Authentication: Use API keys for agent access
+      - AUTH_ENABLED=true
+      - AUTH_TYPE=api_key
+      # Gateway knows about these tools (discovered from running containers)
+      - AUTO_DISCOVER_TOOLS=true
+      # Database for audit logs
+      - AUDIT_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/mcp_audit
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # Discover tools
+      - ./monitoring/mcp-gateway:/var/log/mcp-gateway  # Audit logs
+    ports:
+      - "127.0.0.1:8820:8820"  # Internal only
+    networks:
+      - backend-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8820/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+  # ====================
+  # DOCKER MODEL RUNNER
+  # ====================
+  # Replaces Ollama for production LLM serving
+  # Runs open-source models with GPU pooling, quantization, caching
+  model-runner:
+    image: docker/model-runner:latest
+    container_name: model-runner
+    environment:
+      - HOST=0.0.0.0
+      - PORT=11434
+      - LOG_LEVEL=info
+      # Model configuration
+      - DEFAULT_MODEL=phi3:3.8b-mini-instruct-4k-q4_K_M
+      - MODELS_PATH=/models
+      - ENABLE_QUANTIZATION=true
+      - AUTO_DOWNLOAD=true
+      # Performance
+      - GPU_ENABLED=${GPU_ENABLED:-false}
+      - GPU_MEMORY_GB=${GPU_MEMORY_GB:-4}
+      - CPU_THREADS=${CPU_THREADS:-4}
+      # Caching & optimization
+      - ENABLE_CACHE=true
+      - CACHE_PATH=/cache
+      - MAX_CACHE_SIZE_GB=10
+      # Monitoring
+      - PROMETHEUS_ENABLED=true
+      - PROMETHEUS_PORT=9090
+    volumes:
+      - model_runner_models:/models
+      - model_runner_cache:/cache
+    ports:
+      - "127.0.0.1:11434:11434"  # OpenAI-compatible API
+      - "127.0.0.1:9090:9090"    # Metrics (if separate from main Prometheus)
+    networks:
+      - backend-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 6G
+        reservations:
+          cpus: "1"
+          memory: 3G
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ====================
+  # MCP TOOLS
+  # ====================
+
+  # GitHub MCP Server - Agent access to repos, issues, PRs
+  mcp-github:
+    image: modelcontextprotocol/mcp-github:latest
+    container_name: mcp-github
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - PORT=3001
+    ports:
+      - "127.0.0.1:3001:3001"
+    networks:
+      - backend-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    cap_drop:
+      - ALL
+
+  # PostgreSQL MCP Server - Agent SQL queries with safety
+  mcp-postgres:
+    image: modelcontextprotocol/mcp-postgres:latest
+    container_name: mcp-postgres
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - PORT=3002
+      - ALLOWED_SCHEMAS=public,agents
+      - READ_ONLY=false  # Set to true for safer production
+    ports:
+      - "127.0.0.1:3002:3002"
+    networks:
+      - backend-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    cap_drop:
+      - ALL
+
+  # File System MCP Server - Safe sandboxed file access
+  mcp-filesystem:
+    image: modelcontextprotocol/mcp-filesystem:latest
+    container_name: mcp-filesystem
+    environment:
+      - PORT=3003
+      - ALLOWED_ROOTS=/workspace,/data
+      - READ_ONLY=false
+    volumes:
+      - ./agents:/workspace:rw
+      - ./data:/data:rw
+    ports:
+      - "127.0.0.1:3003:3003"
+    networks:
+      - backend-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    cap_drop:
+      - ALL
+
+  # RAG/Vector DB Tool - Search agent knowledge via ChromaDB
+  mcp-vectordb:
+    image: modelcontextprotocol/mcp-vectordb:latest
+    container_name: mcp-vectordb
+    environment:
+      - PORT=3004
+      - VECTORDB_HOST=chroma
+      - VECTORDB_PORT=8000
+      - VECTORDB_COLLECTION=hypercode_knowledge
+    ports:
+      - "127.0.0.1:3004:3004"
+    networks:
+      - backend-net
+    depends_on:
+      chroma:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    cap_drop:
+      - ALL
+
+  # ====================
+  # AGENT MCP CLIENT
+  # ====================
+  # Reference agent that uses MCP Gateway to access tools
+  # Wire other agents similarly (crew-orchestrator, devops-engineer, etc.)
+
+  backend-specialist-mcp:
+    profiles: ["agents"]
+    build:
+      context: ./agents/02-backend-specialist
+      dockerfile: Dockerfile
+    container_name: backend-specialist-mcp
+    environment:
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_ROLE=backend-specialist
+      - AGENT_PORT=8003
+      # MCP Configuration
+      - MCP_GATEWAY_URL=http://mcp-gateway:8820
+      - MCP_GATEWAY_API_KEY=${MCP_GATEWAY_API_KEY:-agent-key-001}
+      - MCP_TOOLS_ENABLED=true
+      - MCP_TOOLS_LIST=github,postgres,filesystem,vectordb
+      # Model Runner
+      - LLM_ENDPOINT=http://model-runner:11434
+      - LLM_MODEL=phi3:3.8b-mini-instruct-4k-q4_K_M
+    volumes:
+      - ./agents/02-backend-specialist:/app
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/shared:/app/shared:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
+      - agent_memory:/app/memory
+    networks:
+      - backend-net
+    ports:
+      - "8003:8003"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+      mcp-gateway:
+        condition: service_healthy
+      model-runner:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  # ====================
+  # OBSERVABILITY
+  # ====================
+  # MCP Gateway metrics scraper
+  mcp-exporter:
+    image: prom/node-exporter:latest
+    container_name: mcp-exporter
+    command:
+      - "--collector.textfile.directory=/var/lib/node_exporter/textfile_collector"
+      - "--collector.netclass.ignored-devices=^$"
+    volumes:
+      - ./monitoring/mcp-metrics:/var/lib/node_exporter/textfile_collector:ro
+    ports:
+      - "9101:9100"
+    networks:
+      - backend-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9100/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  model_runner_models:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT}/model_runner/models
+  model_runner_cache:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT}/model_runner/cache
