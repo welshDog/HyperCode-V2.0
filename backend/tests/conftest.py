@@ -1,66 +1,116 @@
-import pytest
-import os
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-from starlette.testclient import TestClient
+"""Pytest configuration and fixtures for HyperCode tests."""
 
-os.environ.setdefault("OTLP_EXPORTER_DISABLED", "true")
+import asyncio
+import os
+import pytest
+from typing import Generator, AsyncGenerator
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
+import redis.asyncio as redis
+
+# Import your app modules
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from app.main import app
-from app.db.session import get_db
-from app.models.models import Base
+from app.core.config import settings
+from app.core.database import Base, get_db
 
-# Create an in-memory SQLite database
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+# Use in-memory SQLite for tests
+SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///./test.db"
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
+    SQLALCHEMY_TEST_DATABASE_URL,
     connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
 )
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+TestingSessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+)
+
 
 @pytest.fixture(scope="session")
-def setup_db():
-    """
-    Create all tables defined in 'app.models.models.Base' once for the session.
-    """
+def event_loop():
+    """Create event loop for async tests."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest.fixture(scope="function")
+def db():
+    """Create a new database for each test."""
     Base.metadata.create_all(bind=engine)
-    yield
+    yield TestingSessionLocal()
     Base.metadata.drop_all(bind=engine)
 
-@pytest.fixture(scope="function")
-def db(setup_db):
-    """
-    Provide a 'db' fixture for the session.
-    Rolls back transaction after each test to ensure isolation.
-    """
-    connection = engine.connect()
-    transaction = connection.begin()
-    session = TestingSessionLocal(bind=connection)
-    
-    yield session
-    
-    session.close()
-    transaction.rollback()
-    connection.close()
 
 @pytest.fixture(scope="function")
-def client(db):
-    """
-    Provide a 'client' fixture using 'starlette.testclient.TestClient'.
-    Overrides the 'get_db' dependency in 'app.main.app'.
-    """
+def client(db: Session):
+    """Create test client with dependency override."""
     def override_get_db():
         try:
             yield db
         finally:
-            pass
+            db.close()
 
     app.dependency_overrides[get_db] = override_get_db
     
-    with TestClient(app) as c:
-        yield c
+    with TestClient(app) as test_client:
+        yield test_client
     
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function")
+async def redis_client():
+    """Create Redis test client."""
+    client = await redis.from_url(
+        "redis://localhost:6379/1",
+        decode_responses=True
+    )
+    yield client
+    await client.close()
+
+
+@pytest.fixture(scope="function")
+def mock_anthropic_api_key(monkeypatch):
+    """Mock Anthropic API key for tests."""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test-key-12345")
+
+
+@pytest.fixture(scope="function")
+def mock_openai_api_key(monkeypatch):
+    """Mock OpenAI API key for tests."""
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-test-key-12345")
+
+
+@pytest.fixture(scope="function")
+async def authenticated_client(client, db):
+    """Create authenticated test client."""
+    # Create test user
+    from app.models.user import User
+    from app.core.security import get_password_hash
+    
+    user = User(
+        email="test@example.com",
+        hashed_password=get_password_hash("testpass123"),
+        is_active=True
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
+    # Get token
+    response = client.post(
+        "/api/auth/login",
+        json={"email": "test@example.com", "password": "testpass123"}
+    )
+    token = response.json()["access_token"]
+    
+    # Add auth header
+    client.headers["Authorization"] = f"Bearer {token}"
+    return client
