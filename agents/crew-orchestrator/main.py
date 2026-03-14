@@ -552,7 +552,6 @@ async def execute_task(
 async def execute_smoke(
     request: SmokeRequest,
     req: Request,
-    api_key: str = Depends(require_api_key),
 ):
     _enforce_smoke_guardrails(req)
 
