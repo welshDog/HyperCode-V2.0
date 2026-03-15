@@ -166,6 +166,7 @@ services:
       - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED}
       - OTLP_ENDPOINT=http://tempo:4317
       - PROMETHEUS_METRICS_DISABLED=true
+      - DB_AUTO_CREATE=true
     depends_on:
       redis:
         condition: service_healthy
