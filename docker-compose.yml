@@ -227,6 +227,7 @@ services:
   # BROSKI BOT
   # ====================
   broski-bot:
+    profiles: ["discord"]
     build:
       context: ./agents/broski-bot
       dockerfile: Dockerfile
@@ -595,6 +596,7 @@ services:
     networks:
       - backend-net
       - data-net
+    restart: unless-stopped
     deploy:
       resources:
         limits:
@@ -624,7 +626,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9808/metrics"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9808/metrics', timeout=5).read()"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -33,6 +33,9 @@ services:
     environment:
       - GATEWAY_HOST=0.0.0.0
       - GATEWAY_PORT=8820
+      - MCP_GATEWAY_API_KEY=${MCP_GATEWAY_API_KEY:-agent-key-001}
+      - MCP_GATEWAY_AUTH_TOKEN=${MCP_GATEWAY_API_KEY:-agent-key-001}
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN}
       - LOG_LEVEL=info
       - ENABLE_AUDIT_LOG=true
       - AUDIT_LOG_PATH=/var/log/mcp-gateway
@@ -43,22 +46,23 @@ services:
       - AUTH_TYPE=api_key
       - AUTO_DISCOVER_TOOLS=true
       - AUDIT_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:-hypercode123}@postgres:5432/mcp_audit
+    command:
+      [
+        "--port", "8820",
+        "--transport", "sse",
+        "--servers", "github,postgres,filesystem",
+        "--config", "/mcp/config.yaml"
+      ]
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./monitoring/mcp-gateway:/var/log/mcp-gateway
+      - ./:/workspace:ro
+      - ./mcp:/mcp:ro
+      - ./.env:/.env:ro
     ports:
       - "127.0.0.1:8820:8820"
     networks:
       - backend-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8820/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -71,6 +75,31 @@ services:
       - ALL
     cap_add:
       - NET_BIND_SERVICE
+
+  mcp-rest-adapter:
+    build:
+      context: ./services/mcp-rest-adapter
+      dockerfile: Dockerfile
+    container_name: mcp-rest-adapter
+    environment:
+      - MCP_GATEWAY_BASE_URL=http://mcp-gateway:8820
+      - MCP_GATEWAY_SSE_URL=http://mcp-gateway:8820/sse
+      - MCP_GATEWAY_AUTH_TOKEN=${MCP_GATEWAY_API_KEY:-agent-key-001}
+      - MCP_WORKSPACE_TARGET_PATH=/workspace
+      - MCP_WORKSPACE_SOURCE_PATH=/run/desktop/mnt/host/h/HyperStation zone/HyperCode/HyperCode-V2.0
+      - MCP_LOCAL_WORKSPACE_ROOT=/workspace
+    volumes:
+      - ./:/workspace:ro
+    ports:
+      - "127.0.0.1:8821:8821"
+    networks:
+      - backend-net
+    depends_on:
+      mcp-gateway:
+        condition: service_started
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
 
   # ====================
   # LOCAL LLM (OLLAMA)
@@ -91,7 +120,7 @@ services:
     networks:
       - backend-net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      test: ["CMD", "ollama", "list"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -123,17 +152,9 @@ services:
     container_name: mcp-github
     environment:
       - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN:-changeme}
-      - PORT=3001
-    ports:
-      - "127.0.0.1:3001:3001"
     networks:
       - backend-net
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     security_opt:
       - no-new-privileges:true
     logging:
@@ -151,15 +172,8 @@ services:
     command: >
       sh -c "npx -y @modelcontextprotocol/server-postgres
       postgresql://postgres:${POSTGRES_PASSWORD:-hypercode123}@postgres:5432/${POSTGRES_DB:-hypercode}"
-    environment:
-      - PORT=3002
-    ports:
-      - "127.0.0.1:3002:3002"
     networks:
       - backend-net
-    depends_on:
-      postgres:
-        condition: service_healthy
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -177,13 +191,9 @@ services:
     container_name: mcp-filesystem
     command: >
       sh -c "npx -y @modelcontextprotocol/server-filesystem /workspace /data"
-    environment:
-      - PORT=3003
     volumes:
       - ./agents:/workspace:rw
       - ./data:/data:rw
-    ports:
-      - "127.0.0.1:3003:3003"
     networks:
       - backend-net
     restart: unless-stopped
@@ -199,9 +209,9 @@ services:
 
   # ✅ ChromaDB — direct official image (replaces fake mcp-vectordb)
   # Agents query it directly via HTTP on port 8000
-  chroma:
+  chroma-mcp:
     image: chromadb/chroma:latest
-    container_name: chroma
+    container_name: chroma-mcp
     environment:
       - CHROMA_SERVER_HOST=0.0.0.0
       - CHROMA_SERVER_PORT=8000
@@ -209,16 +219,8 @@ services:
       - ANONYMIZED_TELEMETRY=false
     volumes:
       - chroma_data:/chroma/chroma
-    ports:
-      - "127.0.0.1:8000:8000"
     networks:
       - backend-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -263,7 +265,7 @@ services:
       hypercode-core:
         condition: service_healthy
       mcp-gateway:
-        condition: service_healthy
+        condition: service_started
       ollama:
         condition: service_healthy
     healthcheck:
@@ -313,3 +315,8 @@ volumes:
     driver: local
   chroma_data:
     driver: local
+
+networks:
+  backend-net:
+    external: true
+    name: hypercode_public_net
