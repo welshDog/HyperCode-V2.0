@@ -258,33 +258,6 @@ async def tools_call(body: ToolCallRequest):
         p = normalized["params"].get("path", "/")
         if isinstance(p, str) and (p == WORKSPACE_TARGET or p.startswith(WORKSPACE_TARGET + "/")):
             return {"result": _local_list_directory(p)}
-    if body.tool.strip().lower() == "github" and (body.action or "").strip().lower() == "list_repos":
-        owner = body.params.get("owner", "")
-        if not isinstance(owner, str) or not owner:
-            raise HTTPException(status_code=400, detail="Missing github owner")
-        async with httpx.AsyncClient(timeout=20) as client:
-            r = await client.get(
-                f"https://api.github.com/orgs/{owner}/repos",
-                params={"per_page": 10, "sort": "updated"},
-                headers={"Accept": "application/vnd.github+json", "User-Agent": "mcp-rest-adapter"},
-            )
-            if r.status_code != 200:
-                raise HTTPException(status_code=502, detail=f"GitHub API error {r.status_code}")
-            data = r.json()
-        repos = []
-        if isinstance(data, list):
-            for repo in data[:10]:
-                if isinstance(repo, dict):
-                    repos.append(
-                        {
-                            "name": repo.get("name"),
-                            "full_name": repo.get("full_name"),
-                            "html_url": repo.get("html_url"),
-                            "description": repo.get("description"),
-                            "private": repo.get("private"),
-                        }
-                    )
-        return {"result": {"owner": owner, "repos": repos}}
     result = await _jsonrpc(
         "tools/call", {"name": normalized["tool"], "arguments": normalized["params"]}
     )
