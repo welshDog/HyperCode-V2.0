@@ -11,6 +11,7 @@ from app.core.http_security import SecurityHeadersMiddleware, RateLimitMiddlewar
 import logging
 import time
 import sys
+import os
 
 # DEBUG: Print to stderr to ensure visibility in Docker logs
 print("Starting HyperCode Core API...", file=sys.stderr)
@@ -71,7 +72,8 @@ async def _unhandled_exception_handler(request: Request, exc: Exception):
 setup_telemetry(app)
 
 # Prometheus Instrumentation
-instrumentator = Instrumentator().instrument(app).expose(app)
+if os.getenv("PROMETHEUS_METRICS_DISABLED", "false").strip().lower() != "true":
+    instrumentator = Instrumentator().instrument(app).expose(app)
 
 # Include API Router
 app.include_router(api_router, prefix=settings.API_V1_STR)
