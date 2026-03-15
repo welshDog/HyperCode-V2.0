@@ -62,7 +62,7 @@ class MCPClient:
         fallback_to_direct: bool = True,
     ):
         self.gateway_url = gateway_url or os.getenv(
-            "MCP_GATEWAY_URL", "http://mcp-gateway:8820"
+            "MCP_GATEWAY_URL", "http://mcp-rest-adapter:8821"
         )
         self.api_key = api_key or os.getenv("MCP_GATEWAY_API_KEY", "")
         self.fallback_to_direct = fallback_to_direct
@@ -95,8 +95,13 @@ class MCPClient:
             ToolResult with data, error, and metadata
         """
         try:
-            headers = {"Authorization": f"Bearer {self.api_key}"}
-            payload = {"tool": tool_name, "params": params}
+            headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
+
+            if ":" in tool_name:
+                tool, action = tool_name.split(":", 1)
+                payload = {"tool": tool, "action": action, "params": params}
+            else:
+                payload = {"tool": tool_name, "params": params}
 
             response = await self.client.post(
                 f"{self.gateway_url}/tools/call",
@@ -144,7 +149,7 @@ class MCPClient:
     async def discover_tools(self) -> Dict[str, Any]:
         """Discover available tools from gateway"""
         try:
-            headers = {"Authorization": f"Bearer {self.api_key}"}
+            headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
             response = await self.client.get(
                 f"{self.gateway_url}/tools/discover", headers=headers
             )
