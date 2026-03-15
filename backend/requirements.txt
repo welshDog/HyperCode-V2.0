@@ -30,7 +30,6 @@ boto3>=1.34.0
 minio>=7.2.0
 tenacity>=8.2.0
 chromadb>=0.4.22
-sentence-transformers>=2.3.0
 langchain-text-splitters>=0.0.1
 
 # Testing & Quality
@@ -56,4 +55,4 @@ strawberry-graphql>=0.223.0
 
 # Additional utilities
 python-dotenv>=1.0.0
-pyyaml>=23.12.1
+pyyaml>=6.0.2

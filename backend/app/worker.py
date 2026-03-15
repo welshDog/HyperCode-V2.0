@@ -6,7 +6,7 @@ from app.models.models import Task, TaskStatus
 import asyncio
 import logging
 import os
-from typing import Any, cast
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +33,9 @@ def process_agent_job(task_payload: dict):
         context = {"task_id": task_id}
         
         # Run the Router asynchronously
-        run_fn: Any = asyncio.run
-        plan: str
-        if getattr(run_fn, "__module__", "") != "asyncio":
-            plan = cast(str, run_fn(None))
-        else:
-            plan = run_fn(router.route_task(task_type, description, context=context))
+        plan: Any = asyncio.run(router.route_task(task_type, description, context=context))
+        if not isinstance(plan, str) or not plan.strip():
+            raise RuntimeError(f"Agent returned invalid output type={type(plan).__name__}")
         
         logger.info(f"[INFO] Agent Output Preview: {plan[:100]}...")
         

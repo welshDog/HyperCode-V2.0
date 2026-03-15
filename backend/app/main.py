@@ -8,6 +8,10 @@ from app.core.config import settings
 from app.core.telemetry import setup_telemetry
 from app.api.api import api_router
 from app.core.http_security import SecurityHeadersMiddleware, RateLimitMiddleware, RateLimitConfig
+from app.db.base_class import Base
+from app.db.session import engine
+import app.models.models as _models
+del _models
 import logging
 import time
 import sys
@@ -36,6 +40,8 @@ app = FastAPI(
 @app.on_event("startup")
 async def _startup_validate_security() -> None:
     settings.validate_security()
+    if os.getenv("DB_AUTO_CREATE", "false").strip().lower() == "true":
+        Base.metadata.create_all(bind=engine)
 
 # CORS Middleware
 app.add_middleware(
