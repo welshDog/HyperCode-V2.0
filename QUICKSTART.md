@@ -1,9 +1,14 @@
-# 🚀 HyperCode Agent Crew - Quick Setup
+# 🚀 HyperCode V2.0 — Quick Setup
 
-## Fastest Way to Start
+> **New here?** Read [START_HERE.md](START_HERE.md) first.  
+> **Stack stuck?** Jump straight to [RUNBOOK.md](RUNBOOK.md) — it has every fix.
+
+---
+
+## ⚡ Fastest Way To Start
 
 ### Windows
-```cmd
+```powershell
 .\scripts\start-agents.bat
 ```
 
@@ -13,7 +18,22 @@ chmod +x scripts/start-agents.sh
 ./scripts/start-agents.sh
 ```
 
-## Manual Setup
+---
+
+## 🗄️ One-Time DB Bootstrap (REQUIRED on first run)
+
+> There is no Alembic migrations folder. Tables are created via SQLAlchemy `create_all`.  
+> Run this **once** after a fresh clone or new DB volume — before `seed_data.py`.
+
+```powershell
+docker exec hypercode-core python -c "from app.db.session import engine; import app.models.models; from app.db.base_class import Base; Base.metadata.create_all(bind=engine); print('✅ DB tables ensured')"
+```
+
+Expected: `✅ DB tables ensured`
+
+---
+
+## 🔗 Manual Setup
 
 1. **Copy environment file:**
    ```bash
@@ -28,49 +48,79 @@ chmod +x scripts/start-agents.sh
    docker-compose -f docker-compose.agents.yml --env-file .env.agents up -d
    ```
 
-## Access Points
+---
 
-- **Orchestrator API:** http://localhost:8080
-- **Agent Dashboard:** http://localhost:8090
-- **API Documentation:** http://localhost:8080/docs
+## 🌱 Seed + Test Chain (after DB bootstrap)
 
-## Quick Test
+```powershell
+# Activate venv
+.\.venv\Scripts\Activate.ps1
 
-```bash
-# Check all agents are healthy
-curl http://localhost:8080/agents/status
+# Seed the DB (writes token.txt + project_id.txt)
+python seed_data.py
 
-# Plan a feature
-curl -X POST http://localhost:8080/plan \
-  -H "Content-Type: application/json" \
-  -d '{"task": "Create a user authentication system"}'
+# Fire swarm test (reads project_id.txt — run seed first!)
+python run_swarm_test.py
+
+# Watch Celery process the task live
+docker logs --tail 200 celery-worker
 ```
 
-## Common Commands
+Success = Celery logs show `✅ Updated Task X` and `✅ Saved output for Task X`
 
-```bash
-# View logs
-docker-compose -f docker-compose.agents.yml logs -f
+---
 
-# Stop agents
-docker-compose -f docker-compose.agents.yml down
+## 🌐 Access Points
 
-# Restart single agent
-docker-compose -f docker-compose.agents.yml restart frontend-specialist
+| Service | URL |
+|---|---|
+| Core API | http://127.0.0.1:8000 |
+| API Docs | http://127.0.0.1:8000/docs |
+| Mission Control | http://127.0.0.1:8088 |
+| Crew Orchestrator | http://127.0.0.1:8081 |
+| Grafana | http://127.0.0.1:3001 |
+| Prometheus | http://127.0.0.1:9090 |
+| Ollama | http://127.0.0.1:11434 |
 
-# Check resource usage
-docker stats
+---
+
+## 🛠️ Common Commands
+
+```powershell
+# View all container health
+docker ps --format "table {{.Names}}\t{{.Status}}"
+
+# View logs for any service
+docker logs --tail 50 hypercode-core
+docker logs --tail 50 celery-worker
+
+# Resource usage snapshot
+docker stats --no-stream
+
+# Restart a single service
+docker restart hypercode-core
 ```
 
-## Troubleshooting
+---
 
-**Agents not starting?**
-- Check Docker Desktop is running
-- Verify your API key in `.env.agents`
-- Check logs: `docker-compose -f docker-compose.agents.yml logs`
+## 🚨 Troubleshooting
 
-**Port conflicts?**
-- Edit `docker-compose.agents.yml` to change ports
-- Default ports: 8080 (orchestrator), 8001-8008 (agents), 8090 (dashboard)
+**Docker flapping (500 errors)?**
+```powershell
+wsl --shutdown
+# Then restart Docker Desktop
+```
 
-For full documentation, see `agents/README.md`
+**Core returning empty replies?**
+- Wait for `docker inspect hypercode-core --format "{{.State.Health.Status}}"` = `healthy`
+- Then retry
+
+**`relation "users" does not exist`?**
+- Run the DB bootstrap command above
+
+**Full troubleshooting guide:** See [RUNBOOK.md](RUNBOOK.md)
+
+---
+
+*For full agent docs see [agents/README.md](agents/README.md)*  
+*For infrastructure deep-dive see [guide infrastructure setup.md](guide%20infrastructure%20setup.md)*
