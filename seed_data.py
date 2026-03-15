@@ -18,13 +18,14 @@ def seed():
     # Try to register (might fail if exists, which is fine)
     try:
         print("Creating User...")
-        res = requests.post(f"{API_URL}/users/", json=user_data)
+        res = requests.post(f"{API_URL}/users/", json=user_data, timeout=10)
         if res.status_code == 200:
             print("✅ User created.")
         elif res.status_code == 400:
             print("ℹ️ User already exists.")
         else:
             print(f"❌ User creation failed: {res.text}")
+            return
     except Exception as e:
         print(f"❌ Connection failed: {e}")
         return
@@ -35,7 +36,7 @@ def seed():
         "username": "admin@hypercode.ai",
         "password": "adminpassword"
     }
-    res = requests.post(f"{API_URL}/auth/login/access-token", data=login_data)
+    res = requests.post(f"{API_URL}/auth/login/access-token", data=login_data, timeout=10)
     if res.status_code != 200:
         print(f"❌ Login failed: {res.text}")
         return
@@ -52,21 +53,27 @@ def seed():
     }
     
     # Check if projects exist
-    res = requests.get(f"{API_URL}/projects/", headers=headers)
+    res = requests.get(f"{API_URL}/projects/", headers=headers, timeout=10)
+    if res.status_code != 200:
+        print(f"❌ Could not fetch projects: {res.status_code} - {res.text}")
+        return
+
     projects = res.json()
-    
-    project_id = 1
+
     if not projects:
         print("Creating Project...")
-        res = requests.post(f"{API_URL}/projects/", json=project_data, headers=headers)
+        res = requests.post(f"{API_URL}/projects/", json=project_data, headers=headers, timeout=10)
         if res.status_code == 200:
-            project = res.json()
-            project_id = project["id"]
+            project_id = res.json()["id"]
             print(f"✅ Project created: ID {project_id}")
         else:
-            print(f"❌ Project creation failed: {res.text}")
+            print(f"❌ Project creation failed: {res.status_code} - {res.text}")
+            return
     else:
-        project_id = projects[0]["id"]
+        project_id = projects[0].get("id")
+        if not project_id:
+            print("❌ Project list returned but first project has no id.")
+            return
         print(f"ℹ️ Project exists: ID {project_id}")
 
     print("\n🎉 Seeding Complete!")
@@ -76,6 +83,8 @@ def seed():
     # Write token to a file for easy access by other scripts/user
     with open("token.txt", "w") as f:
         f.write(token)
+    with open("project_id.txt", "w") as f:
+        f.write(str(project_id))
 
 if __name__ == "__main__":
     seed()

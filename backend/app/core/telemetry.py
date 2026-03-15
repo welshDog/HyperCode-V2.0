@@ -8,7 +8,6 @@ from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.instrumentation.redis import RedisInstrumentor
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
-from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
 from app.core.config import settings
 import logging
 
@@ -45,9 +44,6 @@ def setup_telemetry(app):
 
     # Instrument Logging
     LoggingInstrumentor().instrument(set_logging_format=True)
-    
-    # Instrument System Metrics (CPU, Memory, etc.)
-    SystemMetricsInstrumentor().instrument()
     
     # Instrument HTTP Client (httpx)
     HTTPXClientInstrumentor().instrument()

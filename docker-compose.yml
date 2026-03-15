@@ -145,7 +145,7 @@ services:
       - ENVIRONMENT=production
       - PRISMA_PY_DEBUG=0
       - HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL}
-      - HYPERCODE_DB_URL=${HYPERCODE_DB_URL}
+      - HYPERCODE_DB_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-hypercode}
       - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
       - API_KEY=${API_KEY}
       - HYPERCODE_JWT_SECRET=${HYPERCODE_JWT_SECRET}
@@ -165,6 +165,7 @@ services:
       - PERPLEXITY_SESSION_AUTH=true
       - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED}
       - OTLP_ENDPOINT=http://tempo:4317
+      - PROMETHEUS_METRICS_DISABLED=true
     depends_on:
       redis:
         condition: service_healthy

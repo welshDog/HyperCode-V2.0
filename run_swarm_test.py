@@ -13,6 +13,16 @@ def run_test():
         print("❌ token.txt not found. Run seed_data.py first.")
         return
 
+    try:
+        with open("project_id.txt", "r") as f:
+            project_id = int(f.read().strip())
+    except FileNotFoundError:
+        print("❌ project_id.txt not found. Run seed_data.py first.")
+        return
+    except Exception:
+        print("❌ project_id.txt is invalid. Run seed_data.py again.")
+        return
+
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
@@ -32,7 +42,7 @@ def process_user_cart(cart_items, user_tier):
                 total += item.price
     return total
 """,
-        "project_id": 1,
+        "project_id": project_id,
         "status": "todo",
         "priority": "high",
         "type": "translate" # This triggers the TranslatorAgent
