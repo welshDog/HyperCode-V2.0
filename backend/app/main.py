@@ -12,6 +12,8 @@ from app.db.base_class import Base
 from app.db.session import engine
 import app.models.models as _models
 del _models
+import app.models.broski as _broski
+del _broski
 import logging
 import time
 import sys
@@ -42,6 +44,16 @@ async def _startup_validate_security() -> None:
     settings.validate_security()
     if os.getenv("DB_AUTO_CREATE", "false").strip().lower() == "true":
         Base.metadata.create_all(bind=engine)
+    try:
+        from app.db.session import SessionLocal
+        from app.services.broski_service import seed_achievements
+        db = SessionLocal()
+        try:
+            seed_achievements(db)
+        finally:
+            db.close()
+    except Exception:
+        logger.exception("Failed to seed BROski achievements")
 
 # CORS Middleware
 app.add_middleware(

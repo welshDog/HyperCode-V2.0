@@ -54,6 +54,9 @@ def create_task(
     db.commit()
     db.refresh(task)
 
+    from app.services import broski_service
+    broski_service.award_coins(current_user.id, 2, "Task created", db)
+
     # Push to Celery Task Queue
     queue_payload = {
         "id": task.id,
@@ -107,6 +110,8 @@ def update_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
+    old_status = task.status
+
     if "project_id" in task_data and task_data["project_id"] != task.project_id:
         project = db.query(models.Project).filter(models.Project.id == task_data["project_id"]).first()
         if not project:
@@ -120,4 +125,10 @@ def update_task(
     db.add(task)
     db.commit()
     db.refresh(task)
+
+    if "status" in task_data and old_status != models.TaskStatus.DONE and task.status == models.TaskStatus.DONE:
+        from app.services import broski_service
+        broski_service.award_coins(current_user.id, 10, "Task completed", db)
+        broski_service.award_xp(current_user.id, 25, "Task completed", db)
+
     return task
