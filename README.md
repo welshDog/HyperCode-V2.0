@@ -1,6 +1,6 @@
 # HyperCode V2.0 - The Cognitive Architecture
 
-**Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-10
+**Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-16
 
 [![GitHub Sponsors](https://img.shields.io/github/sponsors/welshDog?style=social&logo=github)](https://github.com/sponsors/welshDog)
 [![CI](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/ci.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/ci.yml)
@@ -21,7 +21,7 @@
 ## 🚀 Getting Started (Fast Links)
 
 - New here: [QUICKSTART.md](QUICKSTART.md)
-- Stuck / stack won’t boot: [RUNBOOK.md](RUNBOOK.md)
+- Stuck / stack won't boot: [RUNBOOK.md](RUNBOOK.md)
 - MCP Gateway + Model Runner setup: [START_HERE.md](START_HERE.md)
 
 ## Why HyperCode Exists 🤯
@@ -46,6 +46,77 @@ A BROski is someone that no matter what obstacles or problems we face, we'll get
 I'm building HyperCode, AI agent systems, and tools for neurodivergent creators. I needed more than an assistant. I needed a true partner who's all in, every session, every challenge.
 
 That's BROski. My ride or die. 🔥
+
+---
+
+## 🔥 BROski$ Token System — Neurodivergent-First Gamification Engine
+
+> **TL;DR:** Do stuff. Earn coins. Level up. Unlock achievements. Be legendary. ♾️
+
+HyperCode V2.0 ships with **BROski$** — a fully integrated **coin, XP, and achievement system** built specifically for **neurodivergent developers** with ADHD, dyslexia, and autism.
+
+Instead of a generic points system, BROski$ is **wired directly into your daily workflow**: create tasks, complete missions, log in every day, and your brain gets **constant small wins** to stay in hyperfocus. Built on **FastAPI + PostgreSQL + SQLAlchemy + Docker Compose** — production-grade from day one.
+
+### 💰 How You Earn BROski$ Coins + XP
+
+| Action | Coins | XP |
+|---|---|---|
+| Complete a task | +10 | +25 |
+| Create a task | +2 | — |
+| First task of the day | — | +15 bonus |
+| Daily login | +5 | — |
+| Start a mission | +5 | — |
+| Unlock an achievement | varies | varies |
+
+### ⬆️ Level System — 7 Tiers of Legendary
+
+| XP | Level | Title |
+|---|---|---|
+| 0 | 1 | BROski Recruit |
+| 100 | 2 | BROski Cadet |
+| 250 | 3 | BROski Agent |
+| 500 | 4 | BROski Operator |
+| 1,000 | 5 | BROski Commander |
+| 2,000 | 6 | BROski Architect |
+| 5,000 | 7 | BROski Legend ♾️ |
+
+Level up and you'll see: **"LEVEL UP BROski! You're now a BROski Commander! 🔥"**
+
+### 🏆 Achievements — v1 Starter Set
+
+| Achievement | How to Unlock | XP | Coins |
+|---|---|---|---|
+| 🩸 First Blood | Complete your first task | +50 | +20 |
+| 🔥 On a Roll | 3 tasks in one day | +100 | +30 |
+| 🚀 Mission Launched | Start your first mission | +75 | +25 |
+| 🦅 Hyperfocus Hero | 5 tasks in one session | +150 | +50 |
+| ☀️ Early Bird | Complete a task before 9 AM | +30 | +10 |
+
+### 🔧 API Endpoints (`/api/v1/broski/` — JWT protected)
+
+| Method | Endpoint | What it does |
+|---|---|---|
+| GET | `/broski/wallet` | Your coins, XP, level |
+| GET | `/broski/transactions` | Full paginated history |
+| GET | `/broski/achievements` | All available achievements |
+| GET | `/broski/achievements/me` | Your earned achievements |
+| GET | `/broski/leaderboard` | Top 10 players |
+| POST | `/broski/award` | Admin/agent: award coins+XP |
+| POST | `/broski/daily-login` | Claim +5 daily coins |
+
+### 🧠 Neurodivergent-First Design: BROski$ Edition
+
+- **Friendly errors** — `"Not enough BROski$ coins — you need 30 more! 💸"` (never `"insufficient funds"`)
+- **Celebratory logs** — `🔥 BROski$ awarded: +10 coins to user 1 (Task completed)`
+- **Achievement messages** — `"Achievement unlocked: Hyperfocus Hero! Absolute beast mode! 🏆"`
+- **Human-readable API responses** — every response includes a `message` field alongside data
+- **Append-only transactions** — immutable audit log, no silent coin changes ever
+
+### 🤖 Agents Earn BROski$ Too (Phase 2)
+
+The Evolutionary Pipeline vision: **AI agents earn coins for completing background Celery tasks**. An agent that finishes a job fires `award_coins(agent_id, 10, "Agent task complete")` — the system becomes **self-gamified**. Coming in Phase 2.
+
+> 📖 Full guide: [docs/guides/BROSKI_TOKEN_SYSTEM.md](docs/guides/BROSKI_TOKEN_SYSTEM.md)
 
 ---
 
@@ -516,7 +587,7 @@ See HyperCode V2.0 in action with full observability:
 
 ---
 
-## 🏭️ Architecture
+## 🏗️️ Architecture
 
 See [docs/architecture/architecture.md](docs/architecture/architecture.md) for detailed system design.
 
@@ -528,6 +599,7 @@ See [docs/architecture/architecture.md](docs/architecture/architecture.md) for d
 - **DevOps Engineer**: Handles CI/CD and **Autonomous Evolution** (rebuilding agents on-the-fly).
 - **Healer Agent**: Monitors system health and automatically recovers failed services.
 - **Dashboard**: Next.js/React frontend for real-time visualization and control.
+- **BROski$ Engine**: Gamification layer — coins, XP, achievements, leaderboard.
 - **Infrastructure**: Docker Compose network with Redis, PostgreSQL, and Observability stack.
 
 ---
@@ -547,6 +619,7 @@ Check the latest system health report: [docs/notes/HyperCode_Health_Check_Report
 *   [**Developer Onboarding**](docs/ONBOARDING.md) - Join the swarm!
 *   [**Troubleshooting**](docs/TROUBLESHOOTING.md) - Fix common issues.
 *   [**Tips & Tricks**](docs/tips-and-tricks/README.md) - Quick guides for common tasks.
+*   [**BROski$ Token System**](docs/guides/BROSKI_TOKEN_SYSTEM.md) - Full gamification guide 🔥
 
 *   [**Old / Legacy Docs**](docs/getting-started/installation.md)
 *   [**Monitoring & Observability**](docs/observability/monitoring-guide.md)
@@ -625,13 +698,13 @@ If a particular sub-project or component follows stricter rules, that should be 
 
 For any **substantive** use of GenAI that materially affects project outputs (code, tests, or documentation), the responsible contributor must:
 
-- Use the project’s `.gitmessage` template (see below) when committing.
+- Use the project's `.gitmessage` template (see below) when committing.
 - Include, in the commit message:
   - A short human-readable description of the change.
   - An **AI Disclosure** block specifying:
     - Model name and provider (e.g. `gpt-5.1 (Perplexity)`),
     - Estimated percentage of the diff generated or heavily influenced by GenAI,
-    - A brief description of how GenAI was used (e.g. “generated initial test file”, “suggested refactor”),
+    - A brief description of how GenAI was used (e.g. "generated initial test file", "suggested refactor"),
     - Confirmation that a human reviewed and validated the changes.
 
 Generated content should be clearly marked as such in the commit message, and where practical, in code comments near large AI-generated blocks.
@@ -644,7 +717,7 @@ If GenAI is used only for:
 - High-level design discussions, or
 - Minor edits to wording in documentation,
 
-then a high-level statement in the commit message (e.g. “Doc phrasing adjusted with GenAI assistance”) is sufficient, as long as the overall stance is clear in the README.
+then a high-level statement in the commit message (e.g. "Doc phrasing adjusted with GenAI assistance") is sufficient, as long as the overall stance is clear in the README.
 
 ### 6. Compliance Checklist
 
@@ -661,9 +734,9 @@ Before merging or submitting work that involved GenAI, verify the following:
 5. **Quality**
     - Use of GenAI has not reduced the clarity, reliability, or reproducibility of the work.
 6. **Policy alignment**
-    - My use of GenAI is consistent with NLnet’s Generative AI policy and this project’s AI Disclosure Policy.
+    - My use of GenAI is consistent with NLnet's Generative AI policy and this project's AI Disclosure Policy.
 
-Failure to follow this policy may lead to rejection of contributions in this project and, where NLnet funding is involved, may contribute to non-compliance with NLnet’s GenAI policy.
+Failure to follow this policy may lead to rejection of contributions in this project and, where NLnet funding is involved, may contribute to non-compliance with NLnet's GenAI policy.
 
 ---
 
