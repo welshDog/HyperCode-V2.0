@@ -89,3 +89,35 @@ def read_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
+
+
+@router.put("/{id}", response_model=schemas.Task)
+def update_task(
+    *,
+    db: Session = Depends(get_db),
+    id: int,
+    task_in: schemas.TaskUpdate,
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    task_data = task_in.dict(exclude_unset=True)
+    query = db.query(models.Task).join(models.Project, models.Task.project_id == models.Project.id).filter(models.Task.id == id)
+    if not current_user.is_superuser:
+        query = query.filter(models.Project.owner_id == current_user.id)
+    task = query.first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if "project_id" in task_data and task_data["project_id"] != task.project_id:
+        project = db.query(models.Project).filter(models.Project.id == task_data["project_id"]).first()
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        if not current_user.is_superuser and project.owner_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not enough privileges")
+
+    for key, value in task_data.items():
+        setattr(task, key, value)
+
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+    return task

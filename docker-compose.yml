@@ -776,6 +776,73 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  hyper-mission-api:
+    profiles: ["mission"]
+    build:
+      context: ./hyper-mission-system/server
+      dockerfile: Dockerfile
+    container_name: hyper-mission-api
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - CORE_API_URL=http://hypercode-core:8000/api/v1
+      - AUTH_PASSTHROUGH=true
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/health', (r) => {if (r.statusCode !== 200) process.exit(1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  hyper-mission-ui:
+    profiles: ["mission"]
+    build:
+      context: ./hyper-mission-system/client
+      dockerfile: Dockerfile
+    container_name: hyper-mission-ui
+    ports:
+      - "127.0.0.1:8099:80"
+    depends_on:
+      hyper-mission-api:
+        condition: service_healthy
+    networks:
+      - frontend-net
+      - backend-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
   crew-orchestrator:
     profiles: ["agents"]
     build:

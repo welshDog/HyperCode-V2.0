@@ -55,6 +55,7 @@ services:
   mcp-filesystem:
     image: node:20-alpine
     container_name: mcp-filesystem
+    profiles: ["mcp"]
     command: >
       sh -c "npx -y @modelcontextprotocol/server-filesystem 
       /workspace /data --port 3003 --stdio"
@@ -63,7 +64,7 @@ services:
       - ./data:/data:rw
     networks:
       - backend-net
-    restart: unless-stopped
+    restart: "no"
 
   # ====================
   # OLLAMA (LLM)
