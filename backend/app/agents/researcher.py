@@ -1,7 +1,9 @@
 import logging
-from app.agents.brain import brain
-from app.core.storage import get_storage
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Any
+
+from .brain import brain
+from ..core.storage import get_storage
 
 logger = logging.getLogger(__name__)
 
@@ -11,13 +13,18 @@ class ResearchAgent:
     Uses Perplexity to find cutting-edge information and format it for the Living Digital Paper.
     """
     def __init__(self):
-        self.role = "Research Specialist"
+        self.role: str = "Research Specialist"
     
-    async def process(self, topic: str, context: dict = None, conversation_id: str | None = None) -> str:
+    async def process(
+        self,
+        topic: str,
+        context: dict[str, Any] | None = None,
+        conversation_id: str | None = None,
+    ) -> str:
         """
         Conducts research on a given topic and uploads report to MinIO.
         """
-        logger.info(f"[{self.role}] Starting research on: {topic}")
+        logger.info("[%s] Starting research on: %s", self.role, topic)
         
         prompt = (
             f"Act as an expert technical researcher and archivist. "
@@ -45,15 +52,15 @@ class ResearchAgent:
         )
         
         # 2. Upload to MinIO (if context provided)
-        if context and context.get("task_id"):
+        if context and context.get("task_id") is not None:
             task_id = context.get("task_id")
             filename = f"research_{task_id}.md"
             
             metadata = {
                 "agent": self.role,
                 "topic": topic,
-                "created_at": datetime.utcnow().isoformat(),
-                "task_id": str(task_id)
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "task_id": str(task_id),
             }
             
             try:
@@ -61,31 +68,31 @@ class ResearchAgent:
                 storage = get_storage()
                 s3_key = storage.upload_file(report_content, filename, metadata)
                 if s3_key:
-                    logger.info(f"[{self.role}] Report uploaded to Object Storage: {s3_key}")
+                    logger.info("[%s] Report uploaded to Object Storage: %s", self.role, s3_key)
                     # Append MinIO link to the output (for visibility)
                     report_content += f"\n\n---\n**Archived in MinIO**: `{s3_key}`"
             except Exception as e:
-                logger.error(f"[{self.role}] Failed to upload report to MinIO: {e}")
+                logger.error("[%s] Failed to upload report to MinIO: %s", self.role, e)
                 report_content += f"\n\n---\n**Archive Error**: Could not upload to Object Storage ({str(e)})"
 
         if conversation_id:
             try:
-                from app.core.agent_memory import write_handoff
+                from ..core.agent_memory import write_handoff
+
                 task_id = (context or {}).get("task_id")
-                handoff_summary = (
-                    f"Research completed for: '{topic}'. "
-                    f"conversation_id: {conversation_id}."
-                    + (f" task_id: {task_id}." if task_id else "")
-                )
-                write_handoff(
+                handoff_summary = f"Research completed for: '{topic}'. conversation_id: {conversation_id}."
+                if task_id:
+                    handoff_summary += f" task_id: {task_id}."
+
+                _ = write_handoff(
                     to_agent_id="architect",
                     from_agent_id="researcher",
                     summary=handoff_summary,
                     links=[task_id] if task_id else [],
                 )
-                logger.info(f"[{self.role}] 📬 Handoff sent to architect")
+                logger.info("[%s] 📬 Handoff sent to architect", self.role)
             except Exception as exc:
-                logger.warning(f"[{self.role}] Auto-handoff failed (non-fatal): {exc}")
+                logger.warning("[%s] Auto-handoff failed (non-fatal): %s", self.role, exc)
 
         return report_content
 
