@@ -22,6 +22,12 @@ Welcome to the **HyperCode V2.0** documentation hub. HyperCode is a next-generat
 ### 👁️ Observability & Operations
 *   [**Monitoring Guide**](observability/monitoring-guide.md) - Prometheus, Grafana, and Celery.
 
+### 🗒️ Working Notes (Internal)
+
+These are internal working documents and scratchpads. They may be incomplete, inconsistent, or out of date.
+
+*   [Working notes directory](notes/)
+
 ---
 
 ## 🔗 External Resources

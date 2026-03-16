@@ -45,6 +45,22 @@ docker compose ps
 | **API Docs** | [http://localhost:8000/docs](http://localhost:8000/docs) | N/A |
 | **Jaeger** | [http://localhost:16686](http://localhost:16686) | N/A |
 
+## 🧭 Ports + Profiles
+
+Some services are always on, while others are opt-in via Docker Compose profiles.
+
+| Service | Port | Profile | Notes |
+|---|---:|---|---|
+| Core API | 8000 | default | Always on |
+| Mission Control | 8088 | default | Always on |
+| Healer Agent | 8010 | default | Always on |
+| BROski Terminal | 3000 | default | Always on |
+| Hyper-Mission UI | 8099 | mission | `docker compose --profile mission up -d` |
+| Hyper-Mission API | 5000 | mission | Internal; UI is the entrypoint |
+| MCP tools | - | mcp-* | Profile-gated; enable as needed |
+| Grafana | 3001 | default | Always on |
+| Prometheus | 9090 | default | Always on |
+
 ## 🎮 Run Your First Mission
 
 1. Open the **Web Terminal** at `http://localhost:3000`.
