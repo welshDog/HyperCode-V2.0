@@ -2,6 +2,7 @@ import logging
 import httpx
 from app.core.config import settings
 from app.llm.ollama import OllamaModelResolver
+from app.core.model_routes import ModelRouteContext, openrouter_chat, select_model_route
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,13 @@ class Brain:
             logger.error(f"[BRAIN] Error recalling context: {e}")
             return ""
 
-    async def think(self, role: str, task_description: str, use_memory: bool = False) -> str:
+    async def think(
+        self,
+        role: str,
+        task_description: str,
+        use_memory: bool = False,
+        route_context: dict | None = None,
+    ) -> str:
         """
         Process a task description and return a plan or code.
         Supports:
@@ -116,8 +123,30 @@ class Brain:
             return "Perplexity Session Auth is active. (Simulated Response)"
 
         # 3. Cloud API Fallback
+        if route_context is not None and settings.OPENROUTER_API_KEY:
+            try:
+                ctx = ModelRouteContext(**route_context)
+            except TypeError:
+                ctx = ModelRouteContext(kind=str(route_context.get("kind", "general")))
+            route = select_model_route(ctx, settings)
+            if route is not None:
+                try:
+                    return await openrouter_chat(
+                        base_url=route.base_url,
+                        api_key=settings.OPENROUTER_API_KEY,
+                        model=route.model,
+                        max_tokens=route.max_tokens,
+                        privacy_mode=route.privacy_mode,  # type: ignore[arg-type]
+                        messages=[
+                            {"role": "system", "content": f"You are a {role}."},
+                            {"role": "user", "content": task_description},
+                        ],
+                    )
+                except Exception as e:
+                    logger.warning(f"[BRAIN] OpenRouter route {route.name} failed: {e}. Falling back...")
+
         if not self.api_key:
-            return "Error: No valid LLM provider available (Local, Session, or API Key)."
+            return "Error: No valid LLM provider available (Local, Session, OpenRouter, or API Key)."
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",

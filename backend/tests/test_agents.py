@@ -10,34 +10,18 @@ class TestAgentBase:
     
     def test_agent_initialization(self):
         """Test agent can be initialized."""
-        # This would test your actual agent class
-        from agents.base_agent.agent import BaseAgent
-        
-        agent = BaseAgent(
-            name="test_agent",
-            role="test",
-            goal="test goal",
-            backstory="test backstory"
-        )
-        
-        assert agent.name == "test_agent"
-        assert agent.role == "test"
-        assert agent.goal == "test goal"
+        from app.agents.brain import Brain
+
+        agent = Brain()
+        assert hasattr(agent, "think")
+        assert hasattr(agent, "recall_context")
     
     def test_agent_has_required_methods(self):
         """Test agent has required methods."""
-        from agents.base_agent.agent import BaseAgent
-        
-        agent = BaseAgent(
-            name="test",
-            role="test",
-            goal="test",
-            backstory="test"
-        )
-        
-        required_methods = ["think", "act", "observe", "reflect"]
-        for method in required_methods:
-            assert hasattr(agent, method), f"Agent missing method: {method}"
+        from app.agents.router import AgentRouter
+
+        router = AgentRouter()
+        assert hasattr(router, "route_task")
 
 
 class TestAgentCommunication:

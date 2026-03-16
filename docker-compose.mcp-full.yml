@@ -74,5 +74,7 @@ services:
     ports:
       - "127.0.0.1:11434:11434"
     networks:
-      - backend-net
+      backend-net:
+        aliases:
+          - hypercode-ollama
     restart: unless-stopped
