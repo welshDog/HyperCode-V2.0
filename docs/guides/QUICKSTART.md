@@ -40,7 +40,7 @@ docker compose ps
 | Service | URL | Credentials (Default) |
 |---------|-----|-----------------------|
 | **Web Terminal** | [http://localhost:3000](http://localhost:3000) | N/A |
-| **Grafana** | [http://localhost:3001](http://localhost:3001) | `admin` / `admin` |
+| **Grafana** | [http://localhost:3001](http://localhost:3001) | Set via `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD` in `.env` |
 | **Prometheus** | [http://localhost:9090](http://localhost:9090) | N/A |
 | **API Docs** | [http://localhost:8000/docs](http://localhost:8000/docs) | N/A |
 | **Jaeger** | [http://localhost:16686](http://localhost:16686) | N/A |
@@ -59,4 +59,4 @@ docker compose down
 ```
 
 ---
-> *Need help? Check [DEPLOYMENT_SUMMARY_ONE_PAGE.md](../DEPLOYMENT_SUMMARY_ONE_PAGE.md) for quick troubleshooting.*
+> *Need help? Check [DEPLOYMENT_SUMMARY_ONE_PAGE.md](../deployment/DEPLOYMENT_SUMMARY_ONE_PAGE.md) for quick troubleshooting.*

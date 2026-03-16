@@ -50,7 +50,7 @@ def translate_file(filepath):
             task_data = response.json()
             task_id = task_data.get("id", "UNKNOWN")
             print(f"✅ BOOM! Task {task_id} queued.")
-            print(f"👀 Keep an eye on the docs/outputs folder for the magic!")
+            print(f"👀 Output will appear in docs/outputs/translate_{task_id}.md")
         else:
             print(f"⚠️ Something tripped up: {response.status_code} - {response.text}")
     except Exception as e:
@@ -82,7 +82,7 @@ def check_pulse():
         if response.status_code == 200:
             task_id = response.json().get("id", "UNKNOWN")
             print(f"✅ Pulse check queued! Task ID: {task_id}")
-            print(f"👀 Check docs/outputs/translation_{task_id}.md for the diagnosis!")
+            print(f"👀 Output will appear in docs/outputs/health_{task_id}.md")
         else:
             print(f"⚠️ Tripped up: {response.text}")
     except Exception as e:
@@ -114,7 +114,7 @@ def research_topic(topic):
         if response.status_code == 200:
             task_id = response.json().get("id", "UNKNOWN")
             print(f"✅ Research queued! Task ID: {task_id}")
-            print(f"👀 Go grab a coffee. The brief will drop in docs/outputs soon!")
+            print(f"👀 Output will appear in docs/outputs/research_{task_id}.md")
         else:
             print(f"⚠️ Tripped up: {response.status_code} - {response.text}")
     except Exception as e:

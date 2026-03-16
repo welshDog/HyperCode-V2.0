@@ -106,6 +106,12 @@ Mission Control uses Core as the single API base and routes agent-ops via Core�
 NEXT_PUBLIC_CORE_URL=http://127.0.0.1:8000
 ```
 
+Crew Orchestrator health monitoring (optional, prevents false “agents down” alerts when you’re not running all agents):
+
+```env
+ORCHESTRATOR_ENABLED_AGENTS=project-strategist,backend-specialist,frontend-specialist
+```
+
 ## 🦅💊 Alpha Routing (Hunter/Healer)
 
 Alpha routing is **opt-in** and only activates when `OPENROUTER_API_KEY` is set and the caller uses a `route_context`.

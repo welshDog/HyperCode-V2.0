@@ -14,7 +14,7 @@ Readiness call:
 ## Scope & Data Sources
 
 This assessment is based on:
-- [HyperCode V2.0 — Hyper Station Status Assessment.md](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/docs/notes/HyperCode%20V2.0%20%E2%80%94%20Hyper%20Station%20Status%20Assessment.md)
+- [HyperCode V2.0 — Hyper Station Status Assessment.md](../../notes/HyperCode%20V2.0%20%E2%80%94%20Hyper%20Station%20Status%20Assessment.md)
 - Current repo state and recent verification results (Core pytest, Mission API Jest, UI integration checks)
 - Current open issues and security/dependency signals (npm audit)
 
@@ -205,4 +205,3 @@ Based on the roadmap in the assessment note:
 6. Agent X autonomy MVP (scale agent building)
 7. Healer Alpha multimodal MVP (operations trust)
 8. Production hardening (deploy strategy + security + load tests)
-

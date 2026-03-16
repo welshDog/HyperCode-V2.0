@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     api_key: Optional[str] = None
     cors_allow_origins: str = "http://localhost:8088,http://localhost:3000"
+    enabled_agents: Optional[str] = None
     
     # Agent Service URLs (Defaults based on docker-compose service names)
     agents: Dict[str, str] = {
@@ -25,5 +26,17 @@ class Settings(BaseSettings):
 
     def parsed_cors_allow_origins(self) -> List[str]:
         return [o.strip() for o in self.cors_allow_origins.split(",") if o.strip()]
+
+    def enabled_agent_keys(self) -> List[str]:
+        if not self.enabled_agents:
+            return list(self.agents.keys())
+        enabled: List[str] = []
+        for raw in self.enabled_agents.split(","):
+            key = raw.strip().lower().replace("-", "_")
+            if not key:
+                continue
+            if key in self.agents:
+                enabled.append(key)
+        return enabled
 
 settings = Settings()

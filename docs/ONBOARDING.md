@@ -26,7 +26,7 @@ We build for **Neurodivergent Minds**.
     It's recommended to create a venv for local CLI usage:
     ```bash
     python -m venv .venv
-    .\.venv\Scripts\Activate  # Windows
+    .\.venv\Scripts\Activate.ps1  # Windows (PowerShell)
     pip install requests
     ```
 

@@ -12,13 +12,13 @@ Target sign-off deadline: 2026-03-14 (EOD)
 - M4: Alerts + runbook validated, phase signoff — 👉 In progress
 
 Tracker:
-- [Phase 4 - Tracker.md](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/docs/notes/Phase%204%20-%20Tracker.md)
+- [Phase 4 - Tracker.md](Phase%204%20-%20Tracker.md)
 
 ## Evidence Index
 
 ### M3 (Watchdog + Failure Injection)
 
-- Evidence directory: [m3_evidence_20260312T013733Z](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/artifacts/phase4/m3_evidence_20260312T013733Z/)
+- Evidence directory: [m3_evidence_20260312T013733Z](../../artifacts/phase4/m3_evidence_20260312T013733Z/)
 - SLA metrics (from `summary.json`):
   - Detection latency: 9.3s (≤ 90s)
   - Remediation time: 7.3s (≤ 300s)
@@ -28,11 +28,11 @@ Tracker:
 
 ### M4 (Alert Validation Drill)
 
-- Evidence directory: [m4_alert_validation_20260312T093622Z](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/artifacts/phase4/m4_alert_validation_20260312T093622Z/)
+- Evidence directory: [m4_alert_validation_20260312T093622Z](../../artifacts/phase4/m4_alert_validation_20260312T093622Z/)
 - Validated alert:
-  - `CrewOrchestratorDown` (Prometheus rule in [alert_rules.yml](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/monitoring/prometheus/alert_rules.yml))
+  - `CrewOrchestratorDown` (Prometheus rule in [alert_rules.yml](../../monitoring/prometheus/alert_rules.yml))
 - Notification path validated:
-  - Prometheus -> Alertmanager -> Webhook (files: [prometheus.yml](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/monitoring/prometheus/prometheus.yml), [alertmanager.yml](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/monitoring/alertmanager/alertmanager.yml))
+  - Prometheus -> Alertmanager -> Webhook (files: [prometheus.yml](../../monitoring/prometheus/prometheus.yml), [alertmanager.yml](../../monitoring/alertmanager/alertmanager.yml))
 - Latency metrics (from `summary.json`):
   - Detection latency: 95.0s (rule `for: 60s` plus scrape/eval)
   - Delivery latency to webhook: 92.2s

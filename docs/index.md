@@ -26,8 +26,8 @@ Welcome to the **HyperCode V2.0** documentation hub. HyperCode is a next-generat
 
 ## 🔗 External Resources
 *   [GitHub Repository](https://github.com/welshDog/HyperCode-V2.0)
-*   [Mission Control Dashboard](http://localhost:8088)
-*   [Grafana](http://localhost:3001)
+*   Local (after startup): [Mission Control Dashboard](http://localhost:8088)
+*   Local (after startup): [Grafana](http://localhost:3001)
 
 ---
 

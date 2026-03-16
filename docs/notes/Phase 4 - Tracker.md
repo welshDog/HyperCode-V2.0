@@ -11,7 +11,7 @@ Target completion: 2026-03-14
 |---|---:|---|---|
 | M1: Monitoring overlay boots | 2026-03-11 | ✅ Done | See M1 Evidence below |
 | M2: Orchestrator metrics scraped + Grafana panels | 2026-03-12 | 👉 In progress | |
-| M3: Healer watchdog running + failure injection passes SLA | 2026-03-13 | ✅ Done | [m3_evidence_20260312T013733Z](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/artifacts/phase4/m3_evidence_20260312T013733Z/) |
+| M3: Healer watchdog running + failure injection passes SLA | 2026-03-13 | ✅ Done | [m3_evidence_20260312T013733Z](../../artifacts/phase4/m3_evidence_20260312T013733Z/) |
 | M4: Alerts + runbook validated, phase signoff | 2026-03-14 | 👉 In progress | See M4 Evidence below |
 
 ## Deliverables Checklist
@@ -137,7 +137,7 @@ Timestamp (UTC): 2026-03-11T~21:40Z
 ### M3 Validation Run (Failure Injection + SLA Proof)
 
 Evidence archive:
-- [m3_evidence_20260312T013733Z](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/artifacts/phase4/m3_evidence_20260312T013733Z/)
+- [m3_evidence_20260312T013733Z](../../artifacts/phase4/m3_evidence_20260312T013733Z/)
 
 SLA results:
 - Detection latency: `9.3s` (≤ 90s ✅)
@@ -178,7 +178,7 @@ docker compose -f docker-compose.yml -f docker-compose.demo.yml --profile agents
 ## M4 Evidence (Alert Validation Drill)
 
 Validation run:
-- [m4_alert_validation_20260312T093622Z](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/artifacts/phase4/m4_alert_validation_20260312T093622Z/)
+- [m4_alert_validation_20260312T093622Z](../../artifacts/phase4/m4_alert_validation_20260312T093622Z/)
 
 Controlled failure scenario:
 - Induced scrape failure by stopping `crew-orchestrator` container
