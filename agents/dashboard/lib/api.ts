@@ -46,6 +46,17 @@ export interface TaskCreate {
   project_id: number;
 }
 
+export interface BroskiWallet {
+  id: number;
+  user_id: number;
+  coins: number;
+  xp: number;
+  level: number;
+  level_name: string;
+  created_at: string;
+  updated_at?: string | null;
+}
+
 // --- AUTHENTICATION ---
 export async function login(username: string, password: string): Promise<{ access_token: string; token_type: string } | null> {
   try {
@@ -102,6 +113,12 @@ export async function fetchTasks(token?: string): Promise<Task[]> {
     console.error("API Error:", error);
     return [];
   }
+}
+
+export async function fetchBroskiWallet(token?: string): Promise<BroskiWallet> {
+  const res = await apiFetch(`/broski/wallet`, {}, token);
+  if (!res.ok) throw new Error("Failed to fetch wallet");
+  return await res.json();
 }
 
 export async function fetchLogs(token?: string) {
