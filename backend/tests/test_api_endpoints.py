@@ -68,10 +68,7 @@ class TestErrorHandling:
             f"{settings.API_V1_STR}/auth/login/access-token",
             json={"invalid": "data"}
         )
-        assert response.status_code in {
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            status.HTTP_422_UNPROCESSABLE_CONTENT,
-        }
+        assert response.status_code == 422
 
 
 class TestCORSHeaders:

@@ -13,7 +13,7 @@ class ResearchAgent:
     def __init__(self):
         self.role = "Research Specialist"
     
-    async def process(self, topic: str, context: dict = None) -> str:
+    async def process(self, topic: str, context: dict = None, conversation_id: str | None = None) -> str:
         """
         Conducts research on a given topic and uploads report to MinIO.
         """
@@ -36,7 +36,13 @@ class ResearchAgent:
         )
         
         # 1. Think
-        report_content = await brain.think(self.role, prompt)
+        report_content = await brain.think(
+            self.role,
+            prompt,
+            conversation_id=conversation_id,
+            agent_id="researcher",
+            memory_mode="self" if conversation_id else "none",
+        )
         
         # 2. Upload to MinIO (if context provided)
         if context and context.get("task_id"):
@@ -61,6 +67,25 @@ class ResearchAgent:
             except Exception as e:
                 logger.error(f"[{self.role}] Failed to upload report to MinIO: {e}")
                 report_content += f"\n\n---\n**Archive Error**: Could not upload to Object Storage ({str(e)})"
+
+        if conversation_id:
+            try:
+                from app.core.agent_memory import write_handoff
+                task_id = (context or {}).get("task_id")
+                handoff_summary = (
+                    f"Research completed for: '{topic}'. "
+                    f"conversation_id: {conversation_id}."
+                    + (f" task_id: {task_id}." if task_id else "")
+                )
+                write_handoff(
+                    to_agent_id="architect",
+                    from_agent_id="researcher",
+                    summary=handoff_summary,
+                    links=[task_id] if task_id else [],
+                )
+                logger.info(f"[{self.role}] 📬 Handoff sent to architect")
+            except Exception as exc:
+                logger.warning(f"[{self.role}] Auto-handoff failed (non-fatal): {exc}")
 
         return report_content
 

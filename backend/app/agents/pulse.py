@@ -10,7 +10,7 @@ class PulseAgent:
         # Docker internal hostname for Prometheus
         self.prometheus_url = "http://prometheus:9090/api/v1/query"
 
-    async def process(self, payload=None):
+    async def process(self, payload=None, conversation_id: str | None = None):
         logger.info("[Pulse Specialist] 🏥 Taking the heartbeat of the Swarm...")
         
         # 1. Grab raw vitals from Prometheus (Checking what services are 'up')
@@ -52,7 +52,13 @@ class PulseAgent:
         {metrics}
         """
         
-        return await self.brain.think("System Medic", prompt)
+        return await self.brain.think(
+            "System Medic",
+            prompt,
+            conversation_id=conversation_id,
+            agent_id="pulse",
+            memory_mode="self" if conversation_id else "none",
+        )
 
 # Global instance
 pulse = PulseAgent()

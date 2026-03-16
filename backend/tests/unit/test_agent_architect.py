@@ -8,7 +8,7 @@ class _BrainStub:
         self._review = review
         self.calls: list[tuple[str, str]] = []
 
-    async def think(self, role: str, prompt: str, use_memory: bool = False) -> str:
+    async def think(self, role: str, prompt: str, use_memory: bool = False, **kwargs) -> str:
         self.calls.append((role, prompt))
         if role == "Planner Agent":
             return self._planner
@@ -89,4 +89,3 @@ async def test_architect_process_archive_upload_failure_does_not_append(monkeypa
     report = await agent.process("Ship it", context={"task_id": "t-1"})
 
     assert "Archived in MinIO" not in report
-

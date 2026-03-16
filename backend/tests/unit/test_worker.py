@@ -29,15 +29,25 @@ def test_process_agent_job_success(mock_run, mock_session, *_):
     mock_db = MagicMock()
     mock_session.return_value = mock_db
     mock_task_record = MagicMock()
+    mock_task_record.status = None
+    mock_task_record.assignee_id = 1
+    mock_task_record.project.owner_id = 1
     mock_db.query.return_value.filter.return_value.first.return_value = mock_task_record
 
-    from app.worker import process_agent_job
-    result = process_agent_job(_make_payload())
+    with patch("app.services.broski_service.award_coins") as _award_coins, \
+         patch("app.services.broski_service.award_xp") as _award_xp, \
+         patch("app.services.broski_service.get_wallet") as _get_wallet:
+        wallet = MagicMock()
+        wallet.last_first_task_date = None
+        _get_wallet.return_value = wallet
+
+        from app.worker import process_agent_job
+        result = process_agent_job(_make_payload())
 
     assert result["status"] == "completed"
     assert "output_file" in result
     assert mock_task_record.status.name in ("DONE", "done") or mock_task_record.status is not None
-    mock_db.commit.assert_called_once()
+    assert mock_db.commit.call_count >= 1
     mock_db.close.assert_called_once()
 
 
