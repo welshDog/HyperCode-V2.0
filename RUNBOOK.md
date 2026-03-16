@@ -238,6 +238,14 @@ Config:
 NEXT_PUBLIC_CORE_URL=http://127.0.0.1:8000
 ```
 
+## 🧠 Crew Orchestrator Health Monitoring (F4 Fix)
+
+Crew Orchestrator periodically probes agent `/health` endpoints and can emit `HEALTH ALERT` events when many agents are down. If you’re not running the full agent roster, set `ORCHESTRATOR_ENABLED_AGENTS` to avoid false positives.
+
+```env
+ORCHESTRATOR_ENABLED_AGENTS=project-strategist,backend-specialist,frontend-specialist
+```
+
 ## 🦅💊 Alpha Routing (Hunter/Healer)
 
 Alpha routing is **opt-in** and only activates when:

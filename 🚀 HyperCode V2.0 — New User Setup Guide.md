@@ -91,7 +91,7 @@ Interface	URL	What it does
 🚀 Mission Control	http://localhost:8088	Main dashboard — start here
 🖥️ BROski Terminal	http://localhost:3000	CLI command interface
 🧠 Crew Orchestrator	http://localhost:8081	Manage your AI agents
-❤️ Healer Agent	http://localhost:8008	System health monitor
+❤️ Healer Agent	http://localhost:8010	System health monitor (container listens on 8008)
 📝 Core API Docs	http://localhost:8000/docs	API reference
 📊 Grafana	http://localhost:3001	Observability & metrics
 🧠 Optional — Local LLM with Ollama
@@ -132,7 +132,7 @@ text
 6️⃣  Open:    http://localhost:8088 → Mission Control 🎯
 7️⃣  Explore:  http://localhost:3000 → BROski Terminal
 8️⃣  Agents:  http://localhost:8081 → Crew Orchestrator
-9️⃣  Health:  http://localhost:8008 → Healer Agent
+9️⃣  Health:  http://localhost:8010 → Healer Agent
 🔟  API:     http://localhost:8000/docs → Core API Docs
 🔡  Metrics: http://localhost:3001 → Grafana
 🔢  Optional: http://localhost:11434 → Local LLM with Ollama

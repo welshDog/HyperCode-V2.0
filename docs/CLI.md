@@ -34,7 +34,7 @@ hypercode translate messy_code.py
 ```
 
 **Output:**
-*   A markdown file in `docs/outputs/translation_{task_id}.md`.
+*   A markdown file in `docs/outputs/translate_{task_id}.md`.
 
 ---
 

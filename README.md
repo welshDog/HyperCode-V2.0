@@ -11,7 +11,7 @@
 [![Contributing](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-contributor%20covenant-ff69b4.svg)](CODE_OF_CONDUCT.md)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
-[![Grafana](https://img.shields.io/badge/grafana-%23F46800.svg?style=flat&logo=grafana&logoColor=white)](http://localhost:3001)
+[![Grafana](https://img.shields.io/badge/grafana-%23F46800.svg?style=flat&logo=grafana&logoColor=white)](docs/screenshots-gallery.md)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 > "You do not just write code; you craft cognitive architectures."
@@ -467,7 +467,7 @@ Once launched, the system opens automatically. You can also access services manu
 - 🚀 **Mission Control Dashboard**: `http://localhost:8088` (Main Interface)
 - 🖥️ **BROski Terminal**: `http://localhost:3000` (Command Line UI)
 - 🧠 **Crew Orchestrator**: `http://localhost:8081` (Agent Management)
-- ❤️ **Healer Agent**: `http://localhost:8008` (Self-Healing System)
+- ❤️ **Healer Agent**: `http://localhost:8010` (Self-Healing System; container listens on 8008)
 - 📝 **Core API Docs**: `http://localhost:8000/docs`
 - 📊 **Grafana**: `http://localhost:3001` (credentials via `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD`; see `.env.example`)
 
@@ -681,7 +681,7 @@ See the [LICENSE](LICENSE) file for full legal details.
 
 ## 💬 Community & Support
 
-- 💬 **Discord**: [Join the HyperFocus Zone](https://discord.gg/your-invite) - Safe space for neurodivergent devs
+- 💬 **Discord**: Coming soon (link TBD) - Safe space for neurodivergent devs
 - 🐦 **Twitter/X**: [@welshDog](https://twitter.com/welshDog)
 - 💰 **Sponsor**: [GitHub Sponsors](https://github.com/sponsors/welshDog) - Help keep this free and accessible
 - 📧 **Email**: lyndz@hyperfocus.zone

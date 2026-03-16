@@ -59,7 +59,8 @@ async def monitor_agent_health():
             failed_agents = []
             results = {}
 
-            for agent_name, url in settings.agents.items():
+            for agent_name in settings.enabled_agent_keys():
+                url = settings.agents[agent_name]
                 try:
                     async with httpx.AsyncClient(timeout=5.0) as client:
                         start_time = datetime.now()
@@ -73,14 +74,14 @@ async def monitor_agent_health():
                                 "last_checked": datetime.now().isoformat(),
                             }
                         else:
-                            failed_agents.append(agent_name)
+                            failed_agents.append(agent_name.replace("_", "-"))
                             results[agent_name] = {
                                 "status": "unhealthy",
                                 "error": f"Status {response.status_code}",
                                 "last_checked": datetime.now().isoformat(),
                             }
                 except Exception as e:
-                    failed_agents.append(agent_name)
+                    failed_agents.append(agent_name.replace("_", "-"))
                     results[agent_name] = {
                         "status": "down",
                         "error": str(e),
@@ -771,7 +772,7 @@ async def root():
     return {
         "service": "HyperCode Agent Crew Orchestrator",
         "version": "2.0",
-        "agents": list(settings.agents.keys()),
+        "agents": settings.enabled_agent_keys(),
         "status": "operational",
     }
 
@@ -793,7 +794,8 @@ async def get_agents(api_key: str = Depends(require_api_key)):
     # unless we track them in Redis
 
     agents_list = []
-    for key, url in settings.agents.items():
+    for key in settings.enabled_agent_keys():
+        url = settings.agents[key]
         # Clean up name
         name = key.replace("_", " ").title()
         role = key.split("_")[-1].title() if "_" in key else "Agent"
