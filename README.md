@@ -18,6 +18,12 @@
 
 - Read the full project report: [REPOSITORY_REPORT.md](REPOSITORY_REPORT.md)
 
+## 🚀 Getting Started (Fast Links)
+
+- New here: [QUICKSTART.md](QUICKSTART.md)
+- Stuck / stack won’t boot: [RUNBOOK.md](RUNBOOK.md)
+- MCP Gateway + Model Runner setup: [START_HERE.md](START_HERE.md)
+
 ## Why HyperCode Exists 🤯
 
 **I built this because I don't want anyone to suffer like I did.**

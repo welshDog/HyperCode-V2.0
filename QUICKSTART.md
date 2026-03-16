@@ -22,8 +22,19 @@ chmod +x scripts/start-agents.sh
 
 ## 🗄️ One-Time DB Bootstrap (REQUIRED on first run)
 
-> There is no Alembic migrations folder. Tables are created via SQLAlchemy `create_all`.  
-> Run this **once** after a fresh clone or new DB volume — before `seed_data.py`.
+Preferred (versioned migrations):
+
+```powershell
+docker exec hypercode-core alembic upgrade head
+```
+
+If your DB already exists (created earlier via `create_all`):
+
+```powershell
+docker exec hypercode-core alembic stamp head
+```
+
+Fallback (dev bootstrap):
 
 ```powershell
 docker exec hypercode-core python -c "from app.db.session import engine; import app.models.models; from app.db.base_class import Base; Base.metadata.create_all(bind=engine); print('✅ DB tables ensured')"

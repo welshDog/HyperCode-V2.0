@@ -36,6 +36,8 @@ This document outlines the actionable work plan for Phase 0 (Boot/Verify), Phase
 ## 🛠️ Phase 1: Stabilize the Core
 **Goal:** Harden the system against failures and eliminate configuration drift.
 
+**Phase 1 Wiring Plan:** See `docs/plans/PHASE1_WIRE_IT_UP.md`
+
 ### 1.1 Config Consolidation
 **Description:** Align services to a centralized settings approach to reduce hardcoding and "works on my machine" issues.
 **Status:** Pending
