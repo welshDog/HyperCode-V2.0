@@ -1,5 +1,6 @@
 from typing import Any, List
 
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -130,5 +131,12 @@ def update_task(
         from app.services import broski_service
         broski_service.award_coins(current_user.id, 10, "Task completed", db)
         broski_service.award_xp(current_user.id, 25, "Task completed", db)
+        wallet = broski_service.get_wallet(current_user.id, db)
+        today = datetime.now(timezone.utc).date()
+        last = wallet.last_first_task_date.astimezone(timezone.utc).date() if wallet.last_first_task_date else None
+        if last is None or last < today:
+            broski_service.award_xp(current_user.id, 15, "First task of the day bonus!", db)
+            wallet.last_first_task_date = datetime.now(timezone.utc)
+            db.commit()
 
     return task
