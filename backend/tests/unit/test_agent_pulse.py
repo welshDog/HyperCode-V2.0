@@ -34,7 +34,7 @@ async def test_pulse_process_success_builds_metrics_and_calls_brain(monkeypatch)
     captured: dict = {}
 
     class BrainStub:
-        async def think(self, role: str, prompt: str, use_memory: bool = False) -> str:
+        async def think(self, role: str, prompt: str, use_memory: bool = False, **kwargs) -> str:
             captured["role"] = role
             captured["prompt"] = prompt
             return "report"
@@ -62,7 +62,7 @@ async def test_pulse_process_non_200_includes_error(monkeypatch):
     captured: dict = {}
 
     class BrainStub:
-        async def think(self, role: str, prompt: str, use_memory: bool = False) -> str:
+        async def think(self, role: str, prompt: str, use_memory: bool = False, **kwargs) -> str:
             captured["prompt"] = prompt
             return "report"
 
@@ -87,7 +87,7 @@ async def test_pulse_process_exception_includes_critical(monkeypatch):
     captured: dict = {}
 
     class BrainStub:
-        async def think(self, role: str, prompt: str, use_memory: bool = False) -> str:
+        async def think(self, role: str, prompt: str, use_memory: bool = False, **kwargs) -> str:
             captured["prompt"] = prompt
             return "report"
 
@@ -97,4 +97,3 @@ async def test_pulse_process_exception_includes_critical(monkeypatch):
     result = await agent.process()
     assert result == "report"
     assert "CRITICAL: Cannot reach Prometheus!" in captured["prompt"]
-

@@ -24,6 +24,11 @@ class AgentRouter:
         """
         Routes the task to the correct agent.
         """
+        context = context or {}
+        conversation_id = context.get("conversation_id")
+        if not conversation_id and context.get("task_id") is not None:
+            conversation_id = f"task-{context.get('task_id')}"
+
         agent = self.routes.get(task_type)
         
         # Simple keyword detection if task_type is generic
@@ -45,22 +50,36 @@ class AgentRouter:
                 # Default behavior: Use the Brain with Context Recall
                 logger.info(f"[Router] No specific agent found for '{task_type}', defaulting to HyperBrain.")
                 # Pass use_memory=True to enable context recall
-                return await brain.think("HyperBrain Specialist", payload, use_memory=True)
+                return await brain.think(
+                    "HyperBrain Specialist",
+                    payload,
+                    use_memory=True,
+                    conversation_id=conversation_id,
+                    agent_id="router",
+                    memory_mode="shared" if conversation_id else "none",
+                )
 
         logger.info(f"[Router] Routing task to {agent.__class__.__name__}...")
         
         # Dispatch based on agent interface
         # Passing 'context' if the agent supports it (Duck Typing check or specific check)
         if agent == researcher:
-            return await researcher.process(payload, context)
+            return await researcher.process(payload, context, conversation_id=conversation_id)
         elif agent == architect:
-            return await architect.process(payload, context)
+            return await architect.process(payload, context, conversation_id=conversation_id)
         elif agent == translator:
-            return await translator.process(payload)
+            return await translator.process(payload, conversation_id=conversation_id)
         elif agent == pulse:
-            return await pulse.process(payload)
+            return await pulse.process(payload, conversation_id=conversation_id)
         else:
-            return await brain.think("HyperBrain Specialist", payload, use_memory=True)
+            return await brain.think(
+                "HyperBrain Specialist",
+                payload,
+                use_memory=True,
+                conversation_id=conversation_id,
+                agent_id="router",
+                memory_mode="shared" if conversation_id else "none",
+            )
 
 # Global instance
 router = AgentRouter()

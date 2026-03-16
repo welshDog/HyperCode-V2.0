@@ -10,7 +10,7 @@ class TranslatorAgent:
     def __init__(self):
         self.role = "Translator Specialist"
     
-    async def process(self, code_payload: str) -> str:
+    async def process(self, code_payload: str, conversation_id: str | None = None) -> str:
         """
         Translates code into a more accessible format using HyperCode Spatial Logic.
         """
@@ -30,7 +30,13 @@ class TranslatorAgent:
         {code_payload}
         """
         
-        return await brain.think(self.role, prompt)
+        return await brain.think(
+            self.role,
+            prompt,
+            conversation_id=conversation_id,
+            agent_id="translator",
+            memory_mode="self" if conversation_id else "none",
+        )
 
 # Global instance
 translator = TranslatorAgent()

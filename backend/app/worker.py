@@ -31,7 +31,7 @@ def process_agent_job(task_payload: dict):
 
     try:
         # Pass context with task_id to router
-        context = {"task_id": task_id}
+        context = {"task_id": task_id, "conversation_id": f"task-{task_id}"}
         
         # Run the Router asynchronously
         plan: Any = asyncio.run(router.route_task(task_type, description, context=context))
