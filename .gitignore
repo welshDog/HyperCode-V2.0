@@ -65,6 +65,7 @@ test-results/
 .lighthouseci/
 *.tsbuildinfo
 test.db
+test.db
 
 # Specific ignore patterns
 data/ollama/models
