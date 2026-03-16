@@ -66,6 +66,10 @@ test-results/
 *.tsbuildinfo
 test.db
 
+# Health reports / AI outputs - never commit secrets
+docs/health-reports/*.local.md
+*.pat.txt
+
 # Specific ignore patterns
 data/ollama/models
 scripts/verify_env.py
