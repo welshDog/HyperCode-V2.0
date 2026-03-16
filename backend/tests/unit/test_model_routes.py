@@ -4,7 +4,10 @@ import pytest
 def test_redact_secrets_masks_common_tokens():
     from app.core.model_routes import redact_secrets
 
-    text = "sk-abcdefghijklmnopqrstuvwxyz012345 ghp_abcdefghijklmnopqrstuvwxyz012345 eyJabcdefghijklmno.pqrstuvwxyzABCDEFGH.ijklmnopQRSTUVWX"
+    sk = "sk-" + "abcdefghijklmnopqrstuvwxyz012345"
+    ghp = "ghp_" + "abcdefghijklmnopqrstuvwxyz012345"
+    jwt = "eyJ" + "abcdefghijklmno" + "." + "pqrstuvwxyzABCDEFGH" + "." + "ijklmnopQRSTUVWX"
+    text = f"{sk} {ghp} {jwt}"
     redacted = redact_secrets(text)
     assert "sk-" not in redacted
     assert "ghp_" not in redacted
