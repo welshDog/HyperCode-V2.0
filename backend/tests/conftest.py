@@ -15,7 +15,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from app.main import app
 from app.core.config import settings
-from app.core.database import Base, get_db
+from app.db.base_class import Base
+from app.db.session import get_db
+import app.models.models as _models
+del _models
 
 # Use in-memory SQLite for tests
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///./test.db"
@@ -69,7 +72,7 @@ def client(db: Session):
 async def redis_client():
     """Create Redis test client."""
     client = await redis.from_url(
-        "redis://localhost:6379/1",
+        settings.HYPERCODE_REDIS_URL,
         decode_responses=True
     )
     yield client
@@ -87,30 +90,3 @@ def mock_openai_api_key(monkeypatch):
     """Mock OpenAI API key for tests."""
     monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-test-key-12345")
 
-
-@pytest.fixture(scope="function")
-async def authenticated_client(client, db):
-    """Create authenticated test client."""
-    # Create test user
-    from app.models.user import User
-    from app.core.security import get_password_hash
-    
-    user = User(
-        email="test@example.com",
-        hashed_password=get_password_hash("testpass123"),
-        is_active=True
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    
-    # Get token
-    response = client.post(
-        "/api/auth/login",
-        json={"email": "test@example.com", "password": "testpass123"}
-    )
-    token = response.json()["access_token"]
-    
-    # Add auth header
-    client.headers["Authorization"] = f"Bearer {token}"
-    return client

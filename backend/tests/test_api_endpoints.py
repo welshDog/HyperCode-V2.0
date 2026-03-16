@@ -2,6 +2,7 @@
 
 import pytest
 from fastapi import status
+from app.core.config import settings
 
 
 class TestHealthEndpoint:
@@ -12,15 +13,14 @@ class TestHealthEndpoint:
         response = client.get("/health")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["status"] == "healthy"
-        assert "timestamp" in data
+        assert data["status"] in {"ok", "healthy"}
     
     def test_health_check_response_structure(self, client):
         """Test health check response has required fields."""
         response = client.get("/health")
         data = response.json()
         
-        required_fields = ["status", "timestamp", "version"]
+        required_fields = ["status", "service", "version", "environment"]
         for field in required_fields:
             assert field in data, f"Missing field: {field}"
 
@@ -29,16 +29,14 @@ class TestAPIEndpoints:
     """Tests for core API endpoints."""
     
     def test_root_redirect(self, client):
-        """Test root endpoint redirects to docs."""
-        response = client.get("/", allow_redirects=False)
-        assert response.status_code in [
-            status.HTTP_307_TEMPORARY_REDIRECT,
-            status.HTTP_308_PERMANENT_REDIRECT
-        ]
+        """Test root endpoint returns a welcome payload."""
+        response = client.get("/")
+        assert response.status_code == status.HTTP_200_OK
+        assert "message" in response.json()
     
     def test_api_docs_accessible(self, client):
         """Test API documentation is accessible."""
-        response = client.get("/docs")
+        response = client.get(f"{settings.API_V1_STR}/docs")
         assert response.status_code == status.HTTP_200_OK
         assert "swagger" in response.text.lower()
     
@@ -67,10 +65,13 @@ class TestErrorHandling:
     def test_422_validation_error(self, client):
         """Test 422 error for invalid request body."""
         response = client.post(
-            "/api/auth/login",
+            f"{settings.API_V1_STR}/auth/login/access-token",
             json={"invalid": "data"}
         )
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code in {
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+        }
 
 
 class TestCORSHeaders:
@@ -78,9 +79,15 @@ class TestCORSHeaders:
     
     def test_cors_headers_present(self, client):
         """Test CORS headers are included in responses."""
-        response = client.options("/health")
-        # CORS headers should be set by middleware
+        response = client.options(
+            "/health",
+            headers={
+                "Origin": "http://localhost:8088",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
         assert response.status_code == status.HTTP_200_OK
+        assert "access-control-allow-origin" in {k.lower() for k in response.headers.keys()}
 
 
 class TestRateLimiting:
@@ -97,7 +104,7 @@ class TestRateLimiting:
 
 @pytest.mark.parametrize("endpoint", [
     "/health",
-    "/docs",
+    f"{settings.API_V1_STR}/docs",
     "/openapi.json",
 ])
 def test_public_endpoints_accessible(client, endpoint):

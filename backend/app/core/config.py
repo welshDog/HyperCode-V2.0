@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     # AI
     ANTHROPIC_API_KEY: Optional[str] = None
     PERPLEXITY_API_KEY: Optional[str] = None
+    OPENROUTER_API_KEY: Optional[str] = None
     HYPERCODE_MEMORY_KEY: Optional[str] = None
     OLLAMA_HOST: str = "http://hypercode-ollama:11434"
     DEFAULT_LLM_MODEL: str = "auto"
@@ -38,6 +39,20 @@ class Settings(BaseSettings):
     OLLAMA_NUM_PREDICT: int = 256
     OLLAMA_SEED: Optional[int] = None
     PERPLEXITY_SESSION_AUTH: bool = False
+
+    HUNTER_ALPHA_ENABLED: bool = False
+    HUNTER_ALPHA_MODEL: str = "openrouter/openrouter/hunter-alpha"
+    HUNTER_ALPHA_BASE_URL: str = "https://openrouter.ai/api/v1"
+    HUNTER_ALPHA_ROUTE_TAG: str = "meta-architect"
+    HUNTER_ALPHA_MAX_TOKENS: int = 16000
+    HUNTER_ALPHA_PRIVACY_MODE: str = "redact"
+
+    HEALER_ALPHA_ENABLED: bool = False
+    HEALER_ALPHA_MODEL: str = "openrouter/openrouter/healer-alpha"
+    HEALER_ALPHA_BASE_URL: str = "https://openrouter.ai/api/v1"
+    HEALER_ALPHA_ROUTE_TAG: str = "incident-healing"
+    HEALER_ALPHA_MAX_TOKENS: int = 12000
+    HEALER_ALPHA_PRIVACY_MODE: str = "redact"
 
     def ollama_generate_options(self) -> dict:
         options: dict = {

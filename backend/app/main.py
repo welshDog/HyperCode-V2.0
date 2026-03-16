@@ -48,7 +48,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.parsed_cors_allow_origins(),
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
 
@@ -65,6 +65,7 @@ app.add_middleware(
         f"{settings.API_V1_STR}/docs",
         f"{settings.API_V1_STR}/redoc",
         f"{settings.API_V1_STR}/openapi.json",
+        "/openapi.json",
         "/metrics",
     ),
 )

@@ -34,7 +34,23 @@ The stack expects **`hypercode-ollama`** reachable on `backend-net` (DNS name `h
 - you started a different compose file where Ollama is named differently, or
 - the container is on the wrong network.
 
-### Fix steps (current repo default)
+### Fix steps
+
+Fastest (no rebuild): if the running container is called `ollama` and Celery expects `hypercode-ollama`, add a network alias:
+
+```powershell
+# Adds DNS alias "hypercode-ollama" on the backend network (works immediately)
+docker network disconnect hypercode_public_net ollama
+docker network connect --alias hypercode-ollama hypercode_public_net ollama
+```
+
+Then validate:
+
+```powershell
+docker exec celery-worker python -c "import urllib.request; print(urllib.request.urlopen('http://hypercode-ollama:11434/api/tags', timeout=8).read()[:200])"
+```
+
+Permanent (repo default): run the `hypercode-ollama` service defined in `docker-compose.yml`.
 
 ```powershell
 # 1) Confirm the expected env from Core/Celery

@@ -38,11 +38,9 @@ class TestPostgresConnection:
     def test_postgres_connection(self):
         """Test PostgreSQL connection works."""
         try:
+            from app.core.config import settings
             conn = psycopg2.connect(
-                host="postgres",
-                database="hypercode",
-                user="postgres",
-                password="changeme",
+                settings.HYPERCODE_DB_URL,
                 connect_timeout=1
             )
             conn.close()
@@ -53,11 +51,9 @@ class TestPostgresConnection:
     def test_postgres_database_exists(self):
         """Test required database exists."""
         try:
+            from app.core.config import settings
             conn = psycopg2.connect(
-                host="postgres",
-                database="hypercode",
-                user="postgres",
-                password="changeme",
+                settings.HYPERCODE_DB_URL,
                 connect_timeout=1
             )
             cursor = conn.cursor()
@@ -73,8 +69,9 @@ class TestDatabaseSchema:
     
     def test_sqlalchemy_models_mapped(self):
         """Test all SQLAlchemy models are properly mapped."""
-        from sqlalchemy.orm import declarative_base
-        from app.core.database import Base
+        from app.db.base_class import Base
+        import app.models.models as _models
+        del _models
         
         # Check that models are registered
         assert len(Base.registry.mappers) > 0
@@ -89,14 +86,14 @@ class TestEnvironmentConfiguration:
         
         required_vars = [
             "ENVIRONMENT",
-            "HYPERCODE_JWT_SECRET",
+            "JWT_SECRET",
             "HYPERCODE_REDIS_URL",
             "HYPERCODE_DB_URL",
         ]
         
         for var in required_vars:
-            value = getattr(settings, var.lower(), None)
-            assert value is not None or var in ["ANTHROPIC_API_KEY"]
+            value = getattr(settings, var, None)
+            assert value is not None
 
 
 class TestSecretManagement:
@@ -120,9 +117,9 @@ class TestSecretManagement:
         """Test JWT secret is configured."""
         from app.core.config import settings
         
-        assert hasattr(settings, 'jwt_secret')
-        assert settings.jwt_secret is not None
-        assert len(settings.jwt_secret) > 10
+        assert hasattr(settings, "JWT_SECRET")
+        assert settings.JWT_SECRET is not None
+        assert len(settings.JWT_SECRET) > 10
 
 
 class TestDockerEnvironment:
