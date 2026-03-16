@@ -4,6 +4,7 @@ from app.agents.router import router
 from app.db.session import SessionLocal
 from app.models.models import Task, TaskStatus
 import asyncio
+from datetime import datetime, timezone
 import logging
 import os
 from typing import Any
@@ -44,10 +45,23 @@ def process_agent_job(task_payload: dict):
         try:
             task_record = db.query(Task).filter(Task.id == task_id).first()
             if task_record:
+                old_status = task_record.status
                 task_record.output = plan
                 task_record.status = TaskStatus.DONE
                 db.commit()
                 logger.info(f"[Worker] Updated Task {task_id} status to DONE")
+                if old_status != TaskStatus.DONE:
+                    from app.services import broski_service
+                    user_id = task_record.assignee_id or task_record.project.owner_id
+                    broski_service.award_coins(user_id, 10, "Task completed", db)
+                    broski_service.award_xp(user_id, 25, "Task completed", db)
+                    wallet = broski_service.get_wallet(user_id, db)
+                    today = datetime.now(timezone.utc).date()
+                    last = wallet.last_first_task_date.astimezone(timezone.utc).date() if wallet.last_first_task_date else None
+                    if last is None or last < today:
+                        broski_service.award_xp(user_id, 15, "First task of the day bonus!", db)
+                        wallet.last_first_task_date = datetime.now(timezone.utc)
+                        db.commit()
             else:
                 logger.warning(f"[Worker] Task {task_id} not found in DB")
         except Exception as db_e:
