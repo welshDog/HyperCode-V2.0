@@ -5,6 +5,8 @@ Revises:
 Create Date: 2026-03-15 00:00:00.000000
 """
 
+# pylint: disable=no-member,missing-function-docstring,line-too-long
+
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
