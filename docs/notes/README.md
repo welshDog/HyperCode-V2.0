@@ -1,5 +1,7 @@
 # HyperAIFS - HyperCode AI File System
 
+> ⚠️ **Working Notes** — `docs/notes/` contains internal documents and historical drafts. For current HyperCode V2.0 setup and architecture, start with [README.md](../../README.md) and [docs/index.md](../index.md).
+
 **Snapshot Notice:** This document describes a separate/older “HyperAIFS” concept and is not the current HyperCode V2.0 stack. For current setup and architecture, start with [README.md](../../README.md) and [docs/index.md](../index.md).
 
 **Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-10

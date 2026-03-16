@@ -441,6 +441,8 @@ Get the entire ecosystem running in **under 2 minutes** with **Hyper Station**.
    cd HyperCode-V2.0
    ```
 
+> **Full setup guide:** [docs/guides/QUICKSTART.md](docs/guides/QUICKSTART.md)
+
 2. **Configure Environment**
    ```powershell
    cp .env.example .env
@@ -681,7 +683,8 @@ See the [LICENSE](LICENSE) file for full legal details.
 
 ## 💬 Community & Support
 
-- 💬 **Discord**: Coming soon (link TBD) - Safe space for neurodivergent devs
+<!-- TODO: Replace with real invite -->
+- 💬 **Discord**: `https://discord.gg/YOUR-INVITE`
 - 🐦 **Twitter/X**: [@welshDog](https://twitter.com/welshDog)
 - 💰 **Sponsor**: [GitHub Sponsors](https://github.com/sponsors/welshDog) - Help keep this free and accessible
 - 📧 **Email**: lyndz@hyperfocus.zone
