@@ -52,8 +52,21 @@ docker inspect hypercode-core --format "{{.State.Health.Status}}"
 
 ## 🗄️ DB Bootstrap (One-Time Per Fresh Volume)
 
-There is **no Alembic migrations folder** in this repo.  
-Tables are created via SQLAlchemy `Base.metadata.create_all`.
+Preferred (versioned migrations):
+
+```powershell
+docker exec hypercode-core alembic upgrade head
+```
+
+If your DB was already created via `create_all` and you just want Alembic to “take ownership”:
+
+```powershell
+docker exec hypercode-core alembic stamp head
+```
+
+Fallback (dev bootstrap):
+
+Tables can also be created via SQLAlchemy `Base.metadata.create_all`.
 
 Run this **once** after a fresh DB volume or first clone:
 

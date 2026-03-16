@@ -2,6 +2,11 @@
 
 **Status**: ✅ **ALL DELIVERABLES SHIPPED & READY TO DEPLOY**
 
+If you’re trying to run the full HyperCode stack (Core API + DB + Redis + agents), start here instead:
+
+- [QUICKSTART.md](QUICKSTART.md)
+- [RUNBOOK.md](RUNBOOK.md)
+
 ---
 
 ## 📦 What Was Delivered
