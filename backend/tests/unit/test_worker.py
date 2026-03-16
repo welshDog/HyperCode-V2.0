@@ -45,7 +45,7 @@ def test_process_agent_job_success(mock_run, mock_session, *_):
 @patch("app.worker.asyncio.run")
 @patch("app.worker.os.path.exists", return_value=True)
 @patch("builtins.open", mock_open())
-def test_process_agent_job_task_not_in_db(mock_exists, mock_run, mock_session):
+def test_process_agent_job_task_not_in_db(_mock_exists, mock_run, mock_session):
     """Task missing from DB — logs warning, still returns completed."""
     def fake_run(coro):
         coro.close()
@@ -83,7 +83,7 @@ def test_process_agent_job_router_failure(mock_run):
 @patch("app.worker.asyncio.run")
 @patch("app.worker.os.path.exists", return_value=True)
 @patch("builtins.open", mock_open())
-def test_process_agent_job_db_error(mock_exists, mock_run, mock_session):
+def test_process_agent_job_db_error(_mock_exists, mock_run, mock_session):
     """DB commit fails — rollback is called, still returns completed."""
     def fake_run(coro):
         coro.close()

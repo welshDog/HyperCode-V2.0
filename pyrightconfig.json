@@ -1,0 +1,7 @@
+{
+  "venvPath": ".",
+  "extraPaths": ["backend"],
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": "none",
+  "pythonVersion": "3.11"
+}
