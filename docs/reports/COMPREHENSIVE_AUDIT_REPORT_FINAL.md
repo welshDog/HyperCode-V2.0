@@ -66,8 +66,8 @@
 ### Updated `.env` (Key Additions)
 ```ini
 # Discord
-DISCORD_TOKEN=MTM4MTk2NTY1Njk3NDU2MTMwMA... # Synced for Docker Compose
-DISCORD_BOT_TOKEN=MTM4MTk2NTY1Njk3NDU2MTMwMA... # Kept for backward compat
+DISCORD_TOKEN=<redacted> # Set via local .env or secrets manager (do not commit)
+DISCORD_BOT_TOKEN=<redacted> # Kept for backward compat (do not commit)
 ```
 
 ### Updated `docker-compose.yml` (Broski-Bot Fix)
