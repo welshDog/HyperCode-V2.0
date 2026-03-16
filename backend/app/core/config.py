@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     # Database & Redis
     HYPERCODE_DB_URL: str = "postgresql://postgres:postgres@postgres:5432/hypercode"
     HYPERCODE_REDIS_URL: str = "redis://redis:6379/0"
+
+    ORCHESTRATOR_URL: str = "http://crew-orchestrator:8080"
+    ORCHESTRATOR_API_KEY: Optional[str] = None
     
     # AI
     ANTHROPIC_API_KEY: Optional[str] = None
@@ -87,7 +90,7 @@ class Settings(BaseSettings):
     SERVICE_NAME: str = "hypercode-core"
 
     # HTTP security
-    CORS_ALLOW_ORIGINS: str = "http://localhost:8088,http://localhost:3000"
+    CORS_ALLOW_ORIGINS: str = "http://localhost:8088,http://127.0.0.1:8088,http://localhost:3000,http://127.0.0.1:3000"
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_WINDOW_SECONDS: int = 60
     RATE_LIMIT_MAX_REQUESTS: int = 120

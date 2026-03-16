@@ -17,7 +17,7 @@ import {
   WifiOff
 } from "lucide-react";
 import clsx from "clsx";
-import { fetchAgents, fetchLogs, fetchTasks, checkHealth, sendCommand, API_BASE_URL, type Task } from "@/lib/api";
+import { fetchAgents, fetchLogs, fetchTasks, checkHealth, sendCommand, API_BASE_URL, login, type Task } from "@/lib/api";
 import { Clock } from "@/components/Clock";
 import { ApprovalModal } from "@/components/ApprovalModal";
 import { SystemHealth } from "@/components/SystemHealth";
@@ -123,6 +123,10 @@ const LogEntry = ({ log }: { log: Log }) => (
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("uplink");
   const [input, setInput] = useState("");
+  const [token, setToken] = useState<string>("");
+  const [loginUsername, setLoginUsername] = useState("admin@hypercode.ai");
+  const [loginPassword, setLoginPassword] = useState("adminpassword");
+  const [loginError, setLoginError] = useState<string>("");
   
   // Data State
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -134,15 +138,17 @@ export default function Dashboard() {
   // Poll for data
   useEffect(() => {
     setLastUpdated(new Date()); // Initialize on client
+    const stored = typeof window !== "undefined" ? localStorage.getItem("token") : "";
+    if (stored) setToken(stored);
     const poll = async () => {
       const isHealthy = await checkHealth();
       setConnected(isHealthy);
       
-      if (isHealthy) {
+      if (isHealthy && token) {
         const [agentsData, logsData, tasksData] = await Promise.all([
-          fetchAgents(),
-          fetchLogs(),
-          fetchTasks()
+          fetchAgents(token),
+          fetchLogs(token),
+          fetchTasks(token)
         ]);
         
         if (agentsData.length > 0) setAgents(agentsData);
@@ -155,7 +161,20 @@ export default function Dashboard() {
     poll(); // Initial call
     const interval = setInterval(poll, 2000); // Poll every 2s
     return () => clearInterval(interval);
-  }, []);
+  }, [token]);
+
+  const handleLogin = async () => {
+    setLoginError("");
+    const result = await login(loginUsername, loginPassword);
+    if (!result) {
+      setLoginError("Login failed");
+      return;
+    }
+    if (typeof window !== "undefined") {
+      localStorage.setItem("token", result.access_token);
+    }
+    setToken(result.access_token);
+  };
 
   const handleCommand = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,7 +191,7 @@ export default function Dashboard() {
     setLogs(prev => [newLog, ...prev]);
     
     // Send to API
-    const res = await sendCommand(input);
+    const res = await sendCommand(input, token);
     
     if (res.status === "error") {
          setLogs(prev => [{
@@ -410,6 +429,36 @@ export default function Dashboard() {
 
         </aside>
       </main>
+
+      {!token && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-700 rounded-lg p-6">
+            <h2 className="text-cyan-400 font-bold tracking-widest uppercase text-sm mb-4">Authenticate</h2>
+            <label className="block text-xs text-zinc-500 uppercase mb-1">Email</label>
+            <input
+              className="w-full bg-black/40 border border-zinc-700 rounded p-2 mb-4 text-sm"
+              value={loginUsername}
+              onChange={(e) => setLoginUsername(e.target.value)}
+              placeholder="admin@hypercode.ai"
+            />
+            <label className="block text-xs text-zinc-500 uppercase mb-1">Password</label>
+            <input
+              type="password"
+              className="w-full bg-black/40 border border-zinc-700 rounded p-2 mb-4 text-sm"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              placeholder="adminpassword"
+            />
+            {loginError && <div className="text-red-400 text-xs mb-3">{loginError}</div>}
+            <button
+              onClick={handleLogin}
+              className="w-full py-2 bg-cyan-700 hover:bg-cyan-600 rounded font-bold text-sm"
+            >
+              SIGN IN
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -95,6 +95,17 @@ Success = Celery logs show `✅ Updated Task X` and `✅ Saved output for Task X
 
 ---
 
+## 🎛️ Mission Control (Unified API)
+
+Mission Control uses Core as the single API base and routes agent-ops via Core’s orchestrator gateway endpoints.
+
+- Login uses the seeded Core user from `seed_data.py` (default: `admin@hypercode.ai` / `adminpassword`).
+- Dashboard API base is controlled by:
+
+```env
+NEXT_PUBLIC_CORE_URL=http://127.0.0.1:8000
+```
+
 ## 🦅💊 Alpha Routing (Hunter/Healer)
 
 Alpha routing is **opt-in** and only activates when `OPENROUTER_API_KEY` is set and the caller uses a `route_context`.

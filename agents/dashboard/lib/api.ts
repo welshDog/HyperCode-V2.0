@@ -1,4 +1,17 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+export const CORE_ORIGIN = process.env.NEXT_PUBLIC_CORE_URL || "http://localhost:8000";
+export const API_BASE_URL = `${CORE_ORIGIN}/api/v1`;
+
+function getStoredToken(): string {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem("token") || "";
+}
+
+async function apiFetch(path: string, options: RequestInit = {}, token?: string) {
+  const headers = new Headers(options.headers || {});
+  const authToken = token ?? getStoredToken();
+  if (authToken) headers.set("Authorization", `Bearer ${authToken}`);
+  return fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+}
 
 // --- CORE API TYPES ---
 export interface User {
@@ -55,12 +68,9 @@ export async function login(username: string, password: string): Promise<{ acces
 }
 
 // --- AGENT ORCHESTRATION ---
-export async function fetchAgents() {
-  // ... (Existing implementation for Orchestrator, usually on port 8081 or proxied)
-  // For now, assuming orchestrator is proxied or we point to it directly
-  // TODO: Unify Orchestrator API under Core API Gateway
+export async function fetchAgents(token?: string) {
   try {
-    const res = await fetch(`http://localhost:8081/agents`); 
+    const res = await apiFetch(`/orchestrator/agents`, {}, token);
     if (!res.ok) throw new Error("Failed to fetch agents");
     return await res.json();
   } catch (error) {
@@ -72,9 +82,7 @@ export async function fetchAgents() {
 // --- PROJECTS ---
 export async function fetchProjects(token: string): Promise<Project[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/projects/`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await apiFetch(`/projects/`, {}, token);
     if (!res.ok) throw new Error("Failed to fetch projects");
     return await res.json();
   } catch (error) {
@@ -85,9 +93,9 @@ export async function fetchProjects(token: string): Promise<Project[]> {
 
 // ... (Rest of existing functions)
 
-export async function fetchTasks(): Promise<Task[]> {
+export async function fetchTasks(token?: string): Promise<Task[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/tasks`);
+    const res = await apiFetch(`/tasks/`, {}, token);
     if (!res.ok) throw new Error("Failed to fetch tasks");
     return await res.json();
   } catch (error) {
@@ -96,9 +104,9 @@ export async function fetchTasks(): Promise<Task[]> {
   }
 }
 
-export async function fetchLogs() {
+export async function fetchLogs(token?: string) {
   try {
-    const res = await fetch(`${API_BASE_URL}/logs`);
+    const res = await apiFetch(`/logs`, {}, token);
     if (!res.ok) throw new Error("Failed to fetch logs");
     return await res.json();
   } catch (error) {
@@ -109,7 +117,7 @@ export async function fetchLogs() {
 
 export async function checkHealth() {
   try {
-    const res = await fetch(`${API_BASE_URL}/health`);
+    const res = await fetch(`${CORE_ORIGIN}/health`);
     return res.ok;
   } catch (error) {
     return false;
@@ -117,16 +125,15 @@ export async function checkHealth() {
 }
 
 export async function createTask(task: TaskCreate) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+  const token = getStoredToken();
   try {
-    const res = await fetch(`${API_BASE_URL}/tasks/`, {
+    const res = await apiFetch(`/tasks/`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
       },
       body: JSON.stringify(task),
-    });
+    }, token);
     if (!res.ok) throw new Error("Failed to create task");
     return await res.json();
   } catch (error) {
@@ -136,11 +143,9 @@ export async function createTask(task: TaskCreate) {
 }
 
 export async function getTask(id: number) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
+  const token = getStoredToken();
   try {
-    const res = await fetch(`${API_BASE_URL}/tasks/${id}`, {
-      headers: { "Authorization": `Bearer ${token}` }
-    });
+    const res = await apiFetch(`/tasks/${id}`, {}, token);
     if (!res.ok) throw new Error("Failed to fetch task");
     return await res.json();
   } catch (error) {
@@ -149,7 +154,7 @@ export async function getTask(id: number) {
   }
 }
 
-export async function sendCommand(command: string) {
+export async function sendCommand(command: string, token?: string) {
     // Determine type of command
     // Simple parsing for demo
     // e.g. "build user profile" -> POST /execute
@@ -159,7 +164,7 @@ export async function sendCommand(command: string) {
     if (command.startsWith("run: ") || command.startsWith("build ") || command.startsWith("create ")) {
         const description = command.replace("run: ", "");
         try {
-            const res = await fetch(`${API_BASE_URL}/execute`, {
+            const res = await apiFetch(`/execute`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -170,7 +175,7 @@ export async function sendCommand(command: string) {
                         requires_approval: true
                     }
                 })
-            });
+            }, token);
             return await res.json();
         } catch (error) {
             console.error("Command failed", error);
@@ -191,7 +196,7 @@ export interface SystemHealthData {
 export async function fetchSystemHealth(): Promise<Record<string, SystemHealthData>> {
   try {
     // Attempt to fetch from API
-    const res = await fetch(`${API_BASE_URL}/system/health`);
+    const res = await apiFetch(`/orchestrator/system/health`);
     if (!res.ok) throw new Error(`Status ${res.status}`);
     return await res.json();
   } catch (error) {
@@ -209,9 +214,9 @@ export async function fetchSystemHealth(): Promise<Record<string, SystemHealthDa
   }
 }
 
-export async function respondToApproval(approvalId: string, status: "approved" | "rejected") {
+export async function respondToApproval(approvalId: string, status: "approved" | "rejected", token?: string) {
     try {
-        const res = await fetch(`${API_BASE_URL}/approvals/respond`, {
+        const res = await apiFetch(`/orchestrator/approvals/respond`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -219,10 +224,18 @@ export async function respondToApproval(approvalId: string, status: "approved" |
                 status: status,
                 timestamp: new Date().toISOString()
             })
-        });
+        }, token);
         return await res.json();
     } catch (error) {
         console.error("Approval response failed", error);
         return { status: "error", message: String(error) };
     }
+}
+
+export function getApprovalsWebSocketUrl(token?: string) {
+  const protocol = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss:" : "ws:";
+  const origin = CORE_ORIGIN.replace(/^https?:/, protocol);
+  const t = token ?? getStoredToken();
+  const qs = t ? `?token=${encodeURIComponent(t)}` : "";
+  return `${origin}/api/v1/orchestrator/ws/approvals${qs}`;
 }

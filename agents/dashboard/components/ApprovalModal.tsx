@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, CheckCircle, XCircle } from "lucide-react";
-import { API_BASE_URL, respondToApproval } from "@/lib/api";
+import { getApprovalsWebSocketUrl, respondToApproval } from "@/lib/api";
 
 interface ApprovalRequest {
   id: string;
@@ -19,14 +19,7 @@ export function ApprovalModal() {
   const [requests, setRequests] = useState<ApprovalRequest[]>([]);
   
   useEffect(() => {
-    // Construct WS URL for Orchestrator (Port 8081)
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // Use window.location.hostname to automatically adapt to localhost/127.0.0.1/network IP
-    const hostname = window.location.hostname;
-    const orchestratorHost = `${hostname}:8081`;
-    const wsUrl = `${protocol}//${orchestratorHost}/ws/approvals`;
-    
-    console.log(`[ApprovalStream] Connecting to ${wsUrl}...`);
+    const wsUrl = getApprovalsWebSocketUrl();
     
     let socket: WebSocket | null = null;
     let retryTimeout: NodeJS.Timeout;

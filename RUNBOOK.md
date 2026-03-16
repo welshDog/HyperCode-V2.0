@@ -221,6 +221,23 @@ docker exec hypercode-core python -c "from app.db.session import engine; import 
 
 ---
 
+## 🎛️ Mission Control (Unified API)
+
+Mission Control (8088) uses a single API base (Core) and routes agent-ops via Core’s orchestrator gateway endpoints.
+
+- Login uses the seeded Core user from `seed_data.py` (default: `admin@hypercode.ai` / `adminpassword`).
+- Core gateway endpoints:
+  - `GET /api/v1/orchestrator/agents`
+  - `GET /api/v1/orchestrator/system/health`
+  - `POST /api/v1/orchestrator/approvals/respond`
+  - `WS  /api/v1/orchestrator/ws/approvals`
+
+Config:
+
+```env
+NEXT_PUBLIC_CORE_URL=http://127.0.0.1:8000
+```
+
 ## 🦅💊 Alpha Routing (Hunter/Healer)
 
 Alpha routing is **opt-in** and only activates when:
