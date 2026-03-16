@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 import pytest
 from typing import Generator, AsyncGenerator
 from fastapi.testclient import TestClient
@@ -89,4 +90,3 @@ def mock_anthropic_api_key(monkeypatch):
 def mock_openai_api_key(monkeypatch):
     """Mock OpenAI API key for tests."""
     monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-test-key-12345")
-

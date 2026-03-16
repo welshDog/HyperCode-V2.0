@@ -10,11 +10,16 @@ from opentelemetry.instrumentation.redis import RedisInstrumentor
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from app.core.config import settings
 import logging
+import os
 
 def setup_telemetry(app):
     """
     Configure OpenTelemetry for the FastAPI application.
     """
+    if os.getenv("OTEL_SDK_DISABLED", "").strip().lower() == "true":
+        logging.info("OpenTelemetry SDK is disabled.")
+        return
+
     if settings.OTLP_EXPORTER_DISABLED:
         logging.info("OpenTelemetry exporter is disabled.")
         return
