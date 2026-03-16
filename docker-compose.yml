@@ -167,6 +167,7 @@ services:
       - OTLP_ENDPOINT=http://tempo:4317
       - PROMETHEUS_METRICS_DISABLED=true
       - DB_AUTO_CREATE=true
+      - CORS_ALLOW_ORIGINS=${CORS_ALLOW_ORIGINS:-http://localhost:8088,http://127.0.0.1:8088,http://localhost:3000,http://127.0.0.1:3000}
     volumes:
       - ./backend/alembic:/app/alembic:ro
       - ./backend/alembic.ini:/app/alembic.ini:ro
