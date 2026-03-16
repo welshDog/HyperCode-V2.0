@@ -81,9 +81,15 @@ class TaskCreate(TaskBase):
     assignee_id: Optional[int] = None
     type: Optional[Annotated[str, Field(max_length=32)]] = "general"
 
-class TaskUpdate(TaskBase):
+class TaskUpdate(BaseModel):
+    title: Optional[Annotated[str, Field(min_length=1, max_length=200)]] = None
+    description: Optional[Annotated[str, Field(max_length=20000)]] = None
+    output: Optional[Annotated[str, Field(max_length=200000)]] = None
+    status: Optional[TaskStatus] = None
+    priority: Optional[Annotated[str, Field(max_length=32)]] = None
     project_id: Optional[int] = None
     assignee_id: Optional[int] = None
+    type: Optional[Annotated[str, Field(max_length=32)]] = None
 
 class Task(TaskBase):
     id: int

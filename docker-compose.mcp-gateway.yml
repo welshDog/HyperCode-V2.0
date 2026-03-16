@@ -174,12 +174,13 @@ services:
   mcp-postgres:
     image: node:20-alpine
     container_name: mcp-postgres
+    profiles: ["mcp"]
     command: >
       sh -c "npx -y @modelcontextprotocol/server-postgres
       postgresql://postgres:${POSTGRES_PASSWORD:-hypercode123}@postgres:5432/${POSTGRES_DB:-hypercode}"
     networks:
       - backend-net
-    restart: unless-stopped
+    restart: "no"
     security_opt:
       - no-new-privileges:true
     logging:
@@ -194,6 +195,7 @@ services:
   mcp-filesystem:
     image: node:20-alpine
     container_name: mcp-filesystem
+    profiles: ["mcp"]
     command: >
       sh -c "npx -y @modelcontextprotocol/server-filesystem /workspace /data"
     volumes:
@@ -201,7 +203,7 @@ services:
       - ./data:/data:rw
     networks:
       - backend-net
-    restart: unless-stopped
+    restart: "no"
     security_opt:
       - no-new-privileges:true
     logging:
