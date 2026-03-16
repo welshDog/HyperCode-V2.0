@@ -65,7 +65,6 @@ test-results/
 .lighthouseci/
 *.tsbuildinfo
 test.db
-test.db
 
 # Specific ignore patterns
 data/ollama/models
@@ -73,6 +72,8 @@ scripts/verify_env.py
 k8s/01-secrets.yaml
 k8s/02-secrets.yaml
 k8s/patch-secret.yaml
+nginx/ssl/privkey.pem
+hyper-mission-system/certs/localhost.key
 HEALTH_CHECK_STATUS_REPORT_*.md
 full-docker-health-report.json
 health_check_inventory.json
