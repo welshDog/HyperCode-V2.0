@@ -64,6 +64,7 @@ playwright-report/
 test-results/
 .lighthouseci/
 *.tsbuildinfo
+test.db
 
 # Specific ignore patterns
 data/ollama/models
