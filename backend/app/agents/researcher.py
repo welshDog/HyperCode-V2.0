@@ -13,7 +13,7 @@ class ResearchAgent:
     def __init__(self):
         self.role = "Research Specialist"
     
-    async def process(self, topic: str, context: dict = None) -> str:
+    async def process(self, topic: str, context: dict = None, conversation_id: str | None = None) -> str:
         """
         Conducts research on a given topic and uploads report to MinIO.
         """
@@ -36,7 +36,13 @@ class ResearchAgent:
         )
         
         # 1. Think
-        report_content = await brain.think(self.role, prompt)
+        report_content = await brain.think(
+            self.role,
+            prompt,
+            conversation_id=conversation_id,
+            agent_id="researcher",
+            memory_mode="self" if conversation_id else "none",
+        )
         
         # 2. Upload to MinIO (if context provided)
         if context and context.get("task_id"):

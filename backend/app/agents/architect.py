@@ -14,7 +14,7 @@ class ArchitectAgent:
     def __init__(self):
         self.role = "System Architect"
 
-    async def process(self, goal: str, context: dict = None) -> str:
+    async def process(self, goal: str, context: dict = None, conversation_id: str | None = None) -> str:
         """
         Executes the Multi-Agent Workflow: Plan -> Code -> Review.
         """
@@ -28,7 +28,13 @@ class ArchitectAgent:
             f"Create a detailed, step-by-step implementation plan. "
             f"Return ONLY a JSON array of steps, where each step has a 'title' and 'description'."
         )
-        plan_json_str = await brain.think("Planner Agent", plan_prompt)
+        plan_json_str = await brain.think(
+            "Planner Agent",
+            plan_prompt,
+            conversation_id=conversation_id,
+            agent_id="architect",
+            memory_mode="shared" if conversation_id else "none",
+        )
         
         # Simple cleanup to ensure JSON
         try:
@@ -56,7 +62,13 @@ class ArchitectAgent:
                 f"Context: We are building '{goal}'.\n"
                 f"Write the necessary code. Include comments. Return ONLY the code."
             )
-            code = await brain.think("Coder Agent", code_prompt)
+            code = await brain.think(
+                "Coder Agent",
+                code_prompt,
+                conversation_id=conversation_id,
+                agent_id="architect",
+                memory_mode="shared" if conversation_id else "none",
+            )
             code_artifacts.append(f"### Step {i+1}: {step_title}\n\n```python\n{code}\n```")
 
         # 3. REVIEWER AGENT
@@ -68,7 +80,13 @@ class ArchitectAgent:
             f"{full_code}\n"
             f"Provide a summary of issues and a 'Pass/Fail' grade."
         )
-        review = await brain.think("Reviewer Agent", review_prompt)
+        review = await brain.think(
+            "Reviewer Agent",
+            review_prompt,
+            conversation_id=conversation_id,
+            agent_id="architect",
+            memory_mode="shared" if conversation_id else "none",
+        )
 
         # 4. COMPILE REPORT
         final_report = (
