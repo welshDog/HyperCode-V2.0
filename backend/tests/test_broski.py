@@ -146,7 +146,6 @@ class TestAchievements:
         achievement = self._make_achievement("first_blood")
         db.query.return_value.filter_by.return_value.first.side_effect = [
             wallet,  # _get_or_create_wallet
-            None,    # check if earned (None = not yet earned)
             achievement,  # fetch achievement definition
         ]
 
@@ -176,7 +175,7 @@ class TestAchievements:
         db = make_db(wallet=wallet)
         achievement = self._make_achievement("early_bird", xp=30, coins=10)
         db.query.return_value.filter_by.return_value.first.side_effect = [
-            wallet, None, achievement
+            wallet, achievement
         ]
 
         with patch.object(broski_service, '_log_transaction'):
