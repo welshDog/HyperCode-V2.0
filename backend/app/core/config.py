@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional, List
+from typing import Optional, List, Literal
+
+PrivacyMode = Literal["redact", "none"]
 
 class Settings(BaseSettings):
     # App
@@ -45,14 +47,14 @@ class Settings(BaseSettings):
     HUNTER_ALPHA_BASE_URL: str = "https://openrouter.ai/api/v1"
     HUNTER_ALPHA_ROUTE_TAG: str = "meta-architect"
     HUNTER_ALPHA_MAX_TOKENS: int = 16000
-    HUNTER_ALPHA_PRIVACY_MODE: str = "redact"
+    HUNTER_ALPHA_PRIVACY_MODE: PrivacyMode = "redact"
 
     HEALER_ALPHA_ENABLED: bool = False
     HEALER_ALPHA_MODEL: str = "openrouter/openrouter/healer-alpha"
     HEALER_ALPHA_BASE_URL: str = "https://openrouter.ai/api/v1"
     HEALER_ALPHA_ROUTE_TAG: str = "incident-healing"
     HEALER_ALPHA_MAX_TOKENS: int = 12000
-    HEALER_ALPHA_PRIVACY_MODE: str = "redact"
+    HEALER_ALPHA_PRIVACY_MODE: PrivacyMode = "redact"
 
     def ollama_generate_options(self) -> dict:
         options: dict = {
