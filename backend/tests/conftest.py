@@ -3,6 +3,7 @@
 import asyncio
 import os
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
+os.environ["ENVIRONMENT"] = "test"
 import pytest
 from typing import Generator, AsyncGenerator
 from fastapi.testclient import TestClient

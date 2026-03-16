@@ -6,7 +6,7 @@ class _BrainStub:
         self._content = content
         self.calls: list[tuple[str, str]] = []
 
-    async def think(self, role: str, prompt: str, use_memory: bool = False) -> str:
+    async def think(self, role: str, prompt: str, use_memory: bool = False, **kwargs) -> str:
         self.calls.append((role, prompt))
         return self._content
 
@@ -49,4 +49,3 @@ async def test_researcher_process_handles_upload_exception(monkeypatch):
     result = await agent.process("topic", context={"task_id": "t1"})
     assert "Archive Error" in result
     assert "minio down" in result
-
