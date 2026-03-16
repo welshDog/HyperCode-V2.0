@@ -218,6 +218,45 @@ docker exec hypercode-core python -c "from app.db.session import engine; import 
 | Prometheus | http://127.0.0.1:9090 | Metrics |
 | Ollama | http://127.0.0.1:11434 | Local LLM |
 | MinIO | http://127.0.0.1:9000 | Object storage |
+
+---
+
+## 🦅💊 Alpha Routing (Hunter/Healer)
+
+Alpha routing is **opt-in** and only activates when:
+- `OPENROUTER_API_KEY` is set, and
+- the caller passes `route_context=...` into the Brain/agent path.
+
+### Enable (dev/staging)
+
+Add to your environment (examples):
+
+```env
+OPENROUTER_API_KEY=...
+
+HUNTER_ALPHA_ENABLED=true
+HUNTER_ALPHA_PRIVACY_MODE=redact
+
+HEALER_ALPHA_ENABLED=true
+HEALER_ALPHA_PRIVACY_MODE=redact
+```
+
+### Verify (safe, no secrets)
+
+```powershell
+docker exec hypercode-core python -c "from app.core.config import settings; from app.core.model_routes import ModelRouteContext, select_model_route; settings.HUNTER_ALPHA_ENABLED=True; print(select_model_route(ModelRouteContext(kind='architecture',cross_repo=True), settings))"
+```
+
+### Rollback
+
+Rollback is env-only:
+- set `HUNTER_ALPHA_ENABLED=false`
+- set `HEALER_ALPHA_ENABLED=false`
+- remove `OPENROUTER_API_KEY`
+
+Validation after rollback:
+- no OpenRouter requests occur
+- local Ollama and existing cloud fallback behavior remain unchanged
 | pgAdmin | http://127.0.0.1:59080 | DB admin UI |
 
 ---

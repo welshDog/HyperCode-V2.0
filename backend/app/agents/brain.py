@@ -136,7 +136,7 @@ class Brain:
                         api_key=settings.OPENROUTER_API_KEY,
                         model=route.model,
                         max_tokens=route.max_tokens,
-                        privacy_mode=route.privacy_mode,  # type: ignore[arg-type]
+                        privacy_mode=route.privacy_mode,
                         messages=[
                             {"role": "system", "content": f"You are a {role}."},
                             {"role": "user", "content": task_description},

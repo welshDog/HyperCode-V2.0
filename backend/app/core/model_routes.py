@@ -121,7 +121,7 @@ async def openrouter_chat(
     async with httpx.AsyncClient(timeout=timeout_seconds) as client:
         resp = await client.post(f"{base_url.rstrip('/')}/chat/completions", json=payload, headers=headers)
         if resp.status_code != 200:
-            raise RuntimeError(f"OpenRouter error {resp.status_code}: {resp.text}")
+            body_preview = (resp.text or "")[:500]
+            raise RuntimeError(f"OpenRouter error {resp.status_code}: {body_preview}")
         data = resp.json()
         return data["choices"][0]["message"]["content"]
-

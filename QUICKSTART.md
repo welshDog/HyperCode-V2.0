@@ -95,6 +95,24 @@ Success = Celery logs show `✅ Updated Task X` and `✅ Saved output for Task X
 
 ---
 
+## 🦅💊 Alpha Routing (Hunter/Healer)
+
+Alpha routing is **opt-in** and only activates when `OPENROUTER_API_KEY` is set and the caller uses a `route_context`.
+
+Enable in dev/staging by setting:
+
+```env
+OPENROUTER_API_KEY=...
+HUNTER_ALPHA_ENABLED=true
+HEALER_ALPHA_ENABLED=true
+```
+
+Rollback:
+- set both enable flags to `false`
+- remove `OPENROUTER_API_KEY`
+
+---
+
 ## 🛠️ Common Commands
 
 ```powershell
