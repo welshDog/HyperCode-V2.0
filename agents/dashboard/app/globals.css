@@ -6,14 +6,17 @@
 }
 
 :root {
-  --background: #050505;
-  --foreground: #00f0ff;
+  --background: var(--hc-color-bg, #050505);
+  --foreground: var(--hc-color-text-primary, #00f0ff);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-mono);
+  font-family: var(--hc-font-body, var(--font-mono));
+  letter-spacing: var(--hc-letter-spacing, 0.01em);
+  line-height: var(--hc-line-height, 1.6);
+  filter: var(--hc-saturation-filter, saturate(1));
 }
 
 /* Scrollbar */
