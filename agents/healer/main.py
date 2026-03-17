@@ -44,6 +44,10 @@ WATCHDOG_ORCHESTRATOR_API_KEY = os.getenv("HEALER_ORCHESTRATOR_API_KEY", "").str
 WATCHDOG_AGENT = os.getenv("HEALER_WATCHDOG_AGENT", "").strip()
 WATCHDOG_FORCE_RESTART = os.getenv("HEALER_WATCHDOG_FORCE_RESTART", "false").strip().lower() == "true"
 
+DASHBOARD_HEALTH_URL = os.getenv("HEALER_DASHBOARD_HEALTH_URL", "http://dashboard:3000/api/health").strip()
+DASHBOARD_HEALTH_INTERVAL_SECONDS = float(os.getenv("HEALER_DASHBOARD_HEALTH_INTERVAL", "30").strip() or "30")
+DASHBOARD_CONTAINER_NAME = os.getenv("HEALER_DASHBOARD_CONTAINER", "hypercode-dashboard").strip() or "hypercode-dashboard"
+
 redis_client: Optional[redis.Redis] = None
 docker_adapter: Optional[DockerAdapter] = None
 
@@ -95,6 +99,7 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(alert_listener())
     if WATCHDOG_ENABLED:
         asyncio.create_task(watchdog_loop())
+    asyncio.create_task(dashboard_health_loop())
     
     logger.info("Healer Agent started - monitoring system health")
     
@@ -242,6 +247,107 @@ async def ping_agent_health(agent_url: str, timeout: float) -> bool:
     except Exception as e:
         logger.debug(f"Health check failed for {agent_url}: {e}")
         return False
+
+
+async def ping_url(url: str, timeout: float) -> bool:
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            r = await client.get(url)
+            return r.status_code == 200
+    except Exception:
+        return False
+
+
+async def attempt_heal_dashboard(attempts: int, timeout: float, force_restart: bool = False) -> HealResult:
+    if circuit_breaker.is_open(DASHBOARD_CONTAINER_NAME):
+        logger.warning(f"Circuit breaker OPEN for {DASHBOARD_CONTAINER_NAME} - skipping heal attempt")
+        return HealResult(
+            agent=DASHBOARD_CONTAINER_NAME,
+            status="circuit_open",
+            action="none",
+            details="Too many consecutive failures - circuit breaker active (will retry in 60s)",
+            timestamp=datetime.now().isoformat(),
+        )
+
+    healthy = await ping_url(DASHBOARD_HEALTH_URL, timeout)
+    if healthy:
+        circuit_breaker.record_success(DASHBOARD_CONTAINER_NAME)
+        return HealResult(
+            agent=DASHBOARD_CONTAINER_NAME,
+            status="healthy",
+            action="none",
+            details="No action required",
+            timestamp=datetime.now().isoformat(),
+        )
+
+    if not docker_adapter:
+        logger.error("Docker adapter not initialized")
+        circuit_breaker.record_failure(DASHBOARD_CONTAINER_NAME)
+        return HealResult(
+            agent=DASHBOARD_CONTAINER_NAME,
+            status="failed",
+            action="restart",
+            details="Docker adapter unavailable",
+            timestamp=datetime.now().isoformat(),
+        )
+
+    restarted = await docker_adapter.restart_container(DASHBOARD_CONTAINER_NAME, force=force_restart)
+    if not restarted:
+        circuit_breaker.record_failure(DASHBOARD_CONTAINER_NAME)
+        return HealResult(
+            agent=DASHBOARD_CONTAINER_NAME,
+            status="failed",
+            action="restart",
+            details="Docker restart command failed",
+            timestamp=datetime.now().isoformat(),
+        )
+
+    wait_times = [2, 5, 10]
+    if attempts > 0:
+        wait_times = wait_times[: max(1, min(attempts, len(wait_times)))]
+
+    for wait_time in wait_times:
+        await asyncio.sleep(wait_time)
+        try:
+            is_healthy = await asyncio.wait_for(ping_url(DASHBOARD_HEALTH_URL, timeout), timeout=timeout + 1.0)
+            if is_healthy:
+                circuit_breaker.record_success(DASHBOARD_CONTAINER_NAME)
+                return HealResult(
+                    agent=DASHBOARD_CONTAINER_NAME,
+                    status="recovered",
+                    action="restart",
+                    details=f"Restart successful - recovered after {wait_time}s",
+                    timestamp=datetime.now().isoformat(),
+                )
+        except Exception:
+            continue
+
+    circuit_breaker.record_failure(DASHBOARD_CONTAINER_NAME)
+    return HealResult(
+        agent=DASHBOARD_CONTAINER_NAME,
+        status="failed",
+        action="restart",
+        details="Dashboard unhealthy after restart and multiple checks",
+        timestamp=datetime.now().isoformat(),
+    )
+
+
+async def dashboard_health_loop() -> None:
+    if not DASHBOARD_HEALTH_URL:
+        return
+    await asyncio.sleep(5.0)
+    while True:
+        try:
+            ok = await ping_url(DASHBOARD_HEALTH_URL, timeout=8.0)
+            if ok:
+                circuit_breaker.record_success(DASHBOARD_CONTAINER_NAME)
+            else:
+                circuit_breaker.record_failure(DASHBOARD_CONTAINER_NAME)
+                if not circuit_breaker.is_open(DASHBOARD_CONTAINER_NAME):
+                    asyncio.create_task(attempt_heal_dashboard(attempts=2, timeout=8.0, force_restart=False))
+        except Exception:
+            circuit_breaker.record_failure(DASHBOARD_CONTAINER_NAME)
+        await asyncio.sleep(max(DASHBOARD_HEALTH_INTERVAL_SECONDS, 5.0))
 
 
 async def attempt_heal_agent(

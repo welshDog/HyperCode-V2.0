@@ -1219,6 +1219,9 @@ services:
       - HEALER_WATCHDOG_AGENT=${HEALER_WATCHDOG_AGENT:-}
       - HEALER_WATCHDOG_FORCE_RESTART=${HEALER_WATCHDOG_FORCE_RESTART:-false}
       - HEALER_WATCHED_SERVICES=${HEALER_WATCHED_SERVICES:-hypercode-core,redis,postgres,celery-worker,hypercode-ollama,healer-agent}
+      - HEALER_DASHBOARD_HEALTH_URL=${HEALER_DASHBOARD_HEALTH_URL:-http://dashboard:3000/api/health}
+      - HEALER_DASHBOARD_HEALTH_INTERVAL=${HEALER_DASHBOARD_HEALTH_INTERVAL:-30}
+      - HEALER_DASHBOARD_CONTAINER=${HEALER_DASHBOARD_CONTAINER:-hypercode-dashboard}
     volumes:
       - ./agents/healer:/app/healer
       - ./Configuration_Kit:/app/hive_mind:ro

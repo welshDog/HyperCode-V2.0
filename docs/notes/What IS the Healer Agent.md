@@ -68,6 +68,9 @@ The Healer Agent is an autonomous resiliency service for HyperCode. It continuou
 - Env:
   - `REDIS_URL` (default `redis://redis:6379`)
   - `ORCHESTRATOR_URL` (default `http://crew-orchestrator:8080`)
+  - `HEALER_DASHBOARD_HEALTH_URL` (default `http://dashboard:3000/api/health`)
+  - `HEALER_DASHBOARD_HEALTH_INTERVAL` (default `30`)
+  - `HEALER_DASHBOARD_CONTAINER` (default `hypercode-dashboard`)
 - Cadence: Monitor loop runs every 30s; alert threshold is 4 agents.
 - Timeouts: Default 5s per health ping; configurable via `POST /heal`.
 - Retries: Default 2 attempts with incremental backoff.
