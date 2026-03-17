@@ -1,0 +1,68 @@
+name: Accessibility CI Gate
+
+on:
+  push:
+    branches: [ "main", "production", "feature/**", "fix/**" ]
+  pull_request:
+    branches: [ "main", "production" ]
+  schedule:
+    - cron: "0 2 * * *"
+
+jobs:
+  a11y-dashboard:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dashboard deps
+        working-directory: agents/dashboard
+        run: npm ci
+
+      - name: Build dashboard
+        working-directory: agents/dashboard
+        run: npm run build
+
+      - name: Start dashboard
+        working-directory: agents/dashboard
+        env:
+          PORT: "8088"
+        run: |
+          npm run start &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:8088/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Run axe-core scan
+        run: |
+          mkdir -p reports
+          npx -y @axe-core/cli http://127.0.0.1:8088/ -d reports -s axe.json --timeout 90
+
+      - name: Enforce a11y gate
+        run: python scripts/check_a11y_gate.py --report reports/axe.json --fail-on CRITICAL,HIGH
+
+      - name: Upload a11y report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a11y-dashboard-${{ github.run_number }}
+          path: reports/axe.json
+          retention-days: 30
+
