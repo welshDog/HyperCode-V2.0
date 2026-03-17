@@ -23,6 +23,7 @@ import { ApprovalModal } from "@/components/ApprovalModal";
 import { SystemHealth } from "@/components/SystemHealth";
 import { MetricsPanel } from "@/components/MetricsPanel";
 import { BroskiWalletWidget } from "@/components/BroskiWalletWidget";
+import { CognitiveLoadMeter } from "@/components/CognitiveLoadMeter";
 import NeuralViz from "@/components/NeuralViz";
 import CognitiveUplink from "@/components/CognitiveUplink";
 import { HyperCanvas } from "@/components/canvas/HyperCanvas";
@@ -350,11 +351,12 @@ export default function Dashboard() {
             {activeTab === 'uplink' && (
                <div className="flex flex-col h-full" role="tabpanel" id="panel-uplink" aria-labelledby="tab-uplink" tabIndex={0}>
                   <div className="p-6 pb-0">
-                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
+                     <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 items-start">
                        <div className="xl:col-span-2">
                          <MetricsPanel />
                        </div>
                        <BroskiWalletWidget />
+                       <CognitiveLoadMeter connected={connected} agents={agents} tasks={tasks} logs={logs} />
                      </div>
                   </div>
                   <div className="flex-1 min-h-0">
