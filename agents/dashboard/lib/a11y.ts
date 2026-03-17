@@ -24,7 +24,7 @@ export function diffAgentStatusAnnouncements(
       assertive.push(`${a.name} status error`);
       continue;
     }
-    if (p.status === "error" && a.status !== "error") {
+    if (p.status === "error") {
       polite.push(`${a.name} recovered`);
       continue;
     }
