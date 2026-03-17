@@ -36,6 +36,10 @@ jobs:
         working-directory: agents/dashboard
         run: npm run build
 
+      - name: Verify standalone assets
+        working-directory: agents/dashboard
+        run: npm run verify:standalone
+
       - name: Install Chrome + ChromeDriver (synced)
         run: |
           OUT="$(npx -y browser-driver-manager install chrome)"
@@ -55,7 +59,7 @@ jobs:
           PORT: "8088"
           HOSTNAME: "127.0.0.1"
         run: |
-          node .next/standalone/agents/dashboard/server.js &
+          npm run start:standalone &
           for i in {1..60}; do
             if curl -fsS http://127.0.0.1:8088/ >/dev/null; then
               exit 0
