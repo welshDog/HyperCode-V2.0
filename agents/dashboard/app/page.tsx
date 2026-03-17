@@ -49,11 +49,10 @@ interface Log {
 // --- Components ---
 
 const AgentCard = ({ agent }: { agent: Agent }) => (
-  <motion.div 
+  <motion.li 
     layout
     initial={{ opacity: 0, x: -20 }}
     animate={{ opacity: 1, x: 0 }}
-    role="listitem"
     aria-label={`${agent.name} (${agent.role}) status ${agent.status}`}
     className={clsx(
       "relative p-4 rounded-sm border-l-4 bg-zinc-900/50 backdrop-blur-sm transition-all cursor-default",
@@ -114,7 +113,7 @@ const AgentCard = ({ agent }: { agent: Agent }) => (
         />
       </div>
     </div>
-  </motion.div>
+  </motion.li>
 );
 
 const LogEntry = ({ log }: { log: Log }) => (
@@ -270,14 +269,14 @@ export default function Dashboard() {
           <h2 className="text-xs font-bold text-zinc-600 uppercase tracking-widest mb-2 flex items-center gap-2">
             <Shield size={12} aria-hidden="true" /> Active Agents
           </h2>
-          <div className="space-y-3" aria-label="Agent list">
+          <ul className="space-y-3" aria-label="Agent list">
             {agents.length === 0 && !connected && (
-                <div className="text-xs text-zinc-500 text-center py-4" role="status" aria-live="polite">Connecting to Neural Net...</div>
+                <li className="text-xs text-zinc-500 text-center py-4" aria-live="polite">Connecting to Neural Net...</li>
             )}
             {agents.map(agent => (
               <AgentCard key={agent.id} agent={agent} />
             ))}
-          </div>
+          </ul>
         </aside>
 
         {/* Center Panel: Viewport */}
