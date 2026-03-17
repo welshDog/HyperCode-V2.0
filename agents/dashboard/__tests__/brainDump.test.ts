@@ -1,135 +1,83 @@
-import {
-  parseBrainDump,
-  detectPriority,
-  detectTags,
-  scoreEffort,
-  splitIntoLines,
-} from '../lib/brainDump';
+import { chunkBrainDump, EFFORT_LABELS, CATEGORY_EMOJI } from '../lib/brainDump';
 
-describe('splitIntoLines', () => {
-  it('splits newline-separated thoughts', () => {
-    const result = splitIntoLines('fix auth bug\nupdate readme\nrefactor agent');
-    expect(result).toHaveLength(3);
+describe('chunkBrainDump', () => {
+  test('returns empty result for empty input', () => {
+    const result = chunkBrainDump('');
+    expect(result.tasks).toHaveLength(0);
+    expect(result.overloadWarning).toBe(false);
+    expect(result.suggestedFocus).toBeNull();
   });
 
-  it('strips bullet prefixes', () => {
-    const result = splitIntoLines('- fix the thing\n• another task\n* third one');
-    expect(result[0]).toBe('fix the thing');
-    expect(result[1]).toBe('another task');
-    expect(result[2]).toBe('third one');
+  test('returns empty result for whitespace-only input', () => {
+    const result = chunkBrainDump('   \n  ');
+    expect(result.tasks).toHaveLength(0);
   });
 
-  it('strips numbered list prefixes', () => {
-    const result = splitIntoLines('1. first task\n2. second task');
-    expect(result[0]).toBe('first task');
-    expect(result[1]).toBe('second task');
+  test('splits comma-separated tasks', () => {
+    const result = chunkBrainDump('fix auth bug, email client, research aria');
+    expect(result.tasks.length).toBeGreaterThanOrEqual(3);
   });
 
-  it('filters out very short lines', () => {
-    const result = splitIntoLines('ok\nfix the auth bug\nhi');
-    expect(result).toHaveLength(1);
-  });
-});
-
-describe('detectPriority', () => {
-  it('returns critical for urgent keywords', () => {
-    expect(detectPriority('fix auth ASAP it is broken')).toBe('critical');
-    expect(detectPriority('urgent: server is down')).toBe('critical');
+  test('splits newline-separated tasks', () => {
+    const result = chunkBrainDump('fix auth bug\nemail client\nresearch aria');
+    expect(result.tasks.length).toBeGreaterThanOrEqual(3);
   });
 
-  it('returns high for must/need/today keywords', () => {
-    expect(detectPriority('must update the deployment today')).toBe('high');
-    expect(detectPriority('need to fix the blocking issue')).toBe('high');
+  test('detects code category', () => {
+    const result = chunkBrainDump('fix the authentication bug');
+    const codeTask = result.tasks.find((t) => t.category === 'code');
+    expect(codeTask).toBeDefined();
   });
 
-  it('returns low for maybe/someday keywords', () => {
-    expect(detectPriority('maybe explore chroma embeddings someday')).toBe('low');
-    expect(detectPriority('nice to have: dark mode on settings page')).toBe('low');
+  test('detects comms category', () => {
+    const result = chunkBrainDump('email client about invoice');
+    const commsTask = result.tasks.find((t) => t.category === 'comms');
+    expect(commsTask).toBeDefined();
   });
 
-  it('defaults to medium for neutral text', () => {
-    expect(detectPriority('refactor the polling logic')).toBe('medium');
-  });
-});
-
-describe('detectTags', () => {
-  it('detects python tag', () => {
-    expect(detectTags('update the fastapi endpoint')).toContain('🐍 python');
+  test('detects urgent flag', () => {
+    const result = chunkBrainDump('fix auth bug URGENT');
+    expect(result.tasks[0].urgent).toBe(true);
   });
 
-  it('detects docker tag', () => {
-    expect(detectTags('fix the dockerfile and compose setup')).toContain('🐳 docker');
+  test('non-urgent task has urgent=false', () => {
+    const result = chunkBrainDump('research aria patterns');
+    expect(result.tasks[0].urgent).toBe(false);
   });
 
-  it('detects multiple tags', () => {
-    const tags = detectTags('write pytest tests for the api endpoint');
-    expect(tags).toContain('🧪 tests');
-    expect(tags).toContain('📡 api');
+  test('sets overloadWarning when >7 tasks', () => {
+    const dump = 'a, b, c, d, e, f, g, h';
+    const result = chunkBrainDump(dump);
+    expect(result.overloadWarning).toBe(true);
   });
 
-  it('returns empty array for untagged text', () => {
-    expect(detectTags('take a break and stretch')).toEqual([]);
-  });
-});
-
-describe('scoreEffort', () => {
-  it('scores quick tasks as 1', () => {
-    expect(scoreEffort('quick fix to the readme')).toBe(1);
+  test('no overloadWarning for <=7 tasks', () => {
+    const result = chunkBrainDump('fix bug, email client, research');
+    expect(result.overloadWarning).toBe(false);
   });
 
-  it('scores build/create tasks as 4', () => {
-    expect(scoreEffort('build the new auth system')).toBe(4);
+  test('suggestedFocus picks urgent task first', () => {
+    const result = chunkBrainDump('research aria, fix auth URGENT, email client');
+    expect(result.suggestedFocus?.urgent).toBe(true);
   });
 
-  it('scores rewrite/overhaul as 5', () => {
-    expect(scoreEffort('overhaul the entire agent architecture big rework')).toBe(5);
+  test('suggestedFocus picks lowest effort when no urgent tasks', () => {
+    const result = chunkBrainDump('big refactor of the entire authentication system and deploy, fix typo');
+    // "fix typo" should be lower effort
+    expect(result.suggestedFocus).not.toBeNull();
+    expect(result.suggestedFocus!.effort).toBeLessThanOrEqual(3);
   });
 
-  it('uses word-count heuristic for neutral text', () => {
-    expect(scoreEffort('update the thing')).toBeLessThanOrEqual(2);
-  });
-});
-
-describe('parseBrainDump', () => {
-  it('returns micro-tasks with all fields', () => {
-    const tasks = parseBrainDump('fix auth bug urgently\nmaybe explore embeddings');
-    expect(tasks.length).toBe(2);
-    tasks.forEach(t => {
-      expect(t).toHaveProperty('id');
-      expect(t).toHaveProperty('text');
-      expect(t).toHaveProperty('effort');
-      expect(t).toHaveProperty('priority');
-      expect(t).toHaveProperty('tags');
-      expect(t).toHaveProperty('done', false);
-    });
+  test('task text is capitalised', () => {
+    const result = chunkBrainDump('fix the bug');
+    expect(result.tasks[0].text[0]).toBe(result.tasks[0].text[0].toUpperCase());
   });
 
-  it('sorts critical tasks first', () => {
-    const tasks = parseBrainDump(
-      'maybe nice to have feature\nurgent: server is down\nnormal update'
-    );
-    expect(tasks[0].priority).toBe('critical');
+  test('EFFORT_LABELS covers all scores', () => {
+    expect(Object.keys(EFFORT_LABELS)).toHaveLength(5);
   });
 
-  it('handles bullet + numbered mixed input', () => {
-    const tasks = parseBrainDump(
-      '1. fix the docker compose setup\n- update the fastapi routes\n• write tests for agent'
-    );
-    expect(tasks.length).toBe(3);
-  });
-
-  it('returns empty array for empty input', () => {
-    expect(parseBrainDump('')).toEqual([]);
-    expect(parseBrainDump('\n\n  ')).toEqual([]);
-  });
-
-  it('effort values are within 1-5 range', () => {
-    const tasks = parseBrainDump(
-      'quick fix\nsimple update\nrefactor the agent polling\nbuild new auth\noverhaul entire system'
-    );
-    tasks.forEach(t => {
-      expect(t.effort).toBeGreaterThanOrEqual(1);
-      expect(t.effort).toBeLessThanOrEqual(5);
-    });
+  test('CATEGORY_EMOJI covers all categories', () => {
+    expect(Object.keys(CATEGORY_EMOJI)).toHaveLength(7);
   });
 });
