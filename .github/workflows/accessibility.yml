@@ -69,14 +69,20 @@ jobs:
           mkdir -p reports
           npx -y @axe-core/cli http://127.0.0.1:8088/ -d reports -s axe.json --timeout 90 --chrome-path "$CHROME_PATH" --chromedriver-path "$CHROMEDRIVER_PATH"
 
+      - name: Run axe-core scan (auth dialog)
+        run: |
+          npx -y @axe-core/cli http://127.0.0.1:8088/ -d reports -s axe-auth.json --timeout 90 --load-delay 2000 -i 'div[role="dialog"]' --chrome-path "$CHROME_PATH" --chromedriver-path "$CHROMEDRIVER_PATH"
+
       - name: Enforce a11y gate
-        run: python scripts/check_a11y_gate.py --report reports/axe.json --fail-on CRITICAL,HIGH
+        run: |
+          python scripts/check_a11y_gate.py --report reports/axe.json --fail-on CRITICAL,HIGH
+          python scripts/check_a11y_gate.py --report reports/axe-auth.json --fail-on CRITICAL,HIGH
 
       - name: Upload a11y report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: a11y-dashboard-${{ github.run_number }}
-          path: reports/axe.json
+          path: reports/*.json
           retention-days: 30
 
