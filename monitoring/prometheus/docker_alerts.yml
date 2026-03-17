@@ -20,6 +20,15 @@ groups:
       summary: "Container absent (instance {{ $labels.instance }})"
       description: "A container is absent for 5 min\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
 
+  - alert: DashboardContainerMissing
+    expr: absent(container_last_seen{name="hypercode-dashboard"})
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Dashboard container missing"
+      description: "The hypercode-dashboard container has not been observed by cAdvisor for > 1 minute."
+
   - alert: ContainerHighCpuUsage
     expr: (sum(rate(container_cpu_usage_seconds_total[3m])) BY (instance, name) * 100) > 80
     for: 2m
