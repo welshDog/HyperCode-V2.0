@@ -18,6 +18,12 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Validate ND plugin manifests
+        run: |
+          python -m pip install --upgrade pip
+          pip install jsonschema
+          python scripts/validate_nd_plugin_manifest.py --paths templates
+
       - name: Install deps
         working-directory: backend
         run: |
