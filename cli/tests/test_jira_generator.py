@@ -1,6 +1,6 @@
-from jira.models import TicketPayload, TicketType
-from jira.generator import generate_json_payload, generate_csv_payload
-from jira.validator import validate_ticket
+from cli.jira.models import TicketPayload, TicketType
+from cli.jira.generator import generate_csv_payload, generate_json_payload
+from cli.jira.validator import validate_ticket
 
 
 def test_json_generation_story():

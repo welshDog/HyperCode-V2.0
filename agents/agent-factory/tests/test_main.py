@@ -1,12 +1,19 @@
 import pytest
 import sys
 import os
+import importlib.util
 from fastapi.testclient import TestClient
 
-# Add parent directory to path to import main
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_MODULE_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "main.py")
+_SPEC = importlib.util.spec_from_file_location("agent_factory_main", _MODULE_PATH)
+if _SPEC is None or _SPEC.loader is None:
+    raise RuntimeError("Failed to load agent-factory main module")
+_MOD = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(_MOD)
 
-from main import app, REGISTRY, BLUEPRINTS
+app = _MOD.app
+REGISTRY = _MOD.REGISTRY
+BLUEPRINTS = _MOD.BLUEPRINTS
 
 client = TestClient(app)
 
