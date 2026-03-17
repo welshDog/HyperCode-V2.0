@@ -1,6 +1,17 @@
 "use client";
 
 type Politeness = "polite" | "assertive";
+type Relevant =
+  | "additions"
+  | "additions text"
+  | "additions removals"
+  | "all"
+  | "removals"
+  | "removals additions"
+  | "removals text"
+  | "text"
+  | "text additions"
+  | "text removals";
 
 export function LiveRegion({
   message,
@@ -12,7 +23,7 @@ export function LiveRegion({
   message: string;
   politeness?: Politeness;
   atomic?: boolean;
-  relevant?: string;
+  relevant?: Relevant;
   busy?: boolean;
 }) {
   const role = politeness === "assertive" ? "alert" : "status";
