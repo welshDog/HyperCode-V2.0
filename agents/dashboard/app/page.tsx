@@ -26,6 +26,7 @@ import { BroskiWalletWidget } from "@/components/BroskiWalletWidget";
 import NeuralViz from "@/components/NeuralViz";
 import CognitiveUplink from "@/components/CognitiveUplink";
 import { HyperCanvas } from "@/components/canvas/HyperCanvas";
+import { SensoryThemeSwitcher } from "@/app/themes/SensoryThemeSwitcher";
 
 // --- Type Definitions ---
 interface Agent {
@@ -243,6 +244,7 @@ export default function Dashboard() {
           </h1>
         </div>
         <div className="flex items-center gap-6 text-xs font-mono text-zinc-500">
+          <SensoryThemeSwitcher />
            <div className="flex items-center gap-2" title={`API: ${API_BASE_URL}`} role="status" aria-live="polite" aria-label={`API status: ${connected ? "connected" : "offline"}`}>
             {connected ? <Wifi size={14} className="text-emerald-500" aria-hidden="true" /> : <WifiOff size={14} className="text-red-500" aria-hidden="true" />}
             <span className={connected ? "text-emerald-500" : "text-red-500"}>
@@ -261,14 +263,14 @@ export default function Dashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden">
         
         {/* Left Panel: The Crew */}
         <aside className="w-64 border-r border-zinc-800 bg-black/20 flex flex-col p-4 gap-4 overflow-y-auto shrink-0" aria-label="Active agents">
           <h2 className="text-xs font-bold text-zinc-600 uppercase tracking-widest mb-2 flex items-center gap-2">
             <Shield size={12} aria-hidden="true" /> Active Agents
           </h2>
-          <div className="space-y-3" role="list" aria-label="Agent list">
+          <div className="space-y-3" aria-label="Agent list">
             {agents.length === 0 && !connected && (
                 <div className="text-xs text-zinc-500 text-center py-4" role="status" aria-live="polite">Connecting to Neural Net...</div>
             )}
@@ -456,7 +458,7 @@ export default function Dashboard() {
           </div>
 
         </aside>
-      </main>
+      </div>
 
       {!token && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="auth-title">

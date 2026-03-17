@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Orbitron } from "next/font/google";
 import "./globals.css";
+import "./themes/sensory-themes.css";
+import { SensoryThemeProvider } from "./themes/SensoryThemeProvider";
 
 const mono = JetBrains_Mono({
   subsets: ["latin"],
@@ -53,7 +55,7 @@ export default function RootLayout({
           className="relative z-10 h-screen w-screen flex flex-col"
           tabIndex={-1}
         >
-          {children}
+          <SensoryThemeProvider>{children}</SensoryThemeProvider>
         </main>
       </body>
     </html>
