@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 import { getApprovalsWebSocketUrl, respondToApproval } from "@/lib/api";
+import { LiveRegion } from "@/components/a11y/LiveRegion";
 
 interface ApprovalRequest {
   id: string;
@@ -92,16 +93,21 @@ export function ApprovalModal() {
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="approval-title"
+        aria-describedby="approval-description"
       >
         <div className="bg-zinc-900 border border-yellow-500/50 w-full max-w-lg rounded-lg shadow-[0_0_50px_rgba(234,179,8,0.2)] overflow-hidden">
+          <LiveRegion message={`Approval required. ${currentRequest.description}`} politeness="assertive" atomic relevant="additions text" />
           
           {/* Header */}
           <div className="bg-yellow-500/10 border-b border-yellow-500/20 p-4 flex items-center gap-3">
              <div className="p-2 bg-yellow-500/20 rounded-full animate-pulse">
-                <AlertTriangle className="text-yellow-500" size={24} />
+                <AlertTriangle className="text-yellow-500" size={24} aria-hidden="true" />
              </div>
              <div>
-                <h3 className="text-yellow-500 font-bold tracking-widest uppercase text-sm">Authorization Required</h3>
+                <h3 id="approval-title" className="text-yellow-500 font-bold tracking-widest uppercase text-sm">Authorization Required</h3>
                 <p className="text-zinc-400 text-xs">Awaiting human oversight protocol</p>
              </div>
           </div>
@@ -119,7 +125,7 @@ export function ApprovalModal() {
                 <span className="text-emerald-400">{currentRequest.risk_level || "Unknown"}</span>
              </div>
              
-             <div className="bg-black/40 border border-zinc-800 p-3 rounded text-zinc-300">
+             <div id="approval-description" className="bg-black/40 border border-zinc-800 p-3 rounded text-zinc-300">
                 <p className="text-xs text-zinc-500 mb-1 uppercase">Description</p>
                 {currentRequest.description}
              </div>
@@ -138,13 +144,13 @@ export function ApprovalModal() {
                onClick={() => handleRespond(currentRequest.id, "rejected")}
                className="flex-1 py-3 bg-red-900/20 border border-red-900/50 text-red-500 hover:bg-red-500 hover:text-white transition-all rounded font-bold uppercase tracking-wider flex items-center justify-center gap-2"
              >
-                <XCircle size={18} /> Abort
+                <XCircle size={18} aria-hidden="true" /> Abort
              </button>
              <button 
                onClick={() => handleRespond(currentRequest.id, "approved")}
                className="flex-1 py-3 bg-emerald-900/20 border border-emerald-900/50 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all rounded font-bold uppercase tracking-wider flex items-center justify-center gap-2"
              >
-                <CheckCircle size={18} /> Authorize
+                <CheckCircle size={18} aria-hidden="true" /> Authorize
              </button>
           </div>
           
