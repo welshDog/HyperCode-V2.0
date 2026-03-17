@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Activity, 
@@ -27,6 +27,8 @@ import NeuralViz from "@/components/NeuralViz";
 import CognitiveUplink from "@/components/CognitiveUplink";
 import { HyperCanvas } from "@/components/canvas/HyperCanvas";
 import { SensoryThemeSwitcher } from "@/app/themes/SensoryThemeSwitcher";
+import { LiveRegion } from "@/components/a11y/LiveRegion";
+import { diffAgentStatusAnnouncements, type AgentSnapshot } from "@/lib/a11y";
 
 // --- Type Definitions ---
 interface Agent {
@@ -150,11 +152,26 @@ export default function Dashboard() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [connected, setConnected] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [logsBusy, setLogsBusy] = useState(false);
+  const [srPolite, setSrPolite] = useState("");
+  const [srAssertive, setSrAssertive] = useState("");
+  const prevConnectedRef = useRef<boolean | null>(null);
+  const prevAgentsRef = useRef<Map<string | number, AgentSnapshot>>(new Map());
+
+  const announcePolite = (msg: string) => {
+    if (!msg) return;
+    setSrPolite(msg);
+    window.setTimeout(() => setSrPolite(""), 750);
+  };
+
+  const announceAssertive = (msg: string) => {
+    if (!msg) return;
+    setSrAssertive(msg);
+    window.setTimeout(() => setSrAssertive(""), 750);
+  };
 
   // Poll for data
   useEffect(() => {
-    setLastUpdated(new Date()); // Initialize on client
     const stored = typeof window !== "undefined" ? localStorage.getItem("token") : "";
     if (stored) setToken(stored);
     const poll = async () => {
@@ -162,6 +179,7 @@ export default function Dashboard() {
       setConnected(isHealthy);
       
       if (isHealthy && token) {
+        setLogsBusy(true);
         const [agentsData, logsData, tasksData] = await Promise.all([
           fetchAgents(token),
           fetchLogs(token),
@@ -171,7 +189,7 @@ export default function Dashboard() {
         if (agentsData.length > 0) setAgents(agentsData);
         if (logsData.length > 0) setLogs(logsData);
         if (tasksData.length > 0) setTasks(tasksData);
-        setLastUpdated(new Date());
+        setLogsBusy(false);
       }
     };
 
@@ -179,6 +197,24 @@ export default function Dashboard() {
     const interval = setInterval(poll, 2000); // Poll every 2s
     return () => clearInterval(interval);
   }, [token]);
+
+  useEffect(() => {
+    if (prevConnectedRef.current === null) {
+      prevConnectedRef.current = connected;
+      return;
+    }
+    if (prevConnectedRef.current !== connected) {
+      announcePolite(`API ${connected ? "connected" : "offline"}`);
+      prevConnectedRef.current = connected;
+    }
+  }, [connected]);
+
+  useEffect(() => {
+    const { polite, assertive, nextMap } = diffAgentStatusAnnouncements(prevAgentsRef.current, agents);
+    prevAgentsRef.current = nextMap;
+    if (assertive.length > 0) announceAssertive(assertive[0]);
+    else if (polite.length > 0) announcePolite(polite[0]);
+  }, [agents]);
 
   const handleLogin = async () => {
     setLoginError("");
@@ -233,6 +269,8 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col h-full scanline">
+      <LiveRegion message={srPolite} politeness="polite" atomic relevant="additions text" />
+      <LiveRegion message={srAssertive} politeness="assertive" atomic relevant="additions text" />
       <ApprovalModal />
       {/* Header */}
       <header className="h-14 border-b border-zinc-800 bg-black/50 flex items-center justify-between px-6 shrink-0">
@@ -340,7 +378,7 @@ export default function Dashboard() {
                   <span>{/* SYSTEM_LOGS_STREAM_V2.0 */}</span>
                   <span className="animate-pulse" aria-hidden="true">● LIVE</span>
                 </div>
-                <div className="flex flex-col-reverse gap-1 min-h-0" aria-live="off" aria-label="Log stream">
+                <div className="flex flex-col-reverse gap-1 min-h-0" aria-live="off" aria-label="Log stream" aria-busy={logsBusy}>
                    {logs.map((log, i) => <LogEntry key={log.id || i} log={log} />)}
                 </div>
               </div>
