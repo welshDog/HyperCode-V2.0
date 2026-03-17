@@ -72,7 +72,7 @@ function splitIntoCandidates(raw: string): string[] {
   return raw
     .split(/[\n,;.!?]|(?:\band\b)/i)
     .map((s) => s.trim())
-    .filter((s) => s.length > 3);
+    .filter((s) => s.length > 0);
 }
 
 export function chunkBrainDump(raw: string): ChunkResult {
