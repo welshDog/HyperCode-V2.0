@@ -37,6 +37,31 @@ SYSTEM_RAM_USAGE_PCT = Gauge(
     registry=PROM_REGISTRY,
 )
 
+TIER_PAUSED = Gauge(
+    "throttle_tier_paused",
+    "Whether a tier is currently paused by Throttle (1/0)",
+    ["tier"],
+    registry=PROM_REGISTRY,
+)
+CONTAINER_PAUSED_BY_THROTTLE = Gauge(
+    "throttle_container_paused_by_throttle",
+    "Whether a container is marked as paused by Throttle (1/0)",
+    ["container_name"],
+    registry=PROM_REGISTRY,
+)
+HEALER_CIRCUIT_OPEN = Gauge(
+    "throttle_healer_circuit_open",
+    "Whether Healer circuit breaker is open for a service (1/0)",
+    ["service_name"],
+    registry=PROM_REGISTRY,
+)
+RAM_THRESHOLD_PCT = Gauge(
+    "throttle_ram_threshold_pct",
+    "Current configured RAM thresholds used by Throttle",
+    ["level"],
+    registry=PROM_REGISTRY,
+)
+
 CONTAINER_STATE = Gauge(
     "throttle_container_state",
     "Container state as a gauge (labels include state)",
@@ -58,6 +83,8 @@ DEFAULT_TIERS: dict[int, list[str]] = {
     5: ["prometheus", "tempo", "loki", "grafana"],
     6: ["minio", "cadvisor", "node-exporter", "security-scanner"],
 }
+
+ALL_CONTAINERS: list[str] = sorted({c for tier in DEFAULT_TIERS.values() for c in tier})
 
 
 class TierContainerStatus(BaseModel):
@@ -254,6 +281,64 @@ _last_poll_ts: float = 0.0
 _last_ram_pct: float | None = None
 _autopilot_below_since: float | None = None
 _autopilot_paused_tiers: set[int] = set()
+_last_healer_state_poll_ts: float = 0.0
+_last_paused_by_throttle: set[str] = set()
+_last_open_circuits: set[str] = set()
+
+
+def _fetch_healer_paused_by_throttle() -> set[str]:
+    try:
+        r = httpx.get(f"{HEALER_URL}/throttle/state", timeout=2.0)
+        if r.status_code != 200:
+            return set()
+        data = r.json()
+        containers = data.get("containers", [])
+        if not isinstance(containers, list):
+            return set()
+        return {c for c in containers if isinstance(c, str) and c}
+    except Exception:
+        return set()
+
+
+def _fetch_healer_open_circuits() -> set[str]:
+    try:
+        r = httpx.get(f"{HEALER_URL}/circuit-breaker/status", timeout=2.0)
+        if r.status_code != 200:
+            return set()
+        data = r.json()
+        open_circuits = data.get("open_circuits", [])
+        if not isinstance(open_circuits, list):
+            return set()
+        return {c for c in open_circuits if isinstance(c, str) and c}
+    except Exception:
+        return set()
+
+
+def _update_grafana_metrics() -> None:
+    global _last_healer_state_poll_ts, _last_paused_by_throttle, _last_open_circuits
+
+    RAM_THRESHOLD_PCT.labels(level="pause_tier6_at").set(THROTTLE_PAUSE_TIER6_AT)
+    RAM_THRESHOLD_PCT.labels(level="pause_tier5_at").set(THROTTLE_PAUSE_TIER5_AT)
+    RAM_THRESHOLD_PCT.labels(level="pause_tier4_at").set(THROTTLE_PAUSE_TIER4_AT)
+    RAM_THRESHOLD_PCT.labels(level="resume_below").set(THROTTLE_RESUME_BELOW)
+
+    now = time.time()
+    if now - _last_healer_state_poll_ts >= 10:
+        _last_healer_state_poll_ts = now
+        _last_paused_by_throttle = _fetch_healer_paused_by_throttle()
+        _last_open_circuits = _fetch_healer_open_circuits()
+
+    paused = _last_paused_by_throttle
+    for c in ALL_CONTAINERS:
+        CONTAINER_PAUSED_BY_THROTTLE.labels(container_name=c).set(1 if c in paused else 0)
+
+    for tier, containers in _get_tiers().items():
+        tier_paused = any(c in paused for c in containers)
+        TIER_PAUSED.labels(tier=str(tier)).set(1 if tier_paused else 0)
+
+    open_circuits = _last_open_circuits
+    for c in ALL_CONTAINERS:
+        HEALER_CIRCUIT_OPEN.labels(service_name=c).set(1 if c in open_circuits else 0)
 
 
 def _notify_healer_state(containers: list[str], paused: bool) -> None:
@@ -341,6 +426,8 @@ def _autopilot_cycle_sync() -> None:
     _last_ram_pct = _estimate_system_ram_pct(client, tiers_cfg)
     if _last_ram_pct is not None:
         SYSTEM_RAM_USAGE_PCT.set(_last_ram_pct)
+
+    _update_grafana_metrics()
 
     ram_pct = _last_ram_pct
     if ram_pct is None:
@@ -447,6 +534,7 @@ def tiers() -> dict[str, Any]:
     data: dict[int, TierStatus] = {}
     for tier, names in tiers_cfg.items():
         data[tier] = _get_tier_status(client, tier, names)
+    _update_grafana_metrics()
     return {"tiers": {k: v.model_dump() for k, v in data.items()}}
 
 
@@ -469,6 +557,8 @@ def decisions() -> dict[str, Any]:
         _last_ram_pct = _estimate_system_ram_pct(client, tiers_cfg)
         if _last_ram_pct is not None:
             SYSTEM_RAM_USAGE_PCT.set(_last_ram_pct)
+
+    _update_grafana_metrics()
 
     ram_pct = _last_ram_pct
     actions: list[str] = []
