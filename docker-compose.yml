@@ -1264,6 +1264,8 @@ services:
     environment:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=test-agent
+      - PORT=8080
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       - ./agents/test-agent:/app
       - ./Configuration_Kit:/app/hive_mind:ro
@@ -1272,9 +1274,26 @@ services:
       - agent_memory:/app/memory
     networks:
       - backend-net
+    ports:
+      - "8013:8080"
     depends_on:
       hypercode-core:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
     logging:
       driver: "json-file"
       options:
@@ -1282,6 +1301,8 @@ services:
         max-file: "3"
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   tips-tricks-writer:
     profiles: ["agents"]
