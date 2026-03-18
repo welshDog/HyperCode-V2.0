@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 import asyncio
 import httpx
 import os
@@ -10,8 +10,10 @@ from datetime import datetime, timedelta
 from urllib.parse import urlparse
 import redis.asyncio as redis
 from collections import defaultdict
+import time
 from healer.adapters.docker_adapter import DockerAdapter
 from healer.models import HealRequest, HealResult
+from pydantic import BaseModel
 
 # Setup logging with JSON format for production
 class JSONFormatter(logging.Formatter):
@@ -46,6 +48,83 @@ WATCHDOG_FORCE_RESTART = os.getenv("HEALER_WATCHDOG_FORCE_RESTART", "false").str
 
 redis_client: Optional[redis.Redis] = None
 docker_adapter: Optional[DockerAdapter] = None
+_throttle_paused_local: Dict[str, float] = {}
+
+
+class ThrottleStateUpdate(BaseModel):
+    containers: List[str]
+    paused: bool = True
+    ttl_seconds: int = 900
+    reason: Optional[str] = None
+
+
+def _throttle_pause_key(container: str) -> str:
+    return f"throttle:paused:{container}"
+
+
+async def set_throttle_state(update: ThrottleStateUpdate) -> Dict[str, Any]:
+    now = time.time()
+    ttl = max(int(update.ttl_seconds), 10)
+    applied: List[str] = []
+
+    if redis_client:
+        if update.paused:
+            payload = json.dumps(
+                {
+                    "paused": True,
+                    "reason": update.reason,
+                    "until_ts": now + ttl,
+                }
+            )
+            for c in update.containers:
+                if not isinstance(c, str) or not c:
+                    continue
+                await redis_client.set(_throttle_pause_key(c), payload, ex=ttl)
+                applied.append(c)
+        else:
+            keys = [_throttle_pause_key(c) for c in update.containers if isinstance(c, str) and c]
+            if keys:
+                await redis_client.delete(*keys)
+                applied = [c for c in update.containers if isinstance(c, str) and c]
+    else:
+        if update.paused:
+            until = now + ttl
+            for c in update.containers:
+                if not isinstance(c, str) or not c:
+                    continue
+                _throttle_paused_local[c] = until
+                applied.append(c)
+        else:
+            for c in update.containers:
+                if not isinstance(c, str) or not c:
+                    continue
+                _throttle_paused_local.pop(c, None)
+                applied.append(c)
+
+    return {"applied": applied, "paused": update.paused, "ttl_seconds": ttl}
+
+
+async def is_throttle_paused(container: str) -> bool:
+    if redis_client:
+        value = await redis_client.get(_throttle_pause_key(container))
+        return value is not None
+    until = _throttle_paused_local.get(container)
+    if until is None:
+        return False
+    if time.time() > until:
+        _throttle_paused_local.pop(container, None)
+        return False
+    return True
+
+
+async def get_throttle_state() -> Dict[str, Any]:
+    if redis_client:
+        keys = await redis_client.keys("throttle:paused:*")
+        containers = [k.split("throttle:paused:", 1)[1] for k in keys if isinstance(k, str) and k.startswith("throttle:paused:")]
+        return {"containers": sorted(set(containers)), "backend": "redis"}
+    now = time.time()
+    containers = [c for c, until in _throttle_paused_local.items() if until > now]
+    return {"containers": sorted(set(containers)), "backend": "memory"}
 
 
 # Circuit Breaker Pattern - Prevents infinite retry loops
@@ -267,6 +346,15 @@ async def attempt_heal_agent(
             action="none",
             details="Too many consecutive failures - circuit breaker active (will retry in 60s)",
             timestamp=datetime.now().isoformat()
+        )
+
+    if await is_throttle_paused(agent_name):
+        return HealResult(
+            agent=agent_name,
+            status="paused_by_throttle",
+            action="none",
+            details="Throttle Agent marked this container as intentionally paused",
+            timestamp=datetime.now().isoformat(),
         )
     
     # Phase 1: Check if truly unhealthy
@@ -513,6 +601,16 @@ async def alert_webhook(request: dict):
                 ))
     
     return {"status": "processed"}
+
+
+@app.get("/throttle/state")
+async def throttle_state_get():
+    return await get_throttle_state()
+
+
+@app.post("/throttle/state")
+async def throttle_state_post(update: ThrottleStateUpdate):
+    return await set_throttle_state(update)
 
 
 async def alert_listener():
