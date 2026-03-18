@@ -45,6 +45,11 @@ Run the official installer which also onboards a sandbox:
 curl -fsSL https://nvidia.com/nemoclaw.sh | bash
 ```
 
+Repo helper (recommended for audit logs, no secret printing):
+
+- Linux/WSL: `bash scripts/nemoclaw/install.sh`
+- Windows: `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/nemoclaw/install.ps1`
+
 When complete, you will see commands similar to:
 
 ```bash
