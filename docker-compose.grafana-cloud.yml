@@ -1,0 +1,10 @@
+services:
+  prometheus:
+    volumes:
+      - ./monitoring/prometheus/prometheus.cloud.local.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml
+      - ./monitoring/prometheus/docker_alerts.yml:/etc/prometheus/docker_alerts.yml
+      - prometheus-data:/prometheus
+
+volumes:
+  prometheus-data:
