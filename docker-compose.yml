@@ -1266,6 +1266,8 @@ services:
       - AGENT_ROLE=test-agent
       - PORT=8080
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED}
+      - OTLP_ENDPOINT=http://tempo:4317
     volumes:
       - ./agents/test-agent:/app
       - ./Configuration_Kit:/app/hive_mind:ro
