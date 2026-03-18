@@ -70,6 +70,9 @@ test.db
 docs/health-reports/*.local.md
 *.pat.txt
 
+# Prometheus local overrides (Grafana Cloud remote_write credentials)
+monitoring/prometheus/prometheus.cloud.local.yml
+
 # Specific ignore patterns
 data/ollama/models
 scripts/verify_env.py
