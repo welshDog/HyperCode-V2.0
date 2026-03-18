@@ -10,6 +10,8 @@ mkdir -p "$logs_dir"
 
 sandbox="${NEMOCLAW_SANDBOX:-broski}"
 
+export PATH="$HOME/.local/bin:$PATH"
+
 if [ -d "$HOME/.nvm/versions/node" ]; then
   latest="$(ls -1 "$HOME/.nvm/versions/node" | sort -V | tail -n 1)"
   if [ -n "$latest" ]; then

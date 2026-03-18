@@ -1,4 +1,4 @@
-"""throttle-agent FastAPI service."""
+"""throttle-agent FastAPI service with advanced resource management."""
 
 from __future__ import annotations
 
@@ -6,20 +6,49 @@ import logging
 import asyncio
 import os
 import time
+import json
+from datetime import datetime
 from typing import Any
+from collections import deque
 
 import docker
 from docker.errors import DockerException, NotFound
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, Request
 import httpx
-from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, Counter, Gauge, generate_latest
+from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, Counter, Gauge, Histogram, generate_latest
 from pydantic import BaseModel
 
+# Enhanced JSON logging
+class JSONFormatter(logging.Formatter):
+    """Format logs as JSON for better Loki integration."""
+    def format(self, record):
+        log_data = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "level": record.levelname,
+            "component": record.name,
+            "message": record.getMessage(),
+        }
+        # Add extra fields if present
+        if hasattr(record, "action"):
+            log_data["action"] = record.action
+        if hasattr(record, "tier"):
+            log_data["tier"] = record.tier
+        if hasattr(record, "ram_pct"):
+            log_data["ram_pct"] = record.ram_pct
+        if hasattr(record, "reason"):
+            log_data["reason"] = record.reason
+        return json.dumps(log_data)
+
 logger = logging.getLogger("throttle-agent")
-logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setFormatter(JSONFormatter())
+logger.addHandler(handler)
+logger.propagate = False
 
 PROM_REGISTRY = CollectorRegistry()
 
+# Core metrics
 THROTTLE_ACTIONS_TOTAL = Counter(
     "throttle_actions_total",
     "Throttle actions executed",
@@ -74,6 +103,53 @@ CONTAINER_RAM_BYTES = Gauge(
     ["name"],
     registry=PROM_REGISTRY,
 )
+
+# Enhanced metrics for better observability
+THROTTLE_DECISION_REASONS = Counter(
+    "throttle_decision_reasons",
+    "Reasons for throttle decisions",
+    ["reason", "tier"],
+    registry=PROM_REGISTRY,
+)
+THROTTLE_PAUSE_DURATION_SECONDS = Histogram(
+    "throttle_pause_duration_seconds",
+    "How long containers stay paused",
+    buckets=[60, 300, 900, 1800, 3600, 7200],
+    registry=PROM_REGISTRY,
+)
+CONTAINER_CPU_PERCENT = Gauge(
+    "throttle_container_cpu_percent",
+    "Container CPU usage percentage",
+    ["name"],
+    registry=PROM_REGISTRY,
+)
+CONTAINER_NETWORK_RX_BYTES = Gauge(
+    "throttle_container_network_rx_bytes",
+    "Network bytes received",
+    ["name"],
+    registry=PROM_REGISTRY,
+)
+CONTAINER_NETWORK_TX_BYTES = Gauge(
+    "throttle_container_network_tx_bytes",
+    "Network bytes transmitted",
+    ["name"],
+    registry=PROM_REGISTRY,
+)
+HEALTH_CHECK_DURATION_SECONDS = Histogram(
+    "throttle_health_check_duration_seconds",
+    "Duration of health checks",
+    buckets=[0.1, 0.5, 1, 2, 5, 10],
+    registry=PROM_REGISTRY,
+)
+DECISION_CALCULATION_DURATION_SECONDS = Histogram(
+    "throttle_decision_calculation_duration_seconds",
+    "Duration of decision calculations",
+    buckets=[0.01, 0.05, 0.1, 0.5, 1, 5],
+    registry=PROM_REGISTRY,
+)
+
+# RAM history for predictions
+ram_history: deque = deque(maxlen=30)  # Keep last 30 measurements
 
 DEFAULT_TIERS: dict[int, list[str]] = {
     1: ["postgres", "redis", "hypercode-core", "hypercode-ollama"],
@@ -372,22 +448,88 @@ def _tier_container_names(tier: int) -> list[str]:
     return list(tiers.get(tier, []))
 
 
+def _predict_ram_usage(minutes_ahead: int) -> float | None:
+    """Predict RAM usage N minutes ahead using linear trend."""
+    if len(ram_history) < 3:
+        return None
+    
+    try:
+        recent_values = list(ram_history)[-5:]
+        if len(recent_values) < 2:
+            return None
+        
+        # Simple linear regression
+        n = len(recent_values)
+        x_values = list(range(n))
+        x_mean = sum(x_values) / n
+        y_mean = sum(recent_values) / n
+        
+        numerator = sum((x_values[i] - x_mean) * (recent_values[i] - y_mean) for i in range(n))
+        denominator = sum((x_values[i] - x_mean) ** 2 for i in range(n))
+        
+        if denominator == 0:
+            return recent_values[-1]
+        
+        slope = numerator / denominator
+        predicted = recent_values[-1] + (slope * minutes_ahead)
+        return round(max(0, predicted), 2)  # Clamp to >= 0
+    except Exception:
+        return None
+
+
+def _record_container_advanced_stats(container_name: str, container: Any) -> None:
+    """Record advanced container statistics (CPU, network)."""
+    try:
+        stats = container.stats(stream=False)
+        
+        # Calculate CPU percentage
+        cpu_stats = stats.get("cpu_stats", {})
+        prev_cpu_stats = stats.get("precpu_stats", {})
+        
+        cpu_delta = cpu_stats.get("cpu_usage", {}).get("total_usage", 0) - prev_cpu_stats.get("cpu_usage", {}).get("total_usage", 0)
+        system_delta = cpu_stats.get("system_cpu_usage", 0) - prev_cpu_stats.get("system_cpu_usage", 0)
+        cpu_count = cpu_stats.get("online_cpus", 1) or len(cpu_stats.get("cpus", [0]))
+        
+        if system_delta > 0:
+            cpu_percent = (cpu_delta / system_delta) * 100.0 * cpu_count
+            CONTAINER_CPU_PERCENT.labels(name=container_name).set(round(cpu_percent, 2))
+        
+        # Record network stats
+        networks = stats.get("networks", {})
+        rx_bytes = sum(net.get("rx_bytes", 0) for net in networks.values())
+        tx_bytes = sum(net.get("tx_bytes", 0) for net in networks.values())
+        
+        CONTAINER_NETWORK_RX_BYTES.labels(name=container_name).set(rx_bytes)
+        CONTAINER_NETWORK_TX_BYTES.labels(name=container_name).set(tx_bytes)
+    except Exception:
+        pass  # Silently skip if stats unavailable
+
+
 def _pause_tier_sync(client: docker.DockerClient, tier: int) -> dict[str, Any]:
     changed: list[str] = []
     failed: dict[str, str] = {}
     targets = _tier_container_names(tier)
+    start_time = time.time()
+    
     for name in targets:
         if name in THROTTLE_PROTECT_CONTAINERS:
+            logger.info(f"Skipping pause of protected container: {name}")
             continue
         try:
             container = client.containers.get(name)
             container.pause()
             THROTTLE_ACTIONS_TOTAL.labels(tier=str(tier), action="pause", container=name).inc()
             changed.append(name)
+            logger.info(f"Paused container", extra={"action": "pause", "tier": tier, "container": name})
         except Exception as e:
             failed[name] = str(e)
+            logger.error(f"Failed to pause {name}: {e}", extra={"action": "pause_error", "container": name})
+    
     if changed:
         _notify_healer_state(changed, paused=True)
+        pause_duration = time.time() - start_time
+        THROTTLE_PAUSE_DURATION_SECONDS.observe(pause_duration)
+    
     return {"tier": tier, "action": "pause", "changed": changed, "failed": failed}
 
 
@@ -483,12 +625,15 @@ async def _autopilot_loop() -> None:
         try:
             await asyncio.to_thread(_autopilot_cycle_sync)
         except Exception as e:
-            logger.error("Autopilot error: %s", e)
+            logger.error(f"Autopilot error: {e}", extra={"action": "autopilot_error"})
         await asyncio.sleep(max(POLL_INTERVAL_SECONDS, 5))
 
 
 @app.get("/health")
 def health() -> dict[str, Any]:
+    import time as time_module
+    start = time_module.time()
+    
     healer_ok: bool | None = None
     try:
         r = httpx.get(f"{HEALER_URL}/health", timeout=2.0)
@@ -498,14 +643,21 @@ def health() -> dict[str, Any]:
     try:
         _docker_client().ping()
         DOCKER_UP.set(1)
+        duration = time_module.time() - start
+        HEALTH_CHECK_DURATION_SECONDS.observe(duration)
+        logger.info("Health check passed", extra={"action": "health_check", "healer_ok": healer_ok})
         return {
             "status": "healthy",
             "agent": "throttle-agent",
             "docker": "ok",
             "healer_ok": healer_ok,
+            "uptime_seconds": time_module.time(),
         }
     except Exception as e:
         DOCKER_UP.set(0)
+        duration = time_module.time() - start
+        HEALTH_CHECK_DURATION_SECONDS.observe(duration)
+        logger.error(f"Health check failed: {e}", extra={"action": "health_check_error"})
         return {
             "status": "degraded",
             "agent": "throttle-agent",
@@ -541,6 +693,7 @@ def tiers() -> dict[str, Any]:
 @app.get("/decisions")
 def decisions() -> dict[str, Any]:
     global _last_poll_ts, _last_ram_pct
+    start = time.time()
 
     tiers_cfg = _get_tiers()
     try:
@@ -549,6 +702,7 @@ def decisions() -> dict[str, Any]:
         DOCKER_UP.set(1)
     except Exception as e:
         DOCKER_UP.set(0)
+        logger.error(f"Docker unreachable in decisions: {e}")
         return {"error": "docker_unreachable", "detail": str(e)}
 
     now = time.time()
@@ -557,25 +711,45 @@ def decisions() -> dict[str, Any]:
         _last_ram_pct = _estimate_system_ram_pct(client, tiers_cfg)
         if _last_ram_pct is not None:
             SYSTEM_RAM_USAGE_PCT.set(_last_ram_pct)
+            ram_history.append(_last_ram_pct)
 
     _update_grafana_metrics()
 
     ram_pct = _last_ram_pct
     actions: list[str] = []
+    reason = "unknown"
+    
     if ram_pct is None:
         actions.append("UNKNOWN: cannot determine system RAM usage")
+        reason = "unknown_ram"
     elif ram_pct >= THROTTLE_PAUSE_TIER4_AT:
         actions.append("EMERGENCY: pause tier 6, then tier 5, then tier 4")
+        reason = "emergency_tier4"
+        THROTTLE_DECISION_REASONS.labels(reason="emergency_tier4", tier="4").inc()
     elif ram_pct >= THROTTLE_PAUSE_TIER5_AT:
         actions.append("HIGH: pause tier 6, then tier 5")
+        reason = "high_tier5"
+        THROTTLE_DECISION_REASONS.labels(reason="high_tier5", tier="5").inc()
     elif ram_pct >= THROTTLE_PAUSE_TIER6_AT:
         actions.append("WARN: consider pausing tier 6")
+        reason = "warn_tier6"
+        THROTTLE_DECISION_REASONS.labels(reason="warn_tier6", tier="6").inc()
     else:
         actions.append("ALL GREEN")
+        reason = "all_green"
+    
+    # Predict future RAM usage
+    predicted_ram = _predict_ram_usage(5) if len(ram_history) >= 5 else None
+    
+    duration = time.time() - start
+    DECISION_CALCULATION_DURATION_SECONDS.observe(duration)
+    
+    logger.info(f"Decision calculated: {reason}", extra={"action": "decision", "ram_pct": ram_pct, "reason": reason})
 
     return {
         "auto_throttle_enabled": AUTO_THROTTLE_ENABLED,
         "ram_pct": ram_pct,
+        "predicted_ram_5min": predicted_ram,
         "thresholds": {
             "pause_tier6_at": THROTTLE_PAUSE_TIER6_AT,
             "pause_tier5_at": THROTTLE_PAUSE_TIER5_AT,
