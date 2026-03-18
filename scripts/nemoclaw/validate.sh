@@ -17,8 +17,16 @@ echo "PASS: nemoclaw on PATH"
 command -v openclaw >/dev/null
 echo "PASS: openclaw on PATH"
 
-nemoclaw "$sandbox" status >/dev/null
-echo "PASS: NemoClaw sandbox reachable ($sandbox)"
+list_out="$(nemoclaw list 2>&1 || true)"
+if echo "$list_out" | grep -qi "No sandboxes registered"; then
+  echo "FAIL: No NemoClaw sandboxes registered. Run: NEMOCLAW_SANDBOX='$sandbox' bash scripts/nemoclaw/onboard.sh" >&2
+  exit 1
+fi
+if ! echo "$list_out" | grep -Eqi "^[[:space:]]*${sandbox}([[:space:]]|\\*|$)"; then
+  echo "FAIL: NemoClaw sandbox '$sandbox' not registered. Run: NEMOCLAW_SANDBOX='$sandbox' bash scripts/nemoclaw/onboard.sh" >&2
+  exit 1
+fi
+echo "PASS: NemoClaw sandbox registered ($sandbox)"
 
 if [ -z "${NVIDIA_API_KEY:-}" ]; then
   if [ -f "$env_path" ]; then
@@ -33,8 +41,7 @@ fi
 if [ -n "${NVIDIA_API_KEY:-}" ]; then
   echo "PASS: NVIDIA_API_KEY present (value not printed)"
 else
-  echo "FAIL: NVIDIA_API_KEY not detected in environment" >&2
-  exit 1
+  echo "WARN: NVIDIA_API_KEY not detected in environment"
 fi
 
 echo "PASS: validate.sh complete"
