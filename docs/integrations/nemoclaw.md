@@ -67,6 +67,17 @@ nemoclaw <sandbox-name> connect
 openclaw agent --agent main --local -m "hello" --session-id test
 ```
 
+## API Key Connectivity Test (NVIDIA Cloud)
+
+After the sandbox is running, you can force-switch to an NVIDIA cloud model and verify inference works. This is the simplest “does my key work?” check:
+
+```bash
+openshell inference set --provider nvidia-nim --model nvidia/nemotron-3-super-120b-a12b
+openclaw agent --agent main --local -m "ping" --session-id keycheck
+```
+
+Reference: https://docs.nvidia.com/nemoclaw/latest/inference/switch-inference-providers.html
+
 ## Local Inference (Optional)
 
 NemoClaw supports switching inference providers at runtime. For local deployment experiments, this repo includes an optional compose file you can enable as a separate profile:
