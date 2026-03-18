@@ -5,6 +5,13 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 env_path="$root/.env"
 sandbox="${NEMOCLAW_SANDBOX:-broski}"
 
+if [ -d "$HOME/.nvm/versions/node" ]; then
+  latest="$(ls -1 "$HOME/.nvm/versions/node" | sort -V | tail -n 1)"
+  if [ -n "$latest" ]; then
+    export PATH="$HOME/.nvm/versions/node/$latest/bin:$PATH"
+  fi
+fi
+
 command -v nemoclaw >/dev/null
 echo "PASS: nemoclaw on PATH"
 command -v openclaw >/dev/null
