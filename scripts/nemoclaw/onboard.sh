@@ -10,6 +10,13 @@ mkdir -p "$logs_dir"
 
 sandbox="${NEMOCLAW_SANDBOX:-broski}"
 
+if [ -d "$HOME/.nvm/versions/node" ]; then
+  latest="$(ls -1 "$HOME/.nvm/versions/node" | sort -V | tail -n 1)"
+  if [ -n "$latest" ]; then
+    export PATH="$HOME/.nvm/versions/node/$latest/bin:$PATH"
+  fi
+fi
+
 if [ ! -f "$env_path" ]; then
   echo "ERROR: Missing .env at repo root" >&2
   exit 1
@@ -32,4 +39,3 @@ printf "%s\n" "info: onboarding NemoClaw sandbox '$sandbox' (log: $log)"
 printf "%b" "$sandbox\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" | nemoclaw onboard >"$log" 2>&1
 
 tail -n 30 "$log"
-

@@ -12,6 +12,13 @@ touch "$log"
 
 exec > >(tee "$log") 2>&1
 
+if [ -d "$HOME/.nvm/versions/node" ]; then
+  latest="$(ls -1 "$HOME/.nvm/versions/node" | sort -V | tail -n 1)"
+  if [ -n "$latest" ]; then
+    export PATH="$HOME/.nvm/versions/node/$latest/bin:$PATH"
+  fi
+fi
+
 read_key_from_env_file() {
   local value
   value="$(grep -E '^[[:space:]]*NVIDIA_API_KEY[[:space:]]*=' "$env_path" | head -n 1 | sed -E 's/^[[:space:]]*NVIDIA_API_KEY[[:space:]]*=[[:space:]]*//')"
