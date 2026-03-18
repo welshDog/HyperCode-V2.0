@@ -4,7 +4,7 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-RUN pip install fastapi==0.115.5 uvicorn==0.32.0
+RUN pip install fastapi==0.115.5 uvicorn==0.32.0 prometheus-client==0.20.0
 
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
