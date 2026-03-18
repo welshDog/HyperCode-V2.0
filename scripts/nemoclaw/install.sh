@@ -8,6 +8,9 @@ mkdir -p "$logs_dir"
 
 ts="$(date -u +%Y%m%dT%H%M%SZ)"
 log="$logs_dir/install-$ts.log"
+touch "$log"
+
+exec > >(tee "$log") 2>&1
 
 read_key_from_env_file() {
   local value
@@ -31,18 +34,22 @@ fi
 
 echo "info: starting NemoClaw install (log: $log)"
 
-{
-  echo "=== NemoClaw install start (UTC $ts) ==="
-  echo "info: repo_root=$root"
-  echo "info: NVIDIA_API_KEY present (value not printed)"
-  echo
-  curl -fsSL https://nvidia.com/nemoclaw.sh | bash
-  echo
-  echo "=== Post-install checks ==="
-  command -v nemoclaw
-  nemoclaw help | sed -n '1,20p'
-  echo "=== NemoClaw install end ==="
-} >"$log" 2>&1
+echo "=== NemoClaw install start (UTC $ts) ==="
+echo "info: repo_root=$root"
+echo "info: NVIDIA_API_KEY present (value not printed)"
+echo
+
+curl -fsSL https://nvidia.com/nemoclaw.sh | bash
+
+echo
+echo "=== Post-install checks ==="
+command -v nemoclaw
+nemoclaw help | sed -n '1,20p'
+echo "=== NemoClaw install end ==="
+
+if grep -n -E '^[[:space:]]*(\\[ERROR\\]|ERROR:)' "$log" >/dev/null; then
+  echo "FAIL: install log contains ERROR-level lines (see $log)" >&2
+  exit 1
+fi
 
 echo "ok: NemoClaw install completed (see $log)"
-
