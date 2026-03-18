@@ -549,6 +549,19 @@ async def circuit_breaker_status():
     }
 
 
+@app.get("/circuit-breaker/{agent_name}")
+async def circuit_breaker_agent_status(agent_name: str):
+    count = int(circuit_breaker.failure_counts.get(agent_name, 0))
+    is_open = circuit_breaker.is_open(agent_name)
+    return {
+        "agent": agent_name,
+        "state": "open" if is_open else "closed",
+        "failure_count": count,
+        "threshold": circuit_breaker.failure_threshold,
+        "timeout_seconds": circuit_breaker.timeout,
+    }
+
+
 @app.post("/circuit-breaker/reset/{agent_name}")
 async def reset_circuit_breaker(agent_name: str):
     """Manually reset circuit breaker for a specific agent"""
