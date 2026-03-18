@@ -1,11 +1,13 @@
 import signal
 import logging
+from fastapi import Response
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 import uvicorn
 import os
 import sys
 import time
+from prometheus_client import CollectorRegistry, Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,6 +18,21 @@ logger = logging.getLogger("test-agent")
 app = FastAPI(title="test-agent", version="1.0.0")
 
 START_TIME = time.time()
+
+PROM_REGISTRY = CollectorRegistry()
+REQUESTS_TOTAL = Counter(
+    "test_agent_requests_total",
+    "Total requests received",
+    ["method", "endpoint", "status"],
+    registry=PROM_REGISTRY,
+)
+REQUEST_DURATION_SECONDS = Histogram(
+    "test_agent_request_duration_seconds",
+    "Request duration in seconds",
+    ["method", "endpoint"],
+    registry=PROM_REGISTRY,
+    buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0),
+)
 
 @app.get("/")
 def read_root():
@@ -40,16 +57,24 @@ def capabilities():
     return {
         "name": "test-agent",
         "version": "1.0.0",
-        "endpoints": ["/", "/health", "/capabilities"],
+        "endpoints": ["/", "/health", "/capabilities", "/metrics"],
         "requires": ["hypercode-core"],
     }
+
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(PROM_REGISTRY), media_type=CONTENT_TYPE_LATEST)
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start = time.time()
     response = await call_next(request)
-    duration = round((time.time() - start) * 1000, 2)
-    logger.info(f"{request.method} {request.url.path} -> {response.status_code} ({duration}ms)")
+    duration_seconds = time.time() - start
+    duration_ms = round(duration_seconds * 1000, 2)
+    endpoint = request.url.path
+    REQUESTS_TOTAL.labels(method=request.method, endpoint=endpoint, status=str(response.status_code)).inc()
+    REQUEST_DURATION_SECONDS.labels(method=request.method, endpoint=endpoint).observe(duration_seconds)
+    logger.info(f"{request.method} {endpoint} -> {response.status_code} ({duration_ms}ms)")
     return response
 
 def handle_sigterm(*args):
