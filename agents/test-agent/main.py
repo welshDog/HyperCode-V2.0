@@ -1,11 +1,11 @@
 import signal
 import logging
-import time
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 import uvicorn
 import os
 import sys
+import time
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,18 +16,18 @@ logger = logging.getLogger("test-agent")
 app = FastAPI(title="test-agent", version="1.0.0")
 
 START_TIME = time.time()
-def read_root():
-    return {"version": "v1.0", "message": "I am the test subject."}
 
+@app.get("/")
+def read_root():
     return {
         "version": "v1.0",
         "message": "I am the test subject.",
         "agent": os.getenv("AGENT_ROLE", "test-agent"),
         "core_url": os.getenv("CORE_URL", "not set"),
     }
-def health_check():
-    return {"status": "ok"}
 
+@app.get("/health")
+def health_check():
     try:
         uptime = round(time.time() - START_TIME, 2)
         return {"status": "ok", "uptime_seconds": uptime}
@@ -51,14 +51,14 @@ async def log_requests(request: Request, call_next):
     duration = round((time.time() - start) * 1000, 2)
     logger.info(f"{request.method} {request.url.path} -> {response.status_code} ({duration}ms)")
     return response
+
 def handle_sigterm(*args):
-    sys.exit(0)
     logger.info("Received SIGTERM, shutting down gracefully...")
+    sys.exit(0)
+
 signal.signal(signal.SIGTERM, handle_sigterm)
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8080))
-    # Listen on 0.0.0.0 is correct for Docker
-    uvicorn.run(app, host="0.0.0.0", port=port)
     logger.info(f"test-agent starting on port {port}")
     uvicorn.run(app, host="0.0.0.0", port=port)
