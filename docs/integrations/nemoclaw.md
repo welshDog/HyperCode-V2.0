@@ -78,6 +78,11 @@ openclaw agent --agent main --local -m "ping" --session-id keycheck
 
 Reference: https://docs.nvidia.com/nemoclaw/latest/inference/switch-inference-providers.html
 
+Repo helper scripts (no secret printing):
+
+- Linux/WSL: `bash scripts/nemoclaw/keycheck.sh`
+- Windows: `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/nemoclaw/keycheck.ps1`
+
 ## Local Inference (Optional)
 
 NemoClaw supports switching inference providers at runtime. For local deployment experiments, this repo includes an optional compose file you can enable as a separate profile:
