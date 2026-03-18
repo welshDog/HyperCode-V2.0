@@ -28,4 +28,4 @@ openshell inference set --provider nvidia-nim --model nvidia/nemotron-3-super-12
 openclaw agent --agent main --local -m "ping" --session-id keycheck >/dev/null
 
 echo "ok: NVIDIA_API_KEY works for NVIDIA cloud inference (value not printed)"
-
+echo "keycheck OK"
