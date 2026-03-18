@@ -1315,7 +1315,16 @@ services:
     environment:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=throttle-agent
+      - HEALER_URL=http://healer-agent:8008
       - AUTO_THROTTLE_ENABLED=false
+      - THROTTLE_PAUSE_TIER6_AT=80
+      - THROTTLE_PAUSE_TIER5_AT=90
+      - THROTTLE_PAUSE_TIER4_AT=95
+      - THROTTLE_RESUME_BELOW=75
+      - THROTTLE_RESUME_HOLD_MINUTES=5
+      - THROTTLE_KEEP_OBSERVABILITY=true
+      - POLL_INTERVAL_SECONDS=30
+      - THROTTLE_PROTECT_TIERS=1,2,3
     volumes:
       - ./agents/throttle-agent:/app
       - ./Configuration_Kit:/app/hive_mind:ro
