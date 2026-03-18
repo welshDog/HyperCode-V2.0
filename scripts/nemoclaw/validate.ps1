@@ -26,25 +26,14 @@ if (-not $nvidiaApiKey -and (Test-Path $envPath)) {
 
 $keyOk = [bool]($nvidiaApiKey -and $nvidiaApiKey.Trim().Length -gt 0)
 
-$script = @"
-set -euo pipefail
-command -v nemoclaw >/dev/null
-command -v openclaw >/dev/null
-nemoclaw $sandbox status >/dev/null
-echo ok
-"@
-
+$repoRootWsl = wsl wslpath -a "$repoRoot"
+$cmd = "cd '$repoRootWsl' && NEMOCLAW_SANDBOX='$sandbox' bash scripts/nemoclaw/validate.sh"
 $out = if ($keyOk) {
-  wsl env NVIDIA_API_KEY="$nvidiaApiKey" bash -lc $script
+  wsl env NVIDIA_API_KEY="$nvidiaApiKey" bash -lc $cmd 2>&1
 } else {
-  wsl bash -lc $script
+  wsl bash -lc $cmd 2>&1
 }
-if ($out -notmatch "ok") {
+Write-Host $out
+if ($LASTEXITCODE -ne 0) {
   throw "NemoClaw validation failed"
-}
-
-if ($keyOk) {
-  Write-Host "ok: NemoClaw reachable; NVIDIA_API_KEY present (value not printed)"
-} else {
-  Write-Host "ok: NemoClaw reachable; NVIDIA_API_KEY not detected in environment"
 }
