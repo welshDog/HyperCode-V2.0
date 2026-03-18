@@ -1316,7 +1316,7 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=throttle-agent
       - HEALER_URL=http://healer-agent:8008
-      - AUTO_THROTTLE_ENABLED=false
+      - AUTO_THROTTLE_ENABLED=true
       - THROTTLE_PAUSE_TIER6_AT=80
       - THROTTLE_PAUSE_TIER5_AT=90
       - THROTTLE_PAUSE_TIER4_AT=95

@@ -271,6 +271,17 @@ def _notify_healer_state(containers: list[str], paused: bool) -> None:
         return
 
 
+def _healer_allows_resume(container: str) -> bool:
+    try:
+        r = httpx.get(f"{HEALER_URL}/circuit-breaker/{container}", timeout=2.0)
+        if r.status_code != 200:
+            return True
+        data = r.json()
+        return data.get("state") != "open"
+    except Exception:
+        return True
+
+
 def _tier_container_names(tier: int) -> list[str]:
     tiers = _get_tiers()
     return list(tiers.get(tier, []))
@@ -298,9 +309,13 @@ def _pause_tier_sync(client: docker.DockerClient, tier: int) -> dict[str, Any]:
 def _resume_tier_sync(client: docker.DockerClient, tier: int) -> dict[str, Any]:
     changed: list[str] = []
     failed: dict[str, str] = {}
+    skipped: list[str] = []
     targets = _tier_container_names(tier)
     for name in targets:
         if name in THROTTLE_PROTECT_CONTAINERS:
+            continue
+        if not _healer_allows_resume(name):
+            skipped.append(name)
             continue
         try:
             container = client.containers.get(name)
@@ -311,7 +326,7 @@ def _resume_tier_sync(client: docker.DockerClient, tier: int) -> dict[str, Any]:
             failed[name] = str(e)
     if changed:
         _notify_healer_state(changed, paused=False)
-    return {"tier": tier, "action": "resume", "changed": changed, "failed": failed}
+    return {"tier": tier, "action": "resume", "changed": changed, "skipped": skipped, "failed": failed}
 
 
 def _autopilot_cycle_sync() -> None:
