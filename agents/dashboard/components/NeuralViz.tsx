@@ -1,11 +1,11 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ComponentType } from 'react';
 import { Network, Cpu, Share2, Activity, Shield, Code, Server, Database, Eye } from 'lucide-react';
 
 // Agent Roles mapped to icons
-const AGENT_ICONS: Record<string, any> = {
+const AGENT_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   'Project Strategist': Network,
   'Frontend Specialist': Eye,
   'Backend Specialist': Server,

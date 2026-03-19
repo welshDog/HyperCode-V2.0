@@ -22,18 +22,13 @@ interface MessageUI {
 
 export default function CognitiveUplink() {
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<MessageUI[]>([]); // Initialize empty to avoid hydration mismatch
+  const [messages, setMessages] = useState<MessageUI[]>(() => [
+    { role: 'system', content: 'Neural interface ready. Establishing uplink...', timestamp: Date.now() },
+  ]);
   const [isConnected, setIsConnected] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
-
-  // Hydration fix: Set initial message on mount
-  useEffect(() => {
-    setMessages([
-        { role: 'system', content: 'Neural interface ready. Establishing uplink...', timestamp: Date.now() }
-    ]);
-  }, []);
 
   const connect = useCallback(() => {
     // Check if we already have an active connection or are connecting
