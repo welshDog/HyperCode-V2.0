@@ -43,11 +43,12 @@ services:
     image: ghcr.io/github/github-mcp-server:latest
     container_name: mcp-github
     environment:
-      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN:-ghp_changeme}
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN:-}
+    command: ["http", "--port", "9090", "--endpoint-path", "/mcp"]
     networks:
       - backend-net
     restart: unless-stopped
-    # Runs in stdio mode — normal for MCP servers
+    # Runs in HTTP mode to avoid stdio session EOF restart loops in Compose
 
   # ====================
   # FILESYSTEM MCP
