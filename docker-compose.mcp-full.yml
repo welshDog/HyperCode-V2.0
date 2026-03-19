@@ -43,7 +43,7 @@ services:
     image: ghcr.io/github/github-mcp-server:latest
     container_name: mcp-github
     environment:
-      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN:-}
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN_PRIMARY:-}
     command: ["http", "--port", "8082"]
     networks:
       - backend-net
