@@ -35,7 +35,7 @@ NemoClaw inference switching requires `NVIDIA_API_KEY`:
 
 Reference: https://docs.nvidia.com/nemoclaw/latest/inference/switch-inference-providers.html
 
-For repo hygiene, keep secrets outside git. Use `.env.nemoclaw.example` as a template and export values in your shell before running NemoClaw.
+For repo hygiene, keep secrets outside git. This repo uses a gitignored root `.env` for local development convenience; export values in your shell for NemoClaw runs or let the helper scripts read `NVIDIA_API_KEY` from `.env`.
 
 ## Installation (CLI-First)
 
@@ -49,6 +49,11 @@ Repo helper (recommended for audit logs, no secret printing):
 
 - Linux/WSL: `bash scripts/nemoclaw/install.sh`
 - Windows: `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/nemoclaw/install.ps1`
+
+If onboarding becomes unstable (repeated runs / slow loops), run diagnostics:
+
+- Linux/WSL: `bash scripts/nemoclaw/diagnose.sh`
+- Windows: `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/nemoclaw/diagnose.ps1`
 
 When complete, you will see commands similar to:
 
@@ -113,3 +118,4 @@ HyperCode can treat NemoClaw as an external “inference + tool sandbox” layer
 - Do not commit `NVIDIA_API_KEY` to the repo.
 - Prefer allowlist policy updates (approved domains) rather than global network access.
 - Keep `/api/health` and Prometheus `/metrics` checks separate from NemoClaw, so core operations remain observable even if NemoClaw is down.
+- Avoid repeated `nemoclaw onboard` attempts. The repo helper script enforces a lock and rate limit to prevent runaway re-execution.
