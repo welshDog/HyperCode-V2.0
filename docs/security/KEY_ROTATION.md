@@ -13,7 +13,7 @@ This runbook details the zero-downtime API key rotation strategy for HyperCode V
 ### Phase 1: Generate New Key
 1.  **Access**: Shell into the `hypercode-core` container or use a management script.
     ```bash
-    docker-compose exec hypercode-core python3
+    docker compose exec hypercode-core python
     ```
 2.  **Generate**:
     ```python
@@ -27,7 +27,7 @@ This runbook details the zero-downtime API key rotation strategy for HyperCode V
 
 ### Phase 2: Propagation (Zero Downtime)
 1.  Update consumer configurations with the `New Key`.
-2.  Restart consumers if necessary (e.g., `docker-compose restart coder-agent`).
+2.  Restart consumers if necessary (e.g., `docker compose restart coder-agent`).
 3.  **Verify**: Ensure consumers are successfully connecting using the new key. Monitor logs for 403 errors.
 
 ### Phase 3: Revocation (Deprecation)

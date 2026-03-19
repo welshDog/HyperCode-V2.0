@@ -53,19 +53,19 @@ echo "════════════════════════�
 echo ""
 
 echo "Step 1: Stop current throttle-agent"
-echo "   $ docker-compose stop throttle-agent"
+echo "   $ docker compose stop throttle-agent"
 echo ""
 
 echo "Step 2: Remove old container"
-echo "   $ docker-compose rm -f throttle-agent"
+echo "   $ docker compose rm -f throttle-agent"
 echo ""
 
 echo "Step 3: Rebuild with new code"
-echo "   $ docker-compose build throttle-agent --no-cache"
+echo "   $ docker compose build throttle-agent --no-cache"
 echo ""
 
 echo "Step 4: Start new container"
-echo "   $ docker-compose up -d throttle-agent"
+echo "   $ docker compose up -d throttle-agent"
 echo ""
 
 echo "Step 5: Wait for startup"
@@ -207,11 +207,11 @@ echo "🔄 ROLLBACK (if needed)"
 echo "═══════════════════════════════════════════════════════════"
 echo ""
 
-echo "  $ docker-compose stop throttle-agent"
-echo "  $ docker-compose rm -f throttle-agent"
+echo "  $ docker compose stop throttle-agent"
+echo "  $ docker compose rm -f throttle-agent"
 echo "  $ git checkout HEAD -- agents/throttle-agent/main.py"
-echo "  $ docker-compose build throttle-agent --no-cache"
-echo "  $ docker-compose up -d throttle-agent"
+echo "  $ docker compose build throttle-agent --no-cache"
+echo "  $ docker compose up -d throttle-agent"
 echo ""
 
 echo ""

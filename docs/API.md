@@ -14,13 +14,14 @@ Swagger UI is available at: `http://localhost:8000/docs`
 
 #### Create Task
 *   **POST** `/tasks/`
+*   **Auth**: Bearer token required
 *   **Body**:
     ```json
     {
       "title": "Task Title",
       "description": "Code content or instruction",
       "priority": "high",
-      "type": "translate", // translate, health, research
+      "type": "translate",
       "project_id": 1
     }
     ```
@@ -29,14 +30,23 @@ Swagger UI is available at: `http://localhost:8000/docs`
 #### Get Tasks
 *   **GET** `/tasks/`
 *   **Query Params**: `skip`, `limit`
+*   **Auth**: Bearer token required
 
 ### Auth
 
 #### Login
-*   **POST** `/login/access-token`
-*   **Body**: `username` (email), `password`
-*   **Response**: `access_token` (JWT)
+*   **POST** `/auth/login/access-token`
+*   **Body**: `application/x-www-form-urlencoded` with `username` (email) and `password`
+*   **Response**: `access_token` (JWT) and `token_type`
+
+Example:
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/auth/login/access-token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data "username=admin@hypercode.ai&password=adminpassword"
+```
 
 ## Authentication
-All protected endpoints require a Bearer Token in the header:
+Most endpoints require a Bearer token in the header:
 `Authorization: Bearer <your_token>`

@@ -3,14 +3,16 @@
 **Date Captured:** March 2, 2026, 21:14-21:18 GMT  
 **System Status:** ✅ Fully Operational  
 **Observability Stack:** Grafana + Prometheus + Node Exporter  
-**Location:** `HyperFocus Images/Grafana DashBoards pics/`
+**Location:** `docs/assets/screenshots/` (recommended)
+
+This gallery is a snapshot-style inventory. If screenshots are not checked into the repo, keep this file accurate by listing filenames and capture context, and store the images in a shared team location.
 
 ---
 
 ## 🎛️ Dashboard Gallery
 
 ### Screenshot 1: Agent Intelligence Overview
-![Agent Intelligence](../HyperFocus%20Images/Grafana%20DashBoards%20pics/Screenshot%202026-03-02%20211404.png)
+File: `Screenshot 2026-03-02 211404.png`
 
 **Time:** 21:14:04  
 **Dashboard:** BROski Agent Intelligence  
@@ -23,7 +25,7 @@
 ---
 
 ### Screenshot 2: System Health Metrics
-![System Health](../HyperFocus%20Images/Grafana%20DashBoards%20pics/Screenshot%202026-03-02%20211418.png)
+File: `Screenshot 2026-03-02 211418.png`
 
 **Time:** 21:14:18  
 **Dashboard:** Node Exporter / System Health  
@@ -36,7 +38,7 @@
 ---
 
 ### Screenshot 3: Memory & Disk Analysis
-![Memory Disk](../HyperFocus%20Images/Grafana%20DashBoards%20pics/Screenshot%202026-03-02%20211453.png)
+File: `Screenshot 2026-03-02 211453.png`
 
 **Time:** 21:14:53  
 **Dashboard:** Node Exporter Full  
@@ -49,7 +51,7 @@
 ---
 
 ### Screenshot 4: Network Traffic Overview
-![Network Traffic](../HyperFocus%20Images/Grafana%20DashBoards%20pics/Screenshot%202026-03-02%20211516.png)
+File: `Screenshot 2026-03-02 211516.png`
 
 **Time:** 21:15:16  
 **Dashboard:** HyperStation Network  
@@ -62,7 +64,7 @@
 ---
 
 ### Screenshot 5: Agent CPU Ranking
-![Agent CPU](../HyperFocus%20Images/Grafana%20DashBoards%20pics/Screenshot%202026-03-02%20211539.png)
+File: `Screenshot 2026-03-02 211539.png`
 
 **Time:** 21:15:39  
 **Dashboard:** Agent Intelligence (Detailed View)  
@@ -75,7 +77,7 @@
 ---
 
 ### Screenshot 6: HyperSwarm Control
-![HyperSwarm](../HyperFocus%20Images/Grafana%20DashBoards%20pics/Screenshot%202026-03-02%20211625.png)
+File: `Screenshot 2026-03-02 211625.png`
 
 **Time:** 21:16:25  
 **Dashboard:** HyperSwarm Mission Control  
@@ -88,7 +90,7 @@
 ---
 
 ### Screenshot 7: Prometheus Health
-![Prometheus Health](../HyperFocus%20Images/Grafana%20DashBoards%20pics/Screenshot%202026-03-02%20211637.png)
+File: `Screenshot 2026-03-02 211637.png`
 
 **Time:** 21:16:37  
 **Dashboard:** HyperStation Mission Control  
@@ -101,7 +103,7 @@
 ---
 
 ### Screenshot 8: MinIO S3 Storage
-![MinIO S3](../HyperFocus%20Images/Grafana%20DashBoards%20pics/Screenshot%202026-03-02%20211655.png)
+File: `Screenshot 2026-03-02 211655.png`
 
 **Time:** 21:16:55  
 **Dashboard:** HyperFocus Zone (MinIO)  
@@ -114,7 +116,7 @@
 ---
 
 ### Screenshot 9: System Gauges
-![System Gauges](../HyperFocus%20Images/Grafana%20DashBoards%20pics/Screenshot%202026-03-02%20211741.png)
+File: `Screenshot 2026-03-02 211741.png`
 
 **Time:** 21:17:41  
 **Dashboard:** Node Basics  
@@ -128,7 +130,7 @@
 ---
 
 ### Screenshot 10: Disk & Network I/O
-![Disk Network IO](../HyperFocus%20Images/Grafana%20DashBoards%20pics/Screenshot%202026-03-02%20211804.png)
+File: `Screenshot 2026-03-02 211804.png`
 
 **Time:** 21:18:04  
 **Dashboard:** System I/O Monitoring  
