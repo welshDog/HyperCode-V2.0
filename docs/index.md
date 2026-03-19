@@ -11,9 +11,9 @@ Welcome to the **HyperCode V2.0** documentation hub. HyperCode is a next-generat
 *   [**Architecture Overview**](architecture/architecture.md) - Understand the system design.
 
 ### 🧠 AI & Cognitive Engine
-*   **[The Brain (LLM Routing)](ai/brain-architecture.md)** - How the cognitive core works (Ollama-first, cloud optional).
+*   **[The Brain (LLM Routing)](ai/brain-architecture.md)** - How the cognitive core routes local LLM runtime and optional cloud fallback.
 *   **[Cognitive Uplink](ai/cognitive-uplink.md)** - The neural interface for agent communication.
-*   **[AI Integration Notes](notes/ai-integration-notes.md)** - Current local-first Ollama integration.
+*   **[AI Integration Notes](notes/ai-integration-notes.md)** - Local LLM runtime options and integration notes.
 
 ### 🛠️ Development & Engineering
 *   **[MinIO Integration](architecture/minio-integration.md)** - Object storage for long-term memory.
@@ -21,6 +21,10 @@ Welcome to the **HyperCode V2.0** documentation hub. HyperCode is a next-generat
 
 ### 👁️ Observability & Operations
 *   [**Monitoring Guide**](observability/monitoring-guide.md) - Prometheus, Grafana, and Celery.
+
+### 🧾 Documentation Maintenance
+*   [**Documentation Process**](DOCUMENTATION_PROCESS.md) - Review checklist and maintenance schedule.
+*   [**Documentation Changelog**](CHANGELOG_DOCS.md) - What changed in docs and why.
 
 ### 🗒️ Working Notes (Internal)
 

@@ -2,9 +2,9 @@
 
 **Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-10
 
-The **Brain** is the routing + prompt engine of HyperCode. It selects an LLM provider, applies system instructions for predictable output, and (optionally) pulls context from memory systems.
+The **Brain** is the routing + prompt engine of HyperCode. It selects an LLM runtime/provider, applies system instructions for predictable output, and (optionally) pulls context from memory systems.
 
-Current default behavior is **local-first** using **Ollama**, with optional cloud fallback via Perplexity.
+Current default behavior is **local-first** using an Ollama-compatible runtime (commonly the `hypercode-ollama` service). A separate MCP profile can run a Docker Model Runner that also speaks an Ollama-compatible API.
 
 ## 1. Architecture
 
@@ -14,7 +14,7 @@ The Brain operates as an asynchronous service within the `hypercode-core` backen
 graph LR
     A[API / Task] --> B[Celery Worker]
     B --> C[Brain.think()]
-    C --> D[Ollama API (/api/tags, /api/generate)]
+    C --> D[Ollama-compatible API (/api/tags, /api/generate)]
     C --> E[Perplexity API (optional)]
     D --> C
     E --> C
@@ -26,7 +26,7 @@ graph LR
 
 ### Local LLM (recommended)
 
-Set Ollama host and enable automatic model selection:
+Set the local LLM host and enable automatic model selection:
 
 ```bash
 OLLAMA_HOST=http://hypercode-ollama:11434
@@ -34,6 +34,13 @@ DEFAULT_LLM_MODEL=auto
 ```
 
 When `DEFAULT_LLM_MODEL=auto`, the backend selects the best available model from the installed list (TinyLlama-first, size-capped) and caches the selection.
+
+If you are using the MCP Gateway + Model Runner profile, point to the model runner service instead:
+
+```bash
+OLLAMA_HOST=http://model-runner:11434
+DEFAULT_LLM_MODEL=auto
+```
 
 ### Cloud LLM (optional)
 

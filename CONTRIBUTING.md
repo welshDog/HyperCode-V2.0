@@ -9,7 +9,7 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Docker & Docker Compose
+- Docker Desktop (or Docker Engine) with `docker compose`
 - Python 3.11+
 - Node.js 18+
 - Git
@@ -49,18 +49,32 @@ To validate your deployment, run the verification script (PowerShell):
 ./scripts/verify_launch.ps1
 ```
 
-## �️ Development Workflow
+## 🛠️ Development Workflow
 
 ### Project Structure
-- `THE HYPERCODE/`: Core platform code
-- `agents/`: AI agent definitions
-- `BROski Business Agents/`: Frontend terminal
-- `docs/`: Documentation
+- `backend/`: Core API (FastAPI) + Celery tasks
+- `dashboard/`: Mission Control UI
+- `agents/`: Agent services and shared agent tooling
+- `docs/`: Canonical documentation hub
+- `docker-compose.yml`: Primary local orchestration (profiles)
+- `docker/`, `k8s/`, `monitoring/`: Infrastructure and ops assets
 
 ### Coding Standards
 - **Python**: Follow PEP 8. Use `black` and `ruff` for formatting.
 - **JavaScript/TypeScript**: Use `prettier` and `eslint`.
 - **Commits**: Use Conventional Commits (e.g., `feat: add new agent`, `fix: resolve docker loop`).
+
+### Documentation Standards
+- Prefer updating canonical docs under `docs/` and linking from root docs rather than duplicating content in multiple places.
+- Keep commands consistent: prefer `docker compose ...` (not `docker-compose ...`).
+- Avoid secrets in examples: use placeholders like `YOUR_TOKEN_HERE` and document where to obtain them.
+- Validate code samples: if a doc adds a command or API example, run it or add a small verification snippet/test.
+
+### Documentation Review
+- For any doc change that affects setup, deployment, API usage, or runbooks:
+  - Ensure steps work on a fresh clone (or document prerequisites clearly).
+  - Confirm links resolve and examples are syntactically valid.
+  - If screenshots/diagrams exist, confirm they match current UI/ports/names.
 
 ### Testing
 Run the test suite before submitting PRs:

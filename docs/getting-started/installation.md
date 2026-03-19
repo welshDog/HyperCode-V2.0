@@ -31,7 +31,7 @@ cp .env.example .env
 
 ## 3. Launch the Mission (Docker Compose)
 
-We use a unified `docker-compose.yml` that orchestrates all 26 containers.
+We use a unified `docker-compose.yml` with profiles. The number of running services depends on which profiles you enable.
 
 ```powershell
 # Start the full stack in detached mode

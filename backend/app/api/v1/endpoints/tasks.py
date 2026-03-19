@@ -8,7 +8,6 @@ from app.db.session import get_db
 from app.models import models
 from app.schemas import schemas
 from app.api import deps
-# Removed: from app.core.queue import push_task_to_queue
 
 router = APIRouter()
 
