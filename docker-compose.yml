@@ -1125,6 +1125,43 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  super-hyper-broski-agent:
+    profiles: ["agents"]
+    build:
+      context: ./agents/super-hyper-broski-agent
+      dockerfile: Dockerfile
+    container_name: super-hyper-broski-agent
+    environment:
+      - PORT=8015
+    networks:
+      - backend-net
+    ports:
+      - "8015:8015"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8015/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
   security-engineer:
     profiles: ["agents"]
     build:
