@@ -27,7 +27,7 @@ awk -v now="$now" '($1+0) > (now-21600) { print $1 }' "$runs_log" > "$tmp" 2>/de
 mv -f "$tmp" "$runs_log"
 echo "$now" >> "$runs_log"
 recent="$(awk -v now="$now" '($1+0) > (now-3600) { c++ } END { print c+0 }' "$runs_log" 2>/dev/null || echo 0)"
-if [ "${recent:-0}" -gt 3 ]; then
+if [ "${recent:-0}" -gt 3 ] && [ "${NEMOCLAW_FORCE:-}" != "1" ]; then
   echo "ERROR: Too many onboarding attempts in the last hour ($recent). Fix root cause first (run scripts/nemoclaw/diagnose.sh)." >&2
   exit 2
 fi
@@ -75,17 +75,30 @@ if ! docker ps >/dev/null 2>&1; then
   exit 1
 fi
 
+if docker ps --filter "name=^openshell-cluster-nemoclaw$" --format '{{.Names}} {{.Ports}}' 2>/dev/null | grep -qE 'openshell-cluster-nemoclaw.*8080->'; then
+  if [ "${NEMOCLAW_REUSE_GATEWAY:-}" != "1" ]; then
+    printf "%s\n" "info: freeing port 8080 by removing existing openshell-cluster-nemoclaw container"
+    docker rm -f openshell-cluster-nemoclaw >/dev/null 2>&1 || true
+    sleep 2
+  fi
+fi
+
 list_out="$(nemoclaw list 2>&1 || true)"
 if echo "$list_out" | grep -Eqi "^[[:space:]]*${sandbox}([[:space:]]|\\*|$)"; then
   printf "%s\n" "ok: sandbox already registered ($sandbox)"
   exit 0
 fi
 
-printf "%s\n" "info: run will be interactive. When prompted for sandbox name, enter: $sandbox"
-if command -v script >/dev/null 2>&1; then
-  script -q -f "$log" -c "nemoclaw onboard"
+if [ "${NEMOCLAW_NONINTERACTIVE:-}" = "1" ]; then
+  printf "%s\n" "info: running non-interactive onboarding (sandbox: $sandbox)"
+  printf "%b" "$sandbox\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" | nemoclaw onboard >"$log" 2>&1
 else
-  nemoclaw onboard >"$log" 2>&1
+  printf "%s\n" "info: run will be interactive. When prompted for sandbox name, enter: $sandbox"
+  if command -v script >/dev/null 2>&1; then
+    script -q -f "$log" -c "nemoclaw onboard"
+  else
+    nemoclaw onboard >"$log" 2>&1
+  fi
 fi
 
 tail -n 30 "$log"
