@@ -55,6 +55,16 @@ If onboarding becomes unstable (repeated runs / slow loops), run diagnostics:
 - Linux/WSL: `bash scripts/nemoclaw/diagnose.sh`
 - Windows: `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/nemoclaw/diagnose.ps1`
 
+To treat the OpenShell gateway as long-lived infra (recommended), use the gateway health helper:
+
+- Linux/WSL: `bash scripts/nemoclaw/gateway-health.sh`
+- Windows: `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/nemoclaw/gateway-health.ps1`
+
+To avoid “thrash onboarding” (build/retry loops), use the guarded one-shot helper:
+
+- Linux/WSL: `bash scripts/nemoclaw/onboard-once.sh`
+- Windows: `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/nemoclaw/onboard-once.ps1`
+
 When complete, you will see commands similar to:
 
 ```bash
