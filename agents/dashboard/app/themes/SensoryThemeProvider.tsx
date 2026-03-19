@@ -23,25 +23,16 @@ const SensoryThemeContext = createContext<SensoryThemeContextValue>({
 const STORAGE_KEY = 'hc-sensory-theme';
 
 export function SensoryThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<SensoryTheme>('focus');
-
-  // Hydrate from localStorage on mount
-  useEffect(() => {
+  const [theme, setThemeState] = useState<SensoryTheme>(() => {
+    if (typeof window === 'undefined') return 'focus';
     const saved = localStorage.getItem(STORAGE_KEY) as SensoryTheme | null;
-    if (saved && ['calm', 'focus', 'energise'].includes(saved)) {
-      setThemeState(saved);
-      document.documentElement.setAttribute('data-hc-theme', saved);
-    } else {
-      // Respect OS preference as default: prefers reduced motion → CALM
-      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (prefersReduced) {
-        setThemeState('calm');
-        document.documentElement.setAttribute('data-hc-theme', 'calm');
-      } else {
-        document.documentElement.setAttribute('data-hc-theme', 'focus');
-      }
-    }
-  }, []);
+    if (saved && ['calm', 'focus', 'energise'].includes(saved)) return saved;
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'calm' : 'focus';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-hc-theme', theme);
+  }, [theme]);
 
   const setTheme = useCallback((t: SensoryTheme) => {
     setThemeState(t);

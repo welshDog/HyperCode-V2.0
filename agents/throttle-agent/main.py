@@ -2,25 +2,35 @@
 
 from __future__ import annotations
 
-import logging
 import asyncio
+import json
+import logging
 import os
 import time
-import json
+from collections import deque
 from datetime import datetime
 from typing import Any
-from collections import deque
+
+import httpx
+from docker.errors import DockerException, NotFound
+from fastapi import FastAPI, Request, Response
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    CollectorRegistry,
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+)
+from pydantic import BaseModel
 
 import docker
-from docker.errors import DockerException, NotFound
-from fastapi import FastAPI, Response, Request
-import httpx
-from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, Counter, Gauge, Histogram, generate_latest
-from pydantic import BaseModel
+
 
 # Enhanced JSON logging
 class JSONFormatter(logging.Formatter):
     """Format logs as JSON for better Loki integration."""
+
     def format(self, record):
         log_data = {
             "timestamp": datetime.utcnow().isoformat(),
@@ -46,6 +56,7 @@ class JSONFormatter(logging.Formatter):
         if hasattr(record, "error"):
             log_data["error"] = record.error
         return json.dumps(log_data)
+
 
 logger = logging.getLogger("throttle-agent")
 logger.setLevel(logging.INFO)
@@ -231,7 +242,9 @@ def _docker_mem_total_bytes(client: docker.DockerClient) -> int | None:
         return None
 
 
-def _estimate_system_ram_pct(client: docker.DockerClient, tiers: dict[int, list[str]]) -> float | None:
+def _estimate_system_ram_pct(
+    client: docker.DockerClient, tiers: dict[int, list[str]]
+) -> float | None:
     mem_total = _docker_mem_total_bytes(client)
     if not mem_total:
         return None
@@ -249,7 +262,16 @@ def _estimate_system_ram_pct(client: docker.DockerClient, tiers: dict[int, list[
 
 
 def _reset_container_state_gauges(name: str) -> None:
-    for state in ("created", "running", "paused", "restarting", "removing", "exited", "dead", "unknown"):
+    for state in (
+        "created",
+        "running",
+        "paused",
+        "restarting",
+        "removing",
+        "exited",
+        "dead",
+        "unknown",
+    ):
         try:
             CONTAINER_STATE.labels(name=name, state=state).set(0)
         except Exception:
@@ -264,7 +286,9 @@ def _record_container_metrics(status: TierContainerStatus) -> None:
         CONTAINER_RAM_BYTES.labels(name=status.name).set(status.ram_bytes)
 
 
-def _get_tier_status(client: docker.DockerClient, tier: int, names: list[str]) -> TierStatus:
+def _get_tier_status(
+    client: docker.DockerClient, tier: int, names: list[str]
+) -> TierStatus:
     containers: list[TierContainerStatus] = []
     running = 0
     healthy = 0
@@ -282,7 +306,9 @@ def _get_tier_status(client: docker.DockerClient, tier: int, names: list[str]) -
             if health == "healthy":
                 healthy += 1
             containers.append(
-                TierContainerStatus(name=name, status=status, health=health, ram_bytes=ram)
+                TierContainerStatus(
+                    name=name, status=status, health=health, ram_bytes=ram
+                )
             )
         except NotFound:
             containers.append(TierContainerStatus(name=name, error="not_found"))
@@ -294,7 +320,9 @@ def _get_tier_status(client: docker.DockerClient, tier: int, names: list[str]) -
     for c in containers:
         _record_container_metrics(c)
 
-    return TierStatus(tier=tier, containers=containers, running=running, healthy=healthy)
+    return TierStatus(
+        tier=tier, containers=containers, running=running, healthy=healthy
+    )
 
 
 def _get_tiers() -> dict[int, list[str]]:
@@ -311,7 +339,10 @@ def _parse_threshold(name: str, default: float) -> float:
         return default
 
 
-HEALER_URL = os.getenv("HEALER_URL", "http://healer-agent:8008").strip() or "http://healer-agent:8008"
+HEALER_URL = (
+    os.getenv("HEALER_URL", "http://healer-agent:8008").strip()
+    or "http://healer-agent:8008"
+)
 
 AUTO_THROTTLE_ENABLED = os.getenv("AUTO_THROTTLE_ENABLED", "false").strip().lower() in {
     "1",
@@ -324,9 +355,13 @@ THROTTLE_PAUSE_TIER6_AT = _parse_threshold("THROTTLE_PAUSE_TIER6_AT", 80.0)
 THROTTLE_PAUSE_TIER5_AT = _parse_threshold("THROTTLE_PAUSE_TIER5_AT", 90.0)
 THROTTLE_PAUSE_TIER4_AT = _parse_threshold("THROTTLE_PAUSE_TIER4_AT", 95.0)
 THROTTLE_RESUME_BELOW = _parse_threshold("THROTTLE_RESUME_BELOW", 75.0)
-THROTTLE_RESUME_HOLD_MINUTES = int(_parse_threshold("THROTTLE_RESUME_HOLD_MINUTES", 5.0))
+THROTTLE_RESUME_HOLD_MINUTES = int(
+    _parse_threshold("THROTTLE_RESUME_HOLD_MINUTES", 5.0)
+)
 THROTTLE_PAUSE_TTL_SECONDS = int(_parse_threshold("THROTTLE_PAUSE_TTL_SECONDS", 900.0))
-THROTTLE_KEEP_OBSERVABILITY = os.getenv("THROTTLE_KEEP_OBSERVABILITY", "true").strip().lower() in {
+THROTTLE_KEEP_OBSERVABILITY = os.getenv(
+    "THROTTLE_KEEP_OBSERVABILITY", "true"
+).strip().lower() in {
     "1",
     "true",
     "yes",
@@ -354,7 +389,10 @@ def _parse_str_set(raw: str) -> set[str]:
 
 THROTTLE_PROTECT_TIERS = _parse_int_set(os.getenv("THROTTLE_PROTECT_TIERS", "1,2,3"))
 THROTTLE_PROTECT_CONTAINERS = _parse_str_set(
-    os.getenv("THROTTLE_PROTECT_CONTAINERS", "throttle-agent,healer-agent,hypercode-core,postgres,redis")
+    os.getenv(
+        "THROTTLE_PROTECT_CONTAINERS",
+        "throttle-agent,healer-agent,hypercode-core,postgres,redis",
+    )
 )
 THROTTLE_ACTIVE_CONTAINER = os.getenv("THROTTLE_ACTIVE_CONTAINER", "").strip()
 if THROTTLE_ACTIVE_CONTAINER:
@@ -417,7 +455,9 @@ def _update_grafana_metrics() -> None:
 
     paused = _last_paused_by_throttle
     for c in ALL_CONTAINERS:
-        CONTAINER_PAUSED_BY_THROTTLE.labels(container_name=c).set(1 if c in paused else 0)
+        CONTAINER_PAUSED_BY_THROTTLE.labels(container_name=c).set(
+            1 if c in paused else 0
+        )
 
     for tier, containers in _get_tiers().items():
         tier_paused = any(c in paused for c in containers)
@@ -463,26 +503,30 @@ def _predict_ram_usage(minutes_ahead: int) -> float | None:
     """Predict RAM usage N minutes ahead using linear trend."""
     if len(ram_history) < 3:
         return None
-    
+
     try:
         recent_values = list(ram_history)[-5:]
         if len(recent_values) < 2:
             return None
-        
+
         # Simple linear regression
         n = len(recent_values)
         x_values = list(range(n))
         x_mean = sum(x_values) / n
         y_mean = sum(recent_values) / n
-        
-        numerator = sum((x_values[i] - x_mean) * (recent_values[i] - y_mean) for i in range(n))
+
+        numerator = sum(
+            (x_values[i] - x_mean) * (recent_values[i] - y_mean) for i in range(n)
+        )
         denominator = sum((x_values[i] - x_mean) ** 2 for i in range(n))
-        
+
         if denominator == 0:
             return recent_values[-1]
-        
+
         slope = numerator / denominator
-        steps_ahead = max(int(round((minutes_ahead * 60) / max(POLL_INTERVAL_SECONDS, 1))), 1)
+        steps_ahead = max(
+            int(round((minutes_ahead * 60) / max(POLL_INTERVAL_SECONDS, 1))), 1
+        )
         predicted = recent_values[-1] + (slope * steps_ahead)
         return round(max(0, predicted), 2)  # Clamp to >= 0
     except Exception:
@@ -493,24 +537,28 @@ def _record_container_advanced_stats(container_name: str, container: Any) -> Non
     """Record advanced container statistics (CPU, network)."""
     try:
         stats = container.stats(stream=False)
-        
+
         # Calculate CPU percentage
         cpu_stats = stats.get("cpu_stats", {})
         prev_cpu_stats = stats.get("precpu_stats", {})
-        
-        cpu_delta = cpu_stats.get("cpu_usage", {}).get("total_usage", 0) - prev_cpu_stats.get("cpu_usage", {}).get("total_usage", 0)
-        system_delta = cpu_stats.get("system_cpu_usage", 0) - prev_cpu_stats.get("system_cpu_usage", 0)
+
+        cpu_delta = cpu_stats.get("cpu_usage", {}).get(
+            "total_usage", 0
+        ) - prev_cpu_stats.get("cpu_usage", {}).get("total_usage", 0)
+        system_delta = cpu_stats.get("system_cpu_usage", 0) - prev_cpu_stats.get(
+            "system_cpu_usage", 0
+        )
         cpu_count = cpu_stats.get("online_cpus", 1) or len(cpu_stats.get("cpus", [0]))
-        
+
         if system_delta > 0:
             cpu_percent = (cpu_delta / system_delta) * 100.0 * cpu_count
             CONTAINER_CPU_PERCENT.labels(name=container_name).set(round(cpu_percent, 2))
-        
+
         # Record network stats
         networks = stats.get("networks", {})
         rx_bytes = sum(net.get("rx_bytes", 0) for net in networks.values())
         tx_bytes = sum(net.get("tx_bytes", 0) for net in networks.values())
-        
+
         CONTAINER_NETWORK_RX_BYTES.labels(name=container_name).set(rx_bytes)
         CONTAINER_NETWORK_TX_BYTES.labels(name=container_name).set(tx_bytes)
     except Exception:
@@ -521,25 +569,45 @@ def _pause_tier_sync(client: docker.DockerClient, tier: int) -> dict[str, Any]:
     changed: list[str] = []
     failed: dict[str, str] = {}
     targets = _tier_container_names(tier)
-    
+
     for name in targets:
         if name in THROTTLE_PROTECT_CONTAINERS:
-            logger.info("Skipping pause of protected container", extra={"action": "pause_skip_protected", "tier": tier, "container": name})
+            logger.info(
+                "Skipping pause of protected container",
+                extra={
+                    "action": "pause_skip_protected",
+                    "tier": tier,
+                    "container": name,
+                },
+            )
             continue
         try:
             container = client.containers.get(name)
             container.pause()
-            THROTTLE_ACTIONS_TOTAL.labels(tier=str(tier), action="pause", container=name).inc()
+            THROTTLE_ACTIONS_TOTAL.labels(
+                tier=str(tier), action="pause", container=name
+            ).inc()
             changed.append(name)
             _paused_since[name] = time.time()
-            logger.info("Paused container", extra={"action": "pause", "tier": tier, "container": name})
+            logger.info(
+                "Paused container",
+                extra={"action": "pause", "tier": tier, "container": name},
+            )
         except Exception as e:
             failed[name] = str(e)
-            logger.error("Failed to pause container", extra={"action": "pause_error", "tier": tier, "container": name, "error": str(e)})
-    
+            logger.error(
+                "Failed to pause container",
+                extra={
+                    "action": "pause_error",
+                    "tier": tier,
+                    "container": name,
+                    "error": str(e),
+                },
+            )
+
     if changed:
         _notify_healer_state(changed, paused=True)
-    
+
     return {"tier": tier, "action": "pause", "changed": changed, "failed": failed}
 
 
@@ -557,16 +625,26 @@ def _resume_tier_sync(client: docker.DockerClient, tier: int) -> dict[str, Any]:
         try:
             container = client.containers.get(name)
             container.unpause()
-            THROTTLE_ACTIONS_TOTAL.labels(tier=str(tier), action="resume", container=name).inc()
+            THROTTLE_ACTIONS_TOTAL.labels(
+                tier=str(tier), action="resume", container=name
+            ).inc()
             changed.append(name)
             paused_at = _paused_since.pop(name, None)
             if paused_at is not None:
-                THROTTLE_PAUSE_DURATION_SECONDS.observe(max(time.time() - paused_at, 0.0))
+                THROTTLE_PAUSE_DURATION_SECONDS.observe(
+                    max(time.time() - paused_at, 0.0)
+                )
         except Exception as e:
             failed[name] = str(e)
     if changed:
         _notify_healer_state(changed, paused=False)
-    return {"tier": tier, "action": "resume", "changed": changed, "skipped": skipped, "failed": failed}
+    return {
+        "tier": tier,
+        "action": "resume",
+        "changed": changed,
+        "skipped": skipped,
+        "failed": failed,
+    }
 
 
 def _autopilot_cycle_sync() -> None:
@@ -646,8 +724,9 @@ async def _autopilot_loop() -> None:
 @app.get("/health")
 def health() -> dict[str, Any]:
     import time as time_module
+
     start = time_module.time()
-    
+
     healer_ok: bool | None = None
     try:
         r = httpx.get(f"{HEALER_URL}/health", timeout=2.0)
@@ -661,7 +740,11 @@ def health() -> dict[str, Any]:
         HEALTH_CHECK_DURATION_SECONDS.observe(duration)
         logger.info(
             "Health check passed",
-            extra={"action": "health_check", "healer_ok": healer_ok, "duration_seconds": round(duration, 4)},
+            extra={
+                "action": "health_check",
+                "healer_ok": healer_ok,
+                "duration_seconds": round(duration, 4),
+            },
         )
         return {
             "status": "healthy",
@@ -676,7 +759,12 @@ def health() -> dict[str, Any]:
         HEALTH_CHECK_DURATION_SECONDS.observe(duration)
         logger.error(
             "Health check failed",
-            extra={"action": "health_check_error", "healer_ok": healer_ok, "duration_seconds": round(duration, 4), "error": str(e)},
+            extra={
+                "action": "health_check_error",
+                "healer_ok": healer_ok,
+                "duration_seconds": round(duration, 4),
+                "error": str(e),
+            },
         )
         return {
             "status": "degraded",
@@ -722,7 +810,10 @@ def decisions() -> dict[str, Any]:
         DOCKER_UP.set(1)
     except Exception as e:
         DOCKER_UP.set(0)
-        logger.error("Docker unreachable in decisions", extra={"action": "decisions_docker_unreachable", "error": str(e)})
+        logger.error(
+            "Docker unreachable in decisions",
+            extra={"action": "decisions_docker_unreachable", "error": str(e)},
+        )
         return {"error": "docker_unreachable", "detail": str(e)}
 
     now = time.time()
@@ -738,7 +829,7 @@ def decisions() -> dict[str, Any]:
     ram_pct = _last_ram_pct
     actions: list[str] = []
     reason = "unknown"
-    
+
     if ram_pct is None:
         actions.append("UNKNOWN: cannot determine system RAM usage")
         reason = "unknown_ram"
@@ -757,16 +848,21 @@ def decisions() -> dict[str, Any]:
     else:
         actions.append("ALL GREEN")
         reason = "all_green"
-    
+
     # Predict future RAM usage
     predicted_ram = _predict_ram_usage(5) if len(ram_history) >= 5 else None
-    
+
     duration = time.time() - start
     DECISION_CALCULATION_DURATION_SECONDS.observe(duration)
-    
+
     logger.info(
         "Decision calculated",
-        extra={"action": "decision", "ram_pct": ram_pct, "reason": reason, "duration_seconds": round(duration, 4)},
+        extra={
+            "action": "decision",
+            "ram_pct": ram_pct,
+            "reason": reason,
+            "duration_seconds": round(duration, 4),
+        },
     )
 
     return {
