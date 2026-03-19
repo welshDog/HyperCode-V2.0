@@ -1,6 +1,6 @@
 # 🚀 HyperCode V2.0 — Quick Setup
 
-> **New here?** Read [START_HERE.md](START_HERE.md) first.  
+> **New here?** Start with this file, then use [START_HERE.md](START_HERE.md) if you also want the MCP Gateway + Model Runner profile.  
 > **Stack stuck?** Jump straight to [RUNBOOK.md](RUNBOOK.md) — it has every fix.
 
 ---
@@ -48,15 +48,20 @@ Expected: `✅ DB tables ensured`
 
 1. **Copy environment file:**
    ```bash
-   cp .env.agents.example .env.agents
+   cp .env.example .env
    ```
 
-2. **Add your Anthropic API key:**
-   Edit `.env.agents` and replace `your_anthropic_api_key_here` with your actual key
+2. **Add your API keys:**
+   Edit `.env` and set at least `POSTGRES_PASSWORD` and your chosen LLM keys (e.g. `ANTHROPIC_API_KEY`). Avoid committing `.env`.
 
-3. **Start the crew:**
+3. **Start the stack:**
    ```bash
-   docker-compose -f docker-compose.agents.yml --env-file .env.agents up -d
+   docker compose up -d
+   ```
+
+4. **Start agents (optional):**
+   ```bash
+   docker compose --profile agents up -d
    ```
 
 ---

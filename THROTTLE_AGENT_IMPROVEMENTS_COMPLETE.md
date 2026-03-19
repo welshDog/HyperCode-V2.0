@@ -397,8 +397,8 @@ throttle_container_cpu_percent{name="redis"}  # Real-time Redis CPU
 ## 🚀 Next Steps to Complete
 
 ### **Immediate** (Ready to Deploy):
-1. Rebuild: `docker-compose build throttle-agent --no-cache`
-2. Restart: `docker-compose up -d throttle-agent`
+1. Rebuild: `docker compose build throttle-agent --no-cache`
+2. Restart: `docker compose up -d throttle-agent`
 3. Verify: Check logs with JSON format
 4. Monitor: Watch `/metrics` endpoint
 
