@@ -35,7 +35,7 @@ services:
       - GATEWAY_PORT=8820
       - MCP_GATEWAY_API_KEY=${MCP_GATEWAY_API_KEY:-agent-key-001}
       - MCP_GATEWAY_AUTH_TOKEN=${MCP_GATEWAY_API_KEY:-agent-key-001}
-      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN_PRIMARY:-}
       - LOG_LEVEL=info
       - ENABLE_AUDIT_LOG=true
       - AUDIT_LOG_PATH=/var/log/mcp-gateway
@@ -156,7 +156,7 @@ services:
     image: ghcr.io/github/github-mcp-server:latest
     container_name: mcp-github
     environment:
-      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN:-}
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN_PRIMARY:-}
     command: ["http", "--port", "8082"]
     networks:
       - backend-net
