@@ -85,6 +85,8 @@ hyper-mission-system/certs/localhost.key
 HEALTH_CHECK_STATUS_REPORT_*.md
 full-docker-health-report.json
 health_check_inventory.json
+COMPLETE_SYSTEM_STATUS.md
+SYSTEM_STATUS_QUICK_VIEW.txt
 
 # Ignore specific sensitive files found during scan
 docs/archive/Docker help
