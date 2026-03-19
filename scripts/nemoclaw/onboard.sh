@@ -19,6 +19,27 @@ if [ -d "$HOME/.nvm/versions/node" ]; then
   fi
 fi
 
+runs_log="$logs_dir/onboard-runs.log"
+touch "$runs_log"
+now="$(date -u +%s)"
+tmp="$runs_log.tmp"
+awk -v now="$now" '($1+0) > (now-21600) { print $1 }' "$runs_log" > "$tmp" 2>/dev/null || true
+mv -f "$tmp" "$runs_log"
+echo "$now" >> "$runs_log"
+recent="$(awk -v now="$now" '($1+0) > (now-3600) { c++ } END { print c+0 }' "$runs_log" 2>/dev/null || echo 0)"
+if [ "${recent:-0}" -gt 3 ]; then
+  echo "ERROR: Too many onboarding attempts in the last hour ($recent). Fix root cause first (run scripts/nemoclaw/diagnose.sh)." >&2
+  exit 2
+fi
+
+lock_dir="$logs_dir/onboard.lock"
+if ! mkdir "$lock_dir" 2>/dev/null; then
+  echo "ERROR: NemoClaw onboarding already running (lock: $lock_dir)" >&2
+  exit 2
+fi
+cleanup() { rmdir "$lock_dir" 2>/dev/null || true; }
+trap cleanup EXIT
+
 if [ ! -f "$env_path" ]; then
   echo "ERROR: Missing .env at repo root" >&2
   exit 1
@@ -38,6 +59,33 @@ log="$logs_dir/onboard-$ts.log"
 
 printf "%s\n" "info: onboarding NemoClaw sandbox '$sandbox' (log: $log)"
 
-printf "%b" "$sandbox\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" | nemoclaw onboard >"$log" 2>&1
+if ! command -v nemoclaw >/dev/null 2>&1; then
+  echo "ERROR: nemoclaw not found on PATH. Run scripts/nemoclaw/install.sh first." >&2
+  exit 1
+fi
+
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+  if docker ps >/dev/null 2>&1; then
+    break
+  fi
+  sleep 2
+done
+if ! docker ps >/dev/null 2>&1; then
+  echo "ERROR: Docker not reachable from WSL. Ensure Docker Desktop is running and WSL integration is enabled for Ubuntu-22.04." >&2
+  exit 1
+fi
+
+list_out="$(nemoclaw list 2>&1 || true)"
+if echo "$list_out" | grep -Eqi "^[[:space:]]*${sandbox}([[:space:]]|\\*|$)"; then
+  printf "%s\n" "ok: sandbox already registered ($sandbox)"
+  exit 0
+fi
+
+printf "%s\n" "info: run will be interactive. When prompted for sandbox name, enter: $sandbox"
+if command -v script >/dev/null 2>&1; then
+  script -q -f "$log" -c "nemoclaw onboard"
+else
+  nemoclaw onboard >"$log" 2>&1
+fi
 
 tail -n 30 "$log"

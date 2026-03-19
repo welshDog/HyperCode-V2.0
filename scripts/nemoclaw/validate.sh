@@ -20,10 +20,12 @@ echo "PASS: openclaw on PATH"
 list_out="$(nemoclaw list 2>&1 || true)"
 if echo "$list_out" | grep -qi "No sandboxes registered"; then
   echo "FAIL: No NemoClaw sandboxes registered. Run: NEMOCLAW_SANDBOX='$sandbox' bash scripts/nemoclaw/onboard.sh" >&2
+  echo "Tip: If onboarding fails repeatedly, run: bash scripts/nemoclaw/diagnose.sh" >&2
   exit 1
 fi
 if ! echo "$list_out" | grep -Eqi "^[[:space:]]*${sandbox}([[:space:]]|\\*|$)"; then
   echo "FAIL: NemoClaw sandbox '$sandbox' not registered. Run: NEMOCLAW_SANDBOX='$sandbox' bash scripts/nemoclaw/onboard.sh" >&2
+  echo "Tip: If onboarding fails repeatedly, run: bash scripts/nemoclaw/diagnose.sh" >&2
   exit 1
 fi
 echo "PASS: NemoClaw sandbox registered ($sandbox)"
