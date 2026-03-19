@@ -39,6 +39,7 @@ For any change that impacts setup, deployment, API usage, security, or runbooks:
 - Commands are copy-paste safe and consistent with current tooling (`docker compose`).
 - API examples match actual routes, prefixes, and authentication behavior.
 - No secrets are embedded (use placeholders and document where values come from).
+- Never paste `.env` contents into tickets, PRs, or chat. If a secret is exposed, rotate it immediately.
 - If screenshots/diagrams exist in the doc, they match current UI labels, ports, and service names.
 
 ### 4. Documentation Validation
@@ -60,4 +61,3 @@ When a doc includes runnable examples:
 **Monthly (ops review)**
 - Review `docs/TROUBLESHOOTING.md` and `RUNBOOK.md` against the most frequent incidents.
 - Confirm observability docs match deployed metrics/log format.
-
