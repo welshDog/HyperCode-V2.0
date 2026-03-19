@@ -77,7 +77,7 @@ export default function BrainDumpChunker() {
         style={{ fontSize: '0.8rem', color: 'var(--hc-color-text-muted)' }}
       >
         Dump everything on your mind — tasks, worries, ideas. One line, bullet points, or total
-        chaos. We'll sort it.
+        chaos. We’ll sort it.
       </label>
 
       <textarea

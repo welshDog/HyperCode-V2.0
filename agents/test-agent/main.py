@@ -10,13 +10,19 @@ from collections.abc import Awaitable, Callable
 import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
-from prometheus_client import CollectorRegistry, Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    CollectorRegistry,
+    Counter,
+    Histogram,
+    generate_latest,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,11 +34,13 @@ app = FastAPI(title="test-agent", version="1.0.0")
 
 START_TIME = time.time()
 
+
 def _is_truthy(value: str | None) -> bool:
     """Return True if a string represents a truthy value."""
     if value is None:
         return False
     return value.strip().lower() in {"1", "true", "yes", "on"}
+
 
 def setup_telemetry() -> None:
     """Initialize OpenTelemetry tracing if enabled via environment."""
@@ -61,6 +69,7 @@ def setup_telemetry() -> None:
     FastAPIInstrumentor.instrument_app(app, tracer_provider=tracer_provider)
     logger.info("OpenTelemetry initialized for service: %s", service_name)
 
+
 setup_telemetry()
 
 PROM_REGISTRY = CollectorRegistry()
@@ -78,6 +87,7 @@ REQUEST_DURATION_SECONDS = Histogram(
     buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0),
 )
 
+
 @app.get("/")
 def read_root():
     """Return basic identity information for this agent."""
@@ -88,6 +98,7 @@ def read_root():
         "core_url": os.getenv("CORE_URL", "not set"),
     }
 
+
 @app.get("/health")
 def health_check():
     """Return liveness information for Docker and service discovery."""
@@ -96,7 +107,10 @@ def health_check():
         return {"status": "ok", "uptime_seconds": uptime}
     except Exception as e:
         logger.error("Health check failed: %s", e)
-        return JSONResponse(status_code=500, content={"status": "error", "detail": str(e)})
+        return JSONResponse(
+            status_code=500, content={"status": "error", "detail": str(e)}
+        )
+
 
 @app.get("/capabilities")
 def capabilities():
@@ -108,10 +122,12 @@ def capabilities():
         "requires": ["hypercode-core"],
     }
 
+
 @app.get("/metrics")
 def metrics() -> Response:
     """Expose Prometheus metrics for scraping."""
     return Response(generate_latest(PROM_REGISTRY), media_type=CONTENT_TYPE_LATEST)
+
 
 @app.middleware("http")
 async def log_requests(
@@ -123,8 +139,12 @@ async def log_requests(
     duration_seconds = time.time() - start
     duration_ms = round(duration_seconds * 1000, 2)
     endpoint = request.url.path
-    REQUESTS_TOTAL.labels(method=request.method, endpoint=endpoint, status=str(response.status_code)).inc()
-    REQUEST_DURATION_SECONDS.labels(method=request.method, endpoint=endpoint).observe(duration_seconds)
+    REQUESTS_TOTAL.labels(
+        method=request.method, endpoint=endpoint, status=str(response.status_code)
+    ).inc()
+    REQUEST_DURATION_SECONDS.labels(method=request.method, endpoint=endpoint).observe(
+        duration_seconds
+    )
     logger.info(
         "%s %s -> %s (%.2fms)",
         request.method,
@@ -134,10 +154,12 @@ async def log_requests(
     )
     return response
 
+
 def handle_sigterm(*_args: object) -> None:
     """Handle Docker SIGTERM for graceful shutdown."""
     logger.info("Received SIGTERM, shutting down gracefully...")
     sys.exit(0)
+
 
 _ = signal.signal(signal.SIGTERM, handle_sigterm)
 

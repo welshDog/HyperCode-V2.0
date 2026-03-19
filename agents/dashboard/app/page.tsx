@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
   Activity, 
   Terminal, 
@@ -9,7 +9,6 @@ import {
   Zap, 
   Database, 
   Send,
-  AlertTriangle,
   CheckCircle,
   Clock as ClockIcon,
   Server,
@@ -144,7 +143,10 @@ const LogEntry = ({ log }: { log: Log }) => (
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("uplink");
   const [input, setInput] = useState("");
-  const [token, setToken] = useState<string>("");
+  const [token, setToken] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("token") ?? "";
+  });
   const [loginUsername, setLoginUsername] = useState("admin@hypercode.ai");
   const [loginPassword, setLoginPassword] = useState("adminpassword");
   const [loginError, setLoginError] = useState<string>("");
@@ -162,20 +164,22 @@ export default function Dashboard() {
 
   const announcePolite = (msg: string) => {
     if (!msg) return;
-    setSrPolite(msg);
-    window.setTimeout(() => setSrPolite(""), 750);
+    window.setTimeout(() => {
+      setSrPolite(msg);
+      window.setTimeout(() => setSrPolite(""), 750);
+    }, 0);
   };
 
   const announceAssertive = (msg: string) => {
     if (!msg) return;
-    setSrAssertive(msg);
-    window.setTimeout(() => setSrAssertive(""), 750);
+    window.setTimeout(() => {
+      setSrAssertive(msg);
+      window.setTimeout(() => setSrAssertive(""), 750);
+    }, 0);
   };
 
   // Poll for data
   useEffect(() => {
-    const stored = typeof window !== "undefined" ? localStorage.getItem("token") : "";
-    if (stored) setToken(stored);
     const poll = async () => {
       const isHealthy = await checkHealth();
       setConnected(isHealthy);
