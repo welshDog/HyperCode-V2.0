@@ -44,7 +44,7 @@ services:
     container_name: mcp-github
     environment:
       - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN:-}
-    command: ["http", "--port", "9090", "--endpoint-path", "/mcp"]
+    command: ["http", "--port", "8082"]
     networks:
       - backend-net
     restart: unless-stopped
