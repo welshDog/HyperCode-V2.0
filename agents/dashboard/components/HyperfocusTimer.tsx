@@ -36,8 +36,7 @@ function saveState(s: HyperfocusState) {
 }
 
 export function HyperfocusTimer() {
-  const [preset, setPreset] = useState<HyperfocusPreset>("standard");
-  const [state, setState] = useState<HyperfocusState>(() => initialHyperfocusState("standard"));
+  const [state, setState] = useState<HyperfocusState>(() => loadStoredState() ?? initialHyperfocusState("standard"));
   const [srAssertive, setSrAssertive] = useState("");
   const intervalRef = useRef<number | null>(null);
 
@@ -47,14 +46,6 @@ export function HyperfocusTimer() {
     setSrAssertive(msg);
     window.setTimeout(() => setSrAssertive(""), 900);
   };
-
-  useEffect(() => {
-    const stored = loadStoredState();
-    if (stored) {
-      setPreset(stored.preset);
-      setState(stored);
-    }
-  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -84,7 +75,6 @@ export function HyperfocusTimer() {
   }, [state.running]);
 
   const setPresetAndReset = (p: HyperfocusPreset) => {
-    setPreset(p);
     setState(initialHyperfocusState(p));
   };
 
@@ -129,9 +119,9 @@ export function HyperfocusTimer() {
           <button
             key={p}
             onClick={() => setPresetAndReset(p)}
-            aria-pressed={preset === p}
+            aria-pressed={state.preset === p}
             className={`px-3 py-1.5 rounded text-xs font-bold tracking-wide border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black ${
-              preset === p
+              state.preset === p
                 ? "border-[var(--hc-color-accent)] bg-[var(--hc-color-accent)] text-black"
                 : "border-[var(--hc-color-border)] text-[var(--hc-color-text-secondary)] hover:border-[var(--hc-color-accent)]"
             }`}
