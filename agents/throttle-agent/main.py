@@ -33,10 +33,18 @@ class JSONFormatter(logging.Formatter):
             log_data["action"] = record.action
         if hasattr(record, "tier"):
             log_data["tier"] = record.tier
+        if hasattr(record, "container"):
+            log_data["container"] = record.container
         if hasattr(record, "ram_pct"):
             log_data["ram_pct"] = record.ram_pct
         if hasattr(record, "reason"):
             log_data["reason"] = record.reason
+        if hasattr(record, "healer_ok"):
+            log_data["healer_ok"] = record.healer_ok
+        if hasattr(record, "duration_seconds"):
+            log_data["duration_seconds"] = record.duration_seconds
+        if hasattr(record, "error"):
+            log_data["error"] = record.error
         return json.dumps(log_data)
 
 logger = logging.getLogger("throttle-agent")
@@ -265,6 +273,7 @@ def _get_tier_status(client: docker.DockerClient, tier: int, names: list[str]) -
         try:
             container = client.containers.get(name)
             container.reload()
+            _record_container_advanced_stats(name, container)
             status = _container_state(container)
             health = _container_health(container)
             ram = _container_ram_bytes(container)
@@ -353,6 +362,7 @@ if THROTTLE_ACTIVE_CONTAINER:
 
 app = FastAPI(title="Throttle Agent")
 
+_started_at: float = time.time()
 _last_poll_ts: float = 0.0
 _last_ram_pct: float | None = None
 _autopilot_below_since: float | None = None
@@ -360,6 +370,7 @@ _autopilot_paused_tiers: set[int] = set()
 _last_healer_state_poll_ts: float = 0.0
 _last_paused_by_throttle: set[str] = set()
 _last_open_circuits: set[str] = set()
+_paused_since: dict[str, float] = {}
 
 
 def _fetch_healer_paused_by_throttle() -> set[str]:
@@ -471,7 +482,8 @@ def _predict_ram_usage(minutes_ahead: int) -> float | None:
             return recent_values[-1]
         
         slope = numerator / denominator
-        predicted = recent_values[-1] + (slope * minutes_ahead)
+        steps_ahead = max(int(round((minutes_ahead * 60) / max(POLL_INTERVAL_SECONDS, 1))), 1)
+        predicted = recent_values[-1] + (slope * steps_ahead)
         return round(max(0, predicted), 2)  # Clamp to >= 0
     except Exception:
         return None
@@ -509,26 +521,24 @@ def _pause_tier_sync(client: docker.DockerClient, tier: int) -> dict[str, Any]:
     changed: list[str] = []
     failed: dict[str, str] = {}
     targets = _tier_container_names(tier)
-    start_time = time.time()
     
     for name in targets:
         if name in THROTTLE_PROTECT_CONTAINERS:
-            logger.info(f"Skipping pause of protected container: {name}")
+            logger.info("Skipping pause of protected container", extra={"action": "pause_skip_protected", "tier": tier, "container": name})
             continue
         try:
             container = client.containers.get(name)
             container.pause()
             THROTTLE_ACTIONS_TOTAL.labels(tier=str(tier), action="pause", container=name).inc()
             changed.append(name)
-            logger.info(f"Paused container", extra={"action": "pause", "tier": tier, "container": name})
+            _paused_since[name] = time.time()
+            logger.info("Paused container", extra={"action": "pause", "tier": tier, "container": name})
         except Exception as e:
             failed[name] = str(e)
-            logger.error(f"Failed to pause {name}: {e}", extra={"action": "pause_error", "container": name})
+            logger.error("Failed to pause container", extra={"action": "pause_error", "tier": tier, "container": name, "error": str(e)})
     
     if changed:
         _notify_healer_state(changed, paused=True)
-        pause_duration = time.time() - start_time
-        THROTTLE_PAUSE_DURATION_SECONDS.observe(pause_duration)
     
     return {"tier": tier, "action": "pause", "changed": changed, "failed": failed}
 
@@ -549,6 +559,9 @@ def _resume_tier_sync(client: docker.DockerClient, tier: int) -> dict[str, Any]:
             container.unpause()
             THROTTLE_ACTIONS_TOTAL.labels(tier=str(tier), action="resume", container=name).inc()
             changed.append(name)
+            paused_at = _paused_since.pop(name, None)
+            if paused_at is not None:
+                THROTTLE_PAUSE_DURATION_SECONDS.observe(max(time.time() - paused_at, 0.0))
         except Exception as e:
             failed[name] = str(e)
     if changed:
@@ -568,6 +581,7 @@ def _autopilot_cycle_sync() -> None:
     _last_ram_pct = _estimate_system_ram_pct(client, tiers_cfg)
     if _last_ram_pct is not None:
         SYSTEM_RAM_USAGE_PCT.set(_last_ram_pct)
+        ram_history.append(_last_ram_pct)
 
     _update_grafana_metrics()
 
@@ -645,19 +659,25 @@ def health() -> dict[str, Any]:
         DOCKER_UP.set(1)
         duration = time_module.time() - start
         HEALTH_CHECK_DURATION_SECONDS.observe(duration)
-        logger.info("Health check passed", extra={"action": "health_check", "healer_ok": healer_ok})
+        logger.info(
+            "Health check passed",
+            extra={"action": "health_check", "healer_ok": healer_ok, "duration_seconds": round(duration, 4)},
+        )
         return {
             "status": "healthy",
             "agent": "throttle-agent",
             "docker": "ok",
             "healer_ok": healer_ok,
-            "uptime_seconds": time_module.time(),
+            "uptime_seconds": round(time_module.time() - _started_at, 3),
         }
     except Exception as e:
         DOCKER_UP.set(0)
         duration = time_module.time() - start
         HEALTH_CHECK_DURATION_SECONDS.observe(duration)
-        logger.error(f"Health check failed: {e}", extra={"action": "health_check_error"})
+        logger.error(
+            "Health check failed",
+            extra={"action": "health_check_error", "healer_ok": healer_ok, "duration_seconds": round(duration, 4), "error": str(e)},
+        )
         return {
             "status": "degraded",
             "agent": "throttle-agent",
@@ -702,7 +722,7 @@ def decisions() -> dict[str, Any]:
         DOCKER_UP.set(1)
     except Exception as e:
         DOCKER_UP.set(0)
-        logger.error(f"Docker unreachable in decisions: {e}")
+        logger.error("Docker unreachable in decisions", extra={"action": "decisions_docker_unreachable", "error": str(e)})
         return {"error": "docker_unreachable", "detail": str(e)}
 
     now = time.time()
@@ -744,7 +764,10 @@ def decisions() -> dict[str, Any]:
     duration = time.time() - start
     DECISION_CALCULATION_DURATION_SECONDS.observe(duration)
     
-    logger.info(f"Decision calculated: {reason}", extra={"action": "decision", "ram_pct": ram_pct, "reason": reason})
+    logger.info(
+        "Decision calculated",
+        extra={"action": "decision", "ram_pct": ram_pct, "reason": reason, "duration_seconds": round(duration, 4)},
+    )
 
     return {
         "auto_throttle_enabled": AUTO_THROTTLE_ENABLED,
@@ -773,13 +796,19 @@ def decisions() -> dict[str, Any]:
 
 
 @app.post("/throttle/{tier}")
-def throttle_tier(tier: int, action: str = "pause") -> dict[str, Any]:
+def throttle_tier(tier: int, request: Request, action: str = "pause") -> dict[str, Any]:
     tiers_cfg = _get_tiers()
     if tier not in tiers_cfg:
         return {"error": "invalid_tier", "tier": tier}
 
     if action not in {"pause", "resume"}:
         return {"error": "invalid_action", "action": action}
+
+    api_key = os.getenv("THROTTLE_API_KEY", "").strip()
+    if api_key:
+        provided = request.headers.get("x-api-key", "").strip()
+        if not provided or provided != api_key:
+            return {"error": "unauthorized"}
 
     try:
         client = _docker_client()
