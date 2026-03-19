@@ -27,6 +27,7 @@ This file tracks documentation synchronization changes (what changed and why). I
   - Added documentation standards, review checklist, and validation expectations.
 - `docs/DOCUMENTATION_PROCESS.md`
   - Added a documented review process and a maintenance schedule to keep docs synchronized.
+  - Added an explicit rule to avoid pasting `.env` contents and to rotate secrets if exposed.
 - `docs/screenshots-gallery.md`
   - Removed broken in-repo image links and converted the file into a screenshot inventory with recommended storage location.
 - `docs/assets/README.md`
