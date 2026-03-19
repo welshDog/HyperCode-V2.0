@@ -1,6 +1,8 @@
-# 📚 DOCKER DOCUMENTATION INDEX
-**Last Updated:** 2026-03-01 23:15 UTC  
-**Status:** Complete & Ready
+# 📚 Docker Reports Index
+**Last Updated:** 2026-03-19  
+**Status:** Maintained
+
+This file indexes the canonical Docker-related reports under `docs/reports/`. For the repo-wide documentation hub, start at [docs/index.md](docs/index.md).
 
 ---
 
@@ -8,7 +10,7 @@
 
 ### 📄 Main Reference Documents
 
-#### 1. **DOCKER_SUMMARY.md** ⭐ START HERE
+#### 1. **[DOCKER_SUMMARY.md](docs/reports/DOCKER_SUMMARY.md)** ⭐ START HERE
 - **Size:** 13KB | **Read Time:** 5-10 minutes
 - **Purpose:** Executive summary & overview
 - **Contains:**
@@ -19,7 +21,7 @@
   - Architecture overview
   - Useful commands
 
-#### 2. **DOCKER_COMPLETE_INVENTORY_REPORT.md** 📊 COMPREHENSIVE REFERENCE
+#### 2. **[DOCKER_COMPLETE_INVENTORY_REPORT.md](docs/reports/DOCKER_COMPLETE_INVENTORY_REPORT.md)** 📊 COMPREHENSIVE REFERENCE
 - **Size:** 33KB | **Read Time:** 20-30 minutes
 - **Purpose:** Complete system inventory & detailed analysis
 - **Contains:**
@@ -36,7 +38,7 @@
 
 **USE THIS FOR:** Understanding what's running, deep dives, planning changes
 
-#### 3. **QUICK_REFERENCE.md** ⚡ HANDY GUIDE
+#### 3. **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** ⚡ HANDY GUIDE
 - **Size:** 10KB | **Read Time:** 2-5 minutes
 - **Purpose:** Quick commands and common tasks
 - **Contains:**
@@ -51,7 +53,7 @@
 
 **USE THIS FOR:** Quick help, common problems, daily tasks
 
-#### 4. **SECURITY_OPERATIONS_CHECKLIST.md** 🔐 OPERATIONS GUIDE
+#### 4. **[SECURITY_OPERATIONS_CHECKLIST.md](docs/reports/SECURITY_OPERATIONS_CHECKLIST.md)** 🔐 OPERATIONS GUIDE
 - **Size:** 12KB | **Read Time:** 5-10 minutes
 - **Purpose:** Security & operational procedures
 - **Contains:**
@@ -68,7 +70,7 @@
 
 **USE THIS FOR:** Planning operations, security hardening, maintenance schedule
 
-#### 5. **DOCKER_HEALTH_REPORT.md** 🏥 INITIAL ASSESSMENT
+#### 5. **[DOCKER_HEALTH_REPORT.md](docs/reports/DOCKER_HEALTH_REPORT.md)** 🏥 INITIAL ASSESSMENT
 - **Size:** 15KB | **Read Time:** 5-10 minutes
 - **Purpose:** Post-upgrade health assessment
 - **Contains:**
@@ -82,7 +84,7 @@
 
 **USE THIS FOR:** Understanding what was wrong, seeing what was fixed
 
-#### 6. **POST_UPGRADE_FIXES_COMPLETED.md** ✅ FIX SUMMARY
+#### 6. **[POST_UPGRADE_FIXES_COMPLETED.md](docs/reports/POST_UPGRADE_FIXES_COMPLETED.md)** ✅ FIX SUMMARY
 - **Size:** 11KB | **Read Time:** 5-10 minutes
 - **Purpose:** Summary of all fixes executed
 - **Contains:**

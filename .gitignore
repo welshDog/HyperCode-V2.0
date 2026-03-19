@@ -69,6 +69,7 @@ test.db
 # Health reports / AI outputs - never commit secrets
 docs/health-reports/*.local.md
 *.pat.txt
+docs/outputs/
 
 # Prometheus local overrides (Grafana Cloud remote_write credentials)
 monitoring/prometheus/prometheus.cloud.local.yml

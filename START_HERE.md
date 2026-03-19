@@ -58,6 +58,8 @@ If you’re trying to run the full HyperCode stack (Core API + DB + Redis + agen
 │  • OpenAI-compatible API                                    │
 └────────────────────────────────────────────────────────────┘
 
+Note: The base HyperCode stack also includes an Ollama runtime (`hypercode-ollama`) that uses an Ollama-compatible API. Run either the Model Runner profile or the base Ollama runtime for port `11434`, not both at once.
+
 ┌─ MCP Tools (3001-3004) ────────────────────────────────────┐
 │  • GitHub (repo operations)                                 │
 │  • PostgreSQL (database queries)                            │

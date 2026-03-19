@@ -96,13 +96,13 @@ Level up and you'll see: **"LEVEL UP BROski! You're now a BROski Commander! 🔥
 
 | Method | Endpoint | What it does |
 |---|---|---|
-| GET | `/broski/wallet` | Your coins, XP, level |
-| GET | `/broski/transactions` | Full paginated history |
-| GET | `/broski/achievements` | All available achievements |
-| GET | `/broski/achievements/me` | Your earned achievements |
-| GET | `/broski/leaderboard` | Top 10 players |
-| POST | `/broski/award` | Admin/agent: award coins+XP |
-| POST | `/broski/daily-login` | Claim +5 daily coins |
+| GET | `/api/v1/broski/wallet` | Your coins, XP, level |
+| GET | `/api/v1/broski/transactions` | Full paginated history |
+| GET | `/api/v1/broski/achievements` | All available achievements |
+| GET | `/api/v1/broski/achievements/me` | Your earned achievements |
+| GET | `/api/v1/broski/leaderboard` | Top 10 players |
+| POST | `/api/v1/broski/award` | Admin/agent: award coins+XP |
+| POST | `/api/v1/broski/daily-login` | Claim +5 daily coins |
 
 ### 🧠 Neurodivergent-First Design: BROski$ Edition
 
@@ -756,8 +756,7 @@ See the [LICENSE](LICENSE) file for full legal details.
 
 ## 💬 Community & Support
 
-<!-- TODO: Replace with real invite -->
-- 💬 **Discord**: `https://discord.gg/YOUR-INVITE`
+- 💬 **Discord**: (Invite link to be published)
 - 🐦 **Twitter/X**: [@welshDog](https://twitter.com/welshDog)
 - 💰 **Sponsor**: [GitHub Sponsors](https://github.com/sponsors/welshDog) - Help keep this free and accessible
 - 📧 **Email**: lyndz@hyperfocus.zone
