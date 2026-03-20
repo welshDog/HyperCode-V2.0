@@ -110,3 +110,9 @@ k8s/09-data-services.yaml
 k8s/11-monitoring.yaml
 k8s/14-grafana-dashboards-alertmanager.yaml
 k8s/Makefile
+
+# Generated test/coverage outputs
+coverage.xml
+test-*.txt
+.coverage
+
