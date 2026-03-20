@@ -37,7 +37,7 @@ class BROskiAnalyzer:
             r = subprocess.run(args, capture_output=True, text=True, cwd=self.root, timeout=120)
             return r.returncode, r.stdout
         except FileNotFoundError as e:
-            logger.error(f"Command {args[0]} not found: {e}")
+            logger.error(f"Command {args} not found: {e}")
             return -1, ""
         except subprocess.TimeoutExpired as e:
             logger.error(f"Command {args} timed out: {e}")
