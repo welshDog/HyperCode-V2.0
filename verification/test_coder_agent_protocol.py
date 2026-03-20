@@ -1,7 +1,6 @@
 
 import pytest
 import httpx
-import asyncio
 import os
 import json
 import time

@@ -1,9 +1,7 @@
 ""
 import discord
 from discord.ext import commands
-from discord import app_commands
 import aiosqlite
-import asyncio
 import logging
 from datetime import datetime
 from dotenv import load_dotenv

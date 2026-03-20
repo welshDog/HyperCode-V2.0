@@ -2,7 +2,7 @@
 Economy API endpoints.
 """
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from src.core.database import db
 from src.services.economy import EconomyService

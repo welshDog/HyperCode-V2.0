@@ -1,5 +1,4 @@
 import requests
-import sys
 
 def check_url(url, name):
     try:

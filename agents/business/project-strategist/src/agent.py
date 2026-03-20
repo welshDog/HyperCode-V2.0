@@ -2,12 +2,10 @@
 Project Strategist Agent
 Plans, breaks down, and delegates tasks to specialist agents
 """
-import sys
-import os
 import json
 import httpx
-from typing import Dict, List, Any
-from base_agent import BaseAgent, AgentConfig, TaskRequest
+from typing import Dict, List
+from base_agent import BaseAgent, TaskRequest
 
 class ProjectStrategist(BaseAgent):
     

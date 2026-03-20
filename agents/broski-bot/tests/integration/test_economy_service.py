@@ -1,12 +1,11 @@
 import pytest
 import asyncio
 from unittest.mock import patch
-from sqlalchemy import text
 from testcontainers.postgres import PostgresContainer
 from alembic.config import Config
 from alembic import command
 from src.config.settings import Settings
-from src.core.database import Database, db
+from src.core.database import Database
 from src.services.economy import EconomyService
 from src.core.exceptions import InsufficientBalanceException
 

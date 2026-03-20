@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
@@ -11,7 +10,6 @@ from collections import deque
 from datetime import datetime
 from typing import Any
 
-import httpx
 from fastapi import FastAPI, Request, Response
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
@@ -400,7 +398,7 @@ async def vibe_check() -> dict[str, Any]:
 
 
 @app.post("/energy-boost")
-async def energy_boost(amount: int = 10) -> BROski_Action:
+async def energy_boost(amount: int = 10) -> dict[str, Any]:
     """Boost agent energy."""
     global ENERGY_LEVEL
     ENERGY_LEVEL = min(100, ENERGY_LEVEL + amount)
@@ -446,7 +444,7 @@ async def toggle_party_mode(enable: bool = True) -> BROski_Party_Mode:
 
 
 @app.post("/broski-actions")
-async def broski_actions(action_type: str = "celebrate") -> BROski_Action:
+async def broski_actions(action_type: str = "celebrate") -> dict[str, Any]:
     """Perform BROski action."""
     global ENERGY_LEVEL, COOLNESS_FACTOR
 

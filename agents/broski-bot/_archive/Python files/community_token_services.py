@@ -11,12 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.ai.contribution_classifier import (
     AIContributionClassifier,
     ContributionScore,
-    ContributionType,
 )
 from src.config.logging import LoggerMixin, get_logger
-from src.config.settings import settings
 from src.core.exceptions import InsufficientBalanceException
-from src.models import Contribution, TokenTransaction, User
+from src.models import Contribution, TokenTransaction
 from src.repositories import EconomyRepository
 
 logger = get_logger(__name__)

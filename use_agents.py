@@ -48,7 +48,7 @@ async def assemble_crew(agent_roles: List[str], mission_desc: str):
         print(f"   Task: {mission_desc}")
         print("\n👉 **Action:**")
         print("   The orchestration endpoint is ready. To execute this mission:")
-        print(f"   POST /orchestrator/missions with payload:")
+        print("   POST /orchestrator/missions with payload:")
         
         mission_payload = {
             "crew_id": crew_id,

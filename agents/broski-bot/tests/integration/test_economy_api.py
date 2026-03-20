@@ -1,6 +1,6 @@
 import pytest
 import asyncio
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy import text
 from testcontainers.postgres import PostgresContainer
@@ -8,10 +8,8 @@ from alembic.config import Config
 from alembic import command
 
 from src.config.settings import Settings
-from src.core.database import Database, db
+from src.core.database import Database
 from src.api.main import app
-from src.services.economy import EconomyService
-from src.services.achievement import AchievementService
 
 @pytest.mark.asyncio
 async def test_economy_api_e2e():

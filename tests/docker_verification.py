@@ -4,8 +4,6 @@ import time
 import urllib.request
 import urllib.error
 import sys
-import os
-import json
 
 def run_command(command):
     """Run a shell command and return output."""

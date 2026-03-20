@@ -15,10 +15,9 @@ This allows the crew to function like:
 With branching, parallel execution, loops, and checkpoints.
 """
 
-from typing import Any, Dict, List, Optional, Annotated
+from typing import Any, Dict, List, Optional
 from dataclasses import dataclass, field
 from enum import Enum
-import json
 from datetime import datetime
 import asyncio
 
@@ -382,21 +381,21 @@ async def main():
     print("✅ WORKFLOW COMPLETED")
     print("=" * 70)
     
-    print(f"\n📊 Summary:")
+    print("\n📊 Summary:")
     print(f"   Status: {final_state.status}")
     print(f"   Decisions: {len(final_state.decisions)}")
     print(f"   Artifacts: {list(final_state.artifacts.keys())}")
     print(f"   Approved: {final_state.is_approved}")
     
-    print(f"\n🔍 Agent Decisions:")
+    print("\n🔍 Agent Decisions:")
     for decision in final_state.decisions:
         print(f"   {decision.agent_role.value.upper()}: {decision.decision} (confidence: {decision.confidence})")
     
-    print(f"\n💾 Generated Artifacts:")
+    print("\n💾 Generated Artifacts:")
     for name, content in final_state.artifacts.items():
         print(f"   - {name} ({len(str(content))} bytes)")
     
-    print(f"\n📝 Approval Chain:")
+    print("\n📝 Approval Chain:")
     for agent in final_state.approved_by:
         print(f"   ✓ {agent.value}")
 

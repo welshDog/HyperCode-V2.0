@@ -1,10 +1,8 @@
-import asyncio
 import httpx
 import time
 import json
 import yaml
-import os
-from typing import List, Dict, Optional, Any
+from typing import Any
 from .models import TestScenario, TestCase, TestResult, ScenarioResult, AgentType
 from .evaluator import Evaluator
 

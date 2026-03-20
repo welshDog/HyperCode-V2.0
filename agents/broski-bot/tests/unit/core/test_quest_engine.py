@@ -1,7 +1,6 @@
 import pytest
-import asyncio
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import AsyncMock
 from src.core.quest_engine import QuestStateMachine, QuestTransitionError, AgentOrchestrator
 from src.models import QuestStatus, Quest, UserQuest
 from src.core.schemas import UserProfile

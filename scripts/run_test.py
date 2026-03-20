@@ -2,7 +2,6 @@ import sys
 import subprocess
 import json
 import time
-import os
 from datetime import datetime
 
 def run_test(test_path):

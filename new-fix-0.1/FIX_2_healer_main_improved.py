@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 import asyncio
 import httpx
 import os

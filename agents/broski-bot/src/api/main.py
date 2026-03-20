@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from src.api.routes import economy
 from src.core.database import db
-from src.config.settings import settings
 
 app = FastAPI(
     title="BROski Bot API",

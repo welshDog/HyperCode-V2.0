@@ -1,7 +1,5 @@
 import pytest
 from unittest.mock import patch, mock_open, MagicMock
-import sys
-import os
 import hypercode
 
 # Mock data
