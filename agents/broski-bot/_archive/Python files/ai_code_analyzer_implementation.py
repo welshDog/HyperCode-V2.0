@@ -3,10 +3,9 @@ AI-Powered Code Analysis System
 Automatically reviews code, detects patterns, and reorganizes project structure.
 """
 import ast
-import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional
 
 from src.config.logging import get_logger
 

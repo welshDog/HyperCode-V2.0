@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from src.core.database import Base
-from src.models import User, Economy, FocusSession
+from src.models import Economy
 
 fake = Faker()
 
@@ -80,7 +80,6 @@ Unit tests for EconomyService.
 Tests business logic in isolation with mocked dependencies.
 """
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -89,7 +88,6 @@ from src.core.exceptions import (
     InsufficientBalanceException,
     InvalidAmountException,
 )
-from src.models import Economy
 from src.services import EconomyService
 
 
@@ -284,8 +282,6 @@ Tests end-to-end flows with real database.
 """
 import pytest
 
-from src.models import User, Economy
-from src.services import EconomyService
 
 
 class TestEconomyFlow:

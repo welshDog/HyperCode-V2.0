@@ -2,7 +2,6 @@
 Adaptive NPC Behavior Service.
 Modifies bot responses and interactions based on user context.
 """
-from typing import Dict, Optional
 
 from src.config.logging import get_logger
 from src.core.schemas import UserProfile

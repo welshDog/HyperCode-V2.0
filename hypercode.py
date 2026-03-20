@@ -1,7 +1,6 @@
 import sys
 import os
 import requests
-import json
 
 API_URL = "http://localhost:8000/api/v1/tasks/"
 

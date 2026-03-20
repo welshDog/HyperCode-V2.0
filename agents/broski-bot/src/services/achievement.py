@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config.logging import LoggerMixin
 from src.core.database import db
-from src.models import Achievement, UserAchievement
+from src.models import UserAchievement
 from src.repositories.achievement import AchievementRepository, UserAchievementRepository
 from src.repositories.economy import UserRepository, EconomyRepository
 from src.services.economy import EconomyService

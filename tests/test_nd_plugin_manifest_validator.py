@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 
 from scripts.validate_nd_plugin_manifest import validate_manifest
 

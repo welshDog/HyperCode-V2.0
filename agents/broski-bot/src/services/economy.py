@@ -16,7 +16,7 @@ from src.core.exceptions import (
     SessionActiveException,
     SessionNotFoundException,
 )
-from src.core.schemas import EconomyProfile, FocusSessionProfile, UserProfile
+from src.core.schemas import EconomyProfile, FocusSessionProfile
 from src.models import Transaction
 from src.repositories import EconomyRepository, FocusSessionRepository, UserRepository, TransactionRepository
 

@@ -16,7 +16,7 @@ import aiosqlite
 import logging
 import random
 from datetime import datetime
-from typing import Optional, Literal
+from typing import Literal
 
 logger = logging.getLogger(__name__)
 
@@ -229,7 +229,7 @@ class MysteryBox(commands.Cog):
             embed.add_field(name="New Balance", value=f"{new_balance} BROski$", inline=True)
             embed.description = "🎊 Congratulations on the rare drop!"
         
-        embed.set_footer(text=f"Use /boxhistory to see all your openings")
+        embed.set_footer(text="Use /boxhistory to see all your openings")
         
         await interaction.edit_original_response(content=None, embed=embed)
         logger.info(f"User {user_id} opened {box_type} box, got {reward_type}: {reward_value}")

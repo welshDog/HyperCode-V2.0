@@ -4,7 +4,6 @@ from discord.ext import commands
 import aiohttp
 import logging
 import os
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 

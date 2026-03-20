@@ -3,7 +3,6 @@ HyperCode Evolution Protocol Logic
 Handles validation, deduplication, and persistence of improvement requests.
 """
 import logging
-import json
 import redis.asyncio as redis
 from typing import Optional, Tuple
 from agents.shared.protocols.evolution import ImprovementRequest, EvolutionStatus

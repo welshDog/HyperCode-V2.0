@@ -9,12 +9,10 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import asyncio
-import logging
 import signal
 from typing import Optional
 
 import click
-import discord
 import sentry_sdk
 from discord.ext import commands
 

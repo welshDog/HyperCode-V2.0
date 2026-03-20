@@ -6,10 +6,9 @@ Supports both internal Docker networking and localhost for dev.
 import asyncio
 import httpx
 import logging
-import json
 import os
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Dict, Any
 import redis.asyncio as redis
 
 # Configure logging
@@ -43,11 +42,15 @@ class HealthCheckValidator:
         logger.info("🎯 Starting Mission: HYPERCODE_HEALTH_CHECK_VALIDATION_001")
         
         # Target endpoints based on TIPS_03 to TIPS_10
-        # Try localhost for local dev machine access
+        # Add super-hyper-broski-agent to the list of health check endpoints
         targets = [
-            {"name": "hypercode-core", "url": "http://localhost:8000/", "type": "FastAPI"},
-            {"name": "redis", "url": "redis://localhost:6379", "type": "Redis"},
-            {"name": "postgres", "url": "http://localhost:5432", "type": "Postgres"},
+            {"name": "super-hyper-broski-agent", "url": "http://localhost:8015/health", "type": "Agent"},
+            {"name": "throttle-agent", "url": "http://localhost:8014/health", "type": "Agent"},
+            {"name": "test-agent", "url": "http://localhost:8013/health", "type": "Agent"},
+            {"name": "healer-agent", "url": "http://localhost:8010/health", "type": "Healer"},
+            {"name": "backend-specialist", "url": "http://localhost:8003/health", "type": "Specialist"},
+            {"name": "crew-orchestrator", "url": "http://localhost:8081/health", "type": "Orchestrator"},
+            {"name": "openshell-cluster", "url": "http://localhost:8080/health", "type": "Cluster"},    
             {"name": "tips-tricks-writer", "url": "http://localhost:8011/health", "type": "Agent"},
             {"name": "crew-orchestrator", "url": "http://localhost:8081/health", "type": "Orchestrator"},
             {"name": "healer-agent", "url": "http://localhost:8010/health", "type": "Healer"}
@@ -77,7 +80,7 @@ class HealthCheckValidator:
                     
                     if r.status_code == 200:
                         status = "PASS"
-                        details = f"Healthy response"
+                        details = "Healthy response"
                     else:
                         details = f"Status code: {r.status_code}"
             
@@ -149,7 +152,9 @@ Bro, we just swept the entire infrastructure to make sure our new **Tips Archite
 | :--- | :--- | :--- | :--- |
 """
         for r in self.results:
-            content += f"| {r['indicator']} {r['target']} | **{r['status']}** | {f'{r['latency_ms']:.2f}ms' if r['latency_ms'] > 0 else 'N/A'} | {r['details']} |\n"
+            content += f"| {r['indicator']} {r['target']} | **{r['status']}** | {f"{r['latency_ms']:.2f}ms" if r['latency_ms'] > 0 else 'N/A'} | {r['details']} |\n"
+            latency_str = f"{r['latency_ms']:.2f}ms" if r['latency_ms'] > 0 else 'N/A'
+            content += f"| {r['indicator']} {r['target']} | **{r['status']}** | {latency_str} | {r['details']} |\n"
 
         content += """
 ---

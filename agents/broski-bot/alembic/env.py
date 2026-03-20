@@ -11,7 +11,6 @@ from alembic import context
 # Import settings and models for autogenerate support
 from src.config.settings import settings
 from src.core.database import Base
-import src.models  # This ensures all models are registered with Base.metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

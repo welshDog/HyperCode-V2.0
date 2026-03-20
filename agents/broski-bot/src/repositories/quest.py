@@ -9,7 +9,6 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.core.database import Base
 from src.models import Quest, UserQuest, QuestStatus
 from src.repositories.economy import BaseRepository
 

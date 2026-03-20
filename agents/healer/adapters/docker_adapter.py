@@ -1,7 +1,6 @@
 import docker
 import logging
 from typing import Optional
-from datetime import datetime
 import redis.asyncio as redis
 from ..models import ContainerStatus
 

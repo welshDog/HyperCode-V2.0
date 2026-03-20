@@ -13,7 +13,6 @@ Usage:
 
 import asyncio
 import httpx
-import json
 import sys
 from typing import Optional
 from datetime import datetime

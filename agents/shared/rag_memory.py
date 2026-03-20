@@ -1,7 +1,7 @@
 import hashlib
 import os
 from chromadb import PersistentClient
-from typing import List, Optional
+from typing import List
 
 class AgentMemory:
     def __init__(self, agent_name: str, base_path: str = "./memory"):

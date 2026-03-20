@@ -1,8 +1,7 @@
 """Unit tests for agent functionality."""
 
 import pytest
-from datetime import datetime
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import patch, AsyncMock
 
 
 class TestAgentBase:
@@ -156,7 +155,6 @@ class TestCrewOrchestrator:
 ])
 def test_agents_exist(agent_name):
     """Test all required agents exist."""
-    import os
     agents_dir = "agents"
     
     # This is a simple check - extend as needed

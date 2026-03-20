@@ -2,7 +2,6 @@ import os
 import yaml
 import json
 import glob
-import re
 
 # Configuration
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -109,7 +108,7 @@ def parse_monitoring_configs(monitoring_dir):
                                     'annotations': rule.get('annotations', {}),
                                     'source_file': file_path
                                 })
-            except Exception as e:
+            except Exception:
                 pass # Ignore non-yaml or irrelevant files
     return rules
 

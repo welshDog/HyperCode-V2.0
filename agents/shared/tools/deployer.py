@@ -4,7 +4,6 @@ Provides Docker control capabilities for the DevOps agent.
 """
 import subprocess
 import logging
-import os
 from typing import Dict, Any
 
 logger = logging.getLogger("deployer")

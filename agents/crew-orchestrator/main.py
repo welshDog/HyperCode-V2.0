@@ -529,7 +529,7 @@ async def execute_task(
                     }
                     return {"status": "error", "message": "Agent execution failed"}
 
-        except Exception as e:
+        except Exception:
             await log_event(agent_name, "error", "Exception during agent execution")
             logger.exception("Agent execution exception")
             return {"status": "error", "message": "Agent execution failed"}

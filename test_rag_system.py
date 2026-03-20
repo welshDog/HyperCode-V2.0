@@ -30,7 +30,7 @@ async def test_rag():
     
     relevant_context = memory.query_relevant_context(test_query, top_k=1)
     
-    print(f"\n✅ Retrieved Context:")
+    print("\n✅ Retrieved Context:")
     print("─" * 60)
     print(relevant_context)
     print("─" * 60)
@@ -42,7 +42,7 @@ async def test_rag():
     
     context_size = len(relevant_context)
     
-    print(f"\n💰 Approximate Savings:")
+    print("\n💰 Approximate Savings:")
     print(f"   Full Document: {full_size} chars")
     print(f"   RAG Context:   {context_size} chars")
     if full_size > 0:

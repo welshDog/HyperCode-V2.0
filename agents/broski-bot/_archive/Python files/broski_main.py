@@ -128,7 +128,6 @@ def migrate() -> None:
 @click.option("--backup-dir", default="./backups", help="Backup directory")
 def backup(backup_dir: str) -> None:
     """Create database backup."""
-    import os
     import subprocess
     from datetime import datetime
     
@@ -167,12 +166,10 @@ Discord bot initialization and configuration.
 import os
 from typing import List, Optional
 
-import discord
 from discord.ext import commands
 from prometheus_client import Counter, Histogram, start_http_server
 
 from src.config.logging import get_logger
-from src.config.settings import settings
 
 logger = get_logger(__name__)
 
