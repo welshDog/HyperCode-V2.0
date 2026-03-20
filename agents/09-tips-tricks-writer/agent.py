@@ -5,8 +5,7 @@ Specializes in generating neurodivergent-friendly development guides.
 """
 import os
 import sys
-from typing import Dict, Any, List
-import asyncio
+from typing import Dict, Any
 
 # Add project root to path for shared modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -18,7 +17,7 @@ try:
     from agents.base_agent.agent import BaseAgent, AgentConfig, TaskRequest
 except ImportError:
     # Local development fallback
-    from base_agent.agent import BaseAgent, AgentConfig, TaskRequest
+    from base_agent.agent import BaseAgent, AgentConfig
 
 class TipsTricksWriterAgent(BaseAgent):
     def __init__(self, config: AgentConfig):

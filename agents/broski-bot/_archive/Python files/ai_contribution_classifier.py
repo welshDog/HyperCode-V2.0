@@ -3,9 +3,8 @@ AI-Powered Contribution Classification System
 Analyzes Discord messages and classifies contributions for token rewards.
 """
 from dataclasses import dataclass
-from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import discord
 from sqlalchemy.ext.asyncio import AsyncSession

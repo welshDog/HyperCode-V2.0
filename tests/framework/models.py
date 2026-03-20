@@ -1,6 +1,6 @@
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 class AgentType(str, Enum):
     ORCHESTRATOR = "orchestrator"

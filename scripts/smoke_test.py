@@ -38,10 +38,10 @@ def main():
     try:
         # Disable SSL verification for self-signed certs
         requests.get(EDITOR_URL, timeout=5, verify=False)
-        print(f"[PASS] HyperFlow Editor is reachable")
+        print("[PASS] HyperFlow Editor is reachable")
         editor_ok = True
     except:
-        print(f"[FAIL] HyperFlow Editor unreachable")
+        print("[FAIL] HyperFlow Editor unreachable")
         editor_ok = False
 
     if core_ok and metrics_ok and term_ok and editor_ok:

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-import ast, json, logging, subprocess, uuid
+import ast
+import json
+import logging
+import subprocess
+import uuid
 from datetime import datetime, timezone
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,7 +36,7 @@ class BROskiAnalyzer:
         try:
             r = subprocess.run(args, capture_output=True, text=True, cwd=self.root, timeout=120)
             return r.returncode, r.stdout
-        except Exception as e:
+        except Exception:
             return -1, ""
 
     def ruff(self):

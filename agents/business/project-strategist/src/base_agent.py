@@ -4,9 +4,8 @@ Each specialized agent extends this base
 """
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 import os
-import asyncio
 import redis.asyncio as redis
 from anthropic import AsyncAnthropic
 from contextlib import asynccontextmanager

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
@@ -11,7 +10,6 @@ from collections import deque
 from datetime import datetime
 from typing import Any
 
-import httpx
 from fastapi import FastAPI, Request, Response
 from prometheus_client import (
     CONTENT_TYPE_LATEST,

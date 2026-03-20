@@ -7,8 +7,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from datetime import datetime, timezone
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select
 
 from src.core.database import get_db_session
 from src.models.user import User

@@ -2,7 +2,7 @@ import pytest
 import asyncio
 from unittest.mock import patch, MagicMock
 from sqlalchemy import text
-from src.core.database import Database, db
+from src.core.database import Database
 from src.config.settings import Settings
 
 @pytest.mark.asyncio

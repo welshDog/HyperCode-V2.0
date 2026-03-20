@@ -2,7 +2,6 @@ import typer
 import asyncio
 import os
 import sys
-from typing import Optional
 
 # Ensure we can import healer package
 try:

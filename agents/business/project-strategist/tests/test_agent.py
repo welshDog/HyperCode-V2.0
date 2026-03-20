@@ -1,9 +1,8 @@
 import unittest
-import json
 import os
 import sys
 import asyncio
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, AsyncMock
 
 # Ensure the parent directory is in the path to import the agent module
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))

@@ -3,8 +3,6 @@
 import pytest
 import redis
 import psycopg2
-from sqlalchemy import inspect, create_engine
-import asyncio
 
 
 class TestRedisConnection:

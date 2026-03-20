@@ -1,5 +1,4 @@
 import os
-import re
 import json
 import datetime
 
@@ -53,7 +52,7 @@ def check_config_security():
 
 def generate_report(dep_issues, docker_issues, config_issues):
     with open(REPORT_PATH, 'w', encoding='utf-8') as f:
-        f.write(f"# 🏥 HyperCode V2.0 Comprehensive Health Report\n")
+        f.write("# 🏥 HyperCode V2.0 Comprehensive Health Report\n")
         f.write(f"**Date:** {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         
         f.write("## 🛡️ Security & Dependencies\n")

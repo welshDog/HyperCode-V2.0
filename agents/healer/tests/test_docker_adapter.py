@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 from agents.healer.adapters.docker_adapter import DockerAdapter
-from agents.healer.models import ContainerStatus
 
 @pytest.fixture
 def mock_docker():

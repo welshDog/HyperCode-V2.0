@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.config.logging import get_logger
 from src.core.database import db
 from src.core.quest_engine import AgentOrchestrator, QuestStatus
-from src.models import Quest, UserQuest, QuestType
+from src.models import UserQuest, QuestType
 from src.repositories.quest import QuestRepository, UserQuestRepository
 from src.repositories.economy import UserRepository
 from src.services.economy import LoggerMixin

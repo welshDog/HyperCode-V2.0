@@ -20,9 +20,6 @@ pytestmark = pytest.mark.skipif(
 Test suite for HyperCode Agent Crew
 """
 import pytest
-import httpx
-import asyncio
-import json
 
 ORCHESTRATOR_URL = "http://localhost:8080"
 

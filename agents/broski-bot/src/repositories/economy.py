@@ -2,7 +2,7 @@
 Repository pattern implementation for data access.
 Separates business logic from database operations.
 """
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Generic, List, Optional, Type, TypeVar
 
 from sqlalchemy import delete, select, update
@@ -10,8 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.core.database import Base
-from src.core.exceptions import DuplicateRecordException, RecordNotFoundException
-from src.models import Economy, FocusSession, Quest, QuestStatus, User, UserQuest, Transaction
+from src.core.exceptions import RecordNotFoundException
+from src.models import Economy, FocusSession, User, Transaction
 
 ModelType = TypeVar("ModelType", bound=Base)
 

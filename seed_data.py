@@ -1,5 +1,4 @@
 import requests
-import sys
 
 # Define base URL
 API_URL = "http://localhost:8000/api/v1"

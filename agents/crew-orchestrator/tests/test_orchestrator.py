@@ -9,7 +9,7 @@ import os
 # Add parent directory to path to import main
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from main import app, request_approval, monitor_agent_health
+from main import request_approval, monitor_agent_health
 
 @pytest.mark.asyncio
 async def test_execute_endpoint_success(client, mock_redis, mock_httpx_response):

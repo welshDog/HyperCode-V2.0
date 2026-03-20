@@ -3,11 +3,11 @@ Dynamic Quest Generation Service.
 Uses user history and preferences to generate personalized quests.
 """
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List
 
 from src.config.logging import get_logger
 from src.core.schemas import UserProfile
-from src.models import Quest, QuestStatus
+from src.models import Quest
 
 logger = get_logger(__name__)
 

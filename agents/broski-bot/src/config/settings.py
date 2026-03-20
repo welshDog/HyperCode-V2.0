@@ -5,7 +5,7 @@ Loads settings from environment variables with validation.
 from functools import lru_cache
 from typing import Any, Dict, Optional
 
-from pydantic import Field, PostgresDsn, RedisDsn, field_validator
+from pydantic import Field, RedisDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

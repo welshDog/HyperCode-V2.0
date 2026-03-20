@@ -15,7 +15,7 @@ from src.core.exceptions import (
     SessionActiveException,
     SessionNotFoundException,
 )
-from src.models import Economy, FocusSession, User
+from src.models import FocusSession
 from src.repositories import EconomyRepository, FocusSessionRepository, UserRepository
 
 

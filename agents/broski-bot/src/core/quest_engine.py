@@ -3,7 +3,7 @@ Quest state machine and coordination engine.
 Handles state transitions, validation, and AI-driven adaptation.
 """
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Set, Any, Union
+from typing import Dict, List, Optional, Set, Any
 
 from src.config.logging import get_logger
 from src.core.exceptions import BroskiBotException
