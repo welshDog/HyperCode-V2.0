@@ -400,7 +400,7 @@ async def vibe_check() -> dict[str, Any]:
 
 
 @app.post("/energy-boost")
-async def energy_boost(amount: int = 10) -> dict[str, Any]:
+async def energy_boost(amount: int = 10) -> BROski_Action:
     """Boost agent energy."""
     global ENERGY_LEVEL
     ENERGY_LEVEL = min(100, ENERGY_LEVEL + amount)
@@ -446,7 +446,7 @@ async def toggle_party_mode(enable: bool = True) -> BROski_Party_Mode:
 
 
 @app.post("/broski-actions")
-async def broski_actions(action_type: str = "celebrate") -> dict[str, Any]:
+async def broski_actions(action_type: str = "celebrate") -> BROski_Action:
     """Perform BROski action."""
     global ENERGY_LEVEL, COOLNESS_FACTOR
 
