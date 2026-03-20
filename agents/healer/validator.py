@@ -20,13 +20,14 @@ class HealthCheckValidator:
     def __init__(self, redis_url: str = "redis://localhost:6379"):
         self.redis_url = redis_url
         self.redis = None
-        self.results = []
+        self.results: List[Dict[str, Any]] = []
         self.start_time = datetime.now()
         
     async def initialize(self):
         try:
             self.redis = await redis.from_url(self.redis_url, decode_responses=True)
-            await self.redis.ping()
+            if self.redis:
+                await self.redis.ping()
             logger.info("Validator connected to Redis. BRO, let's go! 🚀")
         except Exception as e:
             logger.warning(f"Could not connect to Redis at {self.redis_url}. Using limited mode. {e}")
@@ -73,7 +74,7 @@ class HealthCheckValidator:
                     t0 = datetime.now()
                     r = await client.get(target["url"])
                     t1 = datetime.now()
-                    latency = (t1 - t0).total_seconds() * 1000 # ms
+                    latency = int((t1 - t0).total_seconds() * 1000) # ms
                     
                     if r.status_code == 200:
                         status = "PASS"
@@ -86,7 +87,7 @@ class HealthCheckValidator:
                     t0 = datetime.now()
                     ping = await self.redis.ping()
                     t1 = datetime.now()
-                    latency = (t1 - t0).total_seconds() * 1000
+                    latency = int((t1 - t0).total_seconds() * 1000) # ms
                     if ping:
                         status = "PASS"
                         details = "Redis PONG successful"
@@ -101,7 +102,7 @@ class HealthCheckValidator:
                 sock.settimeout(2)
                 result = sock.connect_ex(('localhost', 5432))
                 t1 = datetime.now()
-                latency = (t1 - t0).total_seconds() * 1000
+                latency = int((t1 - t0).total_seconds() * 1000) # ms
                 if result == 0:
                     status = "PASS"
                     details = "Postgres TCP port open"
@@ -149,7 +150,8 @@ Bro, we just swept the entire infrastructure to make sure our new **Tips Archite
 | :--- | :--- | :--- | :--- |
 """
         for r in self.results:
-            content += f"| {r['indicator']} {r['target']} | **{r['status']}** | {f'{r['latency_ms']:.2f}ms' if r['latency_ms'] > 0 else 'N/A'} | {r['details']} |\n"
+            latency_str = f"{int(r['latency_ms'])}ms" if r['latency_ms'] > 0 else "N/A"
+            content += f"| {r['indicator']} {r['target']} | **{r['status']}** | {latency_str} | {r['details']} |\n"
 
         content += """
 ---
