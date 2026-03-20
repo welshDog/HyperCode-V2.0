@@ -1,3 +1,21 @@
+import httpx
+import pytest
+
+# ── Integration guard ────────────────────────────────────────────────────────
+# These tests hit the live Crew Orchestrator on localhost:8080
+# They are SKIPPED automatically when Docker stack is not running
+def _orchestrator_up() -> bool:
+    try:
+        httpx.get("http://localhost:8080/health", timeout=2)
+        return True
+    except Exception:
+        return False
+
+pytestmark = pytest.mark.skipif(
+    not _orchestrator_up(),
+    reason="Skipped: Crew Orchestrator not running (start Docker stack first)"
+)
+# ─────────────────────────────────────────────────────────────────────────────
 """
 Test suite for HyperCode Agent Crew
 """
@@ -83,3 +101,4 @@ async def test_agent_direct_execution():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
