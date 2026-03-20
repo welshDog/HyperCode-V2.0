@@ -6,7 +6,6 @@ from sqlalchemy import pool
 from alembic import context
 
 # Import models for autogenerate
-import os
 import sys
 from pathlib import Path
 

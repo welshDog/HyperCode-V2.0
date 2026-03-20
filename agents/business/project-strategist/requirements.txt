@@ -2,7 +2,7 @@ fastapi
 uvicorn
 pydantic
 redis
-anthropic
+anthropic>=0.18.1
 httpx
 requests
 tenacity

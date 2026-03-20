@@ -495,7 +495,6 @@ async def process_video_generation(
     Updates database as it progresses.
     """
     
-    import os
     import time
     from pathlib import Path
     

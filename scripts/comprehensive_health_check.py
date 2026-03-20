@@ -2,8 +2,6 @@ import subprocess
 import json
 import datetime
 import requests
-import sys
-import os
 
 def run_command(command):
     try:

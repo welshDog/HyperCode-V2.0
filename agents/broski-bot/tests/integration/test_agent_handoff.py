@@ -54,11 +54,11 @@ async def test_agent_dynamic_adaptation_under_load():
     avg_duration = sum(durations) / num_concurrent
     max_duration = max(durations)
     
-    print(f"\n--- Performance Benchmark Report ---")
+    print("\n--- Performance Benchmark Report ---")
     print(f"Concurrent Requests: {num_concurrent}")
     print(f"Average Response Time: {avg_duration:.2f} ms")
     print(f"Max Response Time: {max_duration:.2f} ms")
-    print(f"Target: < 200 ms")
+    print("Target: < 200 ms")
     
     assert avg_duration < 200
     # Even under load, most requests should be well under the threshold.

@@ -183,10 +183,10 @@ def main():
                 print(f"  Result: {json_out['status']}")
             except:
                 test_results.append({"service": "unknown", "status": "FAIL", "details": "Failed to parse test output", "raw": result.stdout})
-                print(f"  Result: FAIL (Parse Error)")
+                print("  Result: FAIL (Parse Error)")
         except Exception as e:
             test_results.append({"service": "unknown", "status": "FAIL", "details": str(e)})
-            print(f"  Result: FAIL (Exec Error)")
+            print("  Result: FAIL (Exec Error)")
 
     # 6. Check Metrics
     print("Checking Prometheus SLIs...")

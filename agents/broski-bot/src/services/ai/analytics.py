@@ -2,7 +2,7 @@
 Predictive Analytics Service.
 Analyzes user data to predict churn and optimize engagement.
 """
-from typing import Dict, List, Optional
+from typing import Optional
 
 from src.config.logging import get_logger
 from src.core.schemas import UserProfile

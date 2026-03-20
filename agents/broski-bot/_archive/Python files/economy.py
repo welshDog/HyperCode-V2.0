@@ -9,7 +9,6 @@ import aiosqlite
 import os
 from datetime import datetime, timedelta
 import random
-import json
 
 DB_PATH = os.getenv('DB_PATH', 'database/broski_main.db')
 

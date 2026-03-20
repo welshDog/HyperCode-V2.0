@@ -2,10 +2,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import logging
-from typing import Optional
 
 from src.core.database import db
-from src.core.schemas import UserProfile
 from src.services.quest import QuestService
 from src.services.achievement import AchievementService
 from src.models import QuestStatus

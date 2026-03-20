@@ -1,5 +1,4 @@
 import pytest
-import asyncio
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, AsyncMock, patch
 from src.services.quest import QuestService

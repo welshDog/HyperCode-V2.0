@@ -1,8 +1,7 @@
 """
 Discord bot initialization and configuration.
 """
-import os
-from typing import List, Optional
+from typing import List
 
 import discord
 from discord.ext import commands

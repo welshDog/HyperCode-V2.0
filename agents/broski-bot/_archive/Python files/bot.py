@@ -7,7 +7,6 @@ Author: Lyndz Williams (@welshDog)
 
 import discord
 from discord.ext import commands
-import asyncio
 import aiosqlite
 import logging
 from pathlib import Path

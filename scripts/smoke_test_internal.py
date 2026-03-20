@@ -1,7 +1,6 @@
 import requests
 import sys
 import time
-import os
 
 CORE_URL = "http://localhost:8000"
 DASHBOARD_URL = "http://hypercode-dashboard:3000"

@@ -1,13 +1,11 @@
 """
 MintMe blockchain integration and web dashboard for community management.
 """
-import asyncio
-from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 import aiohttp
 from flask import Flask, jsonify, render_template, request
-from prometheus_client import Counter, Gauge, Histogram
+from prometheus_client import Counter, Gauge
 
 from src.config.logging import get_logger
 from src.config.settings import settings

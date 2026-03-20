@@ -8,12 +8,10 @@ import torch
 import cv2
 import numpy as np
 from pathlib import Path
-import uuid
 import tempfile
 import subprocess
 from typing import Optional
 import logging
-from tqdm import tqdm
 
 # Azure TTS
 import azure.cognitiveservices.speech as speechsdk

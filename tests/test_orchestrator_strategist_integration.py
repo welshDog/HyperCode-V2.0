@@ -7,7 +7,6 @@ Simulates exactly what Mission Control sends
 import asyncio
 import httpx
 import json
-import sys
 
 # ORCHESTRATOR_URL = "http://localhost:8081"
 # STRATEGIST_URL   = "http://localhost:8001"

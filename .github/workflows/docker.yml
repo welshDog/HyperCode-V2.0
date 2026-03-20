@@ -51,7 +51,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
@@ -89,7 +89,7 @@ jobs:
           measure broski-terminal:metrics
           measure hyperflow-editor:metrics
       - name: Vulnerability scan with Trivy
-        uses: aquasecurity/trivy-action@0.20.0
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: hypercode-core:metrics
           format: 'table'

@@ -7,7 +7,7 @@ import sys
 import asyncio
 import json
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 # Add /app to sys.path so we can import 'agents.shared' if needed
 sys.path.append('/app')

@@ -1,5 +1,4 @@
 import pytest
-import asyncio
 from unittest.mock import AsyncMock, MagicMock
 from agents.shared.core.evolution_logic import EvolutionProtocol
 from agents.shared.protocols.evolution import ImprovementRequest, ImprovementType

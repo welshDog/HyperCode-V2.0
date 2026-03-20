@@ -1,7 +1,4 @@
-from arq import create_pool
 from arq.connections import RedisSettings
-from arq.worker import run_worker
-import asyncio
 import httpx
 import json
 import logging

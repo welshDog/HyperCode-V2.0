@@ -1,12 +1,10 @@
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 import uvicorn
 import os
-import asyncio
 import json
 import httpx
-from typing import Dict, Any, Optional
-from contextlib import AsyncExitStack
+from typing import Dict, Any
 
 # Configure logging
 import logging
@@ -43,7 +41,6 @@ except ImportError:
             self.result = result
             self.error = error
 
-from prometheus_api_client import PrometheusConnect
 
 class CoderAgent(BaseAgent):
     def __init__(self, config: AgentConfig):
