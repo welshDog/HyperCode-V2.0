@@ -146,21 +146,30 @@ class BROskiAnalyzer:
             logger.error("detect-secrets scan failed unexpectedly: %s", e)
             return []
 
-    def ast_check(self, files: list[Path]) -> list[Issue]:
-        """Run AST checks on the given files and return any issues."""
-        issues: list[Issue] = []
-        for f in files:
-            try:
-                tree = ast.parse(f.read_text())
-                for node in ast.walk(tree):
-                    if isinstance(node, ast.FunctionDef):
-                        issues.append(Issue(
-                            file=str(f),
-                            line=node.lineno,
-                            severity="medium",
-                            category="ast:function",
-                            message=f"Function {node.name} defined",
-                        ))
-            except Exception:  # noqa: BLE001
-                logger.error("AST check failed for %s", f)
-        return issues
+def ast_check(self, files: list[Path]) -> list[Issue]:
+    """Walk AST of each file, flagging bare excepts and syntax errors."""
+    issues: list[Issue] = []
+    for fp in files:
+        try:
+            tree = ast.parse(fp.read_text(errors="ignore"))
+        except SyntaxError as e:
+            issues.append(Issue(
+                file=str(fp.relative_to(self.root)),
+                line=e.lineno,
+                severity="critical",
+                category="syntax:error",
+                message=str(e),
+            ))
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ExceptHandler) and node.type is None:
+                issues.append(Issue(
+                    file=str(fp.relative_to(self.root)),
+                    line=node.lineno,
+                    severity="medium",
+                    category="bare_except",
+                    message="Bare except: catches everything",
+                    auto_fixable=True,
+                ))
+    return issues
+
