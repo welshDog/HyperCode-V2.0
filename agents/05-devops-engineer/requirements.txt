@@ -4,5 +4,5 @@ uvicorn
 pydantic
 httpx
 redis
-anthropic
+anthropic>=0.18.1
 python-multipart
