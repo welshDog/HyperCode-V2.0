@@ -36,7 +36,14 @@ class BROskiAnalyzer:
         try:
             r = subprocess.run(args, capture_output=True, text=True, cwd=self.root, timeout=120)
             return r.returncode, r.stdout
-        except Exception:
+        except FileNotFoundError as e:
+            logger.error(f"Command {args[0]} not found: {e}")
+            return -1, ""
+        except subprocess.TimeoutExpired as e:
+            logger.error(f"Command {args} timed out: {e}")
+            return -1, ""
+        except Exception as e:
+            logger.error(f"Command {args} failed: {e}")
             return -1, ""
 
     def ruff(self):
@@ -55,14 +62,25 @@ class BROskiAnalyzer:
         rc, out = self.run(["detect-secrets","scan"])
         if rc == -1: return []
         try:
+            data = json.loads(out)
+            if not isinstance(data, dict) or "results" not in data:
+                logger.warning("detect-secrets output missing 'results' key — skipping")
+                return []
             issues = []
-            for fname, hits in json.loads(out).get("results",{}).items():
+            for fname, hits in data["results"].items():
+                if not isinstance(hits, list):
+                    continue
                 for h in hits:
                     issues.append(Issue(file=fname, line=h.get("line_number"),
                         severity="critical", category="secret:detected",
                         message=f"Secret type: {h.get('type','unknown')}"))
             return issues
-        except: return []
+        except json.JSONDecodeError as e:
+            logger.error(f"detect-secrets JSON parse failed: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"detect-secrets scan failed unexpectedly: {e}")
+            return []
 
     def ast_check(self, files):
         issues = []
