@@ -94,11 +94,19 @@ async def route_task(req: TaskRequest) -> TaskResponse:
 
     result_data: dict[str, Any] = {}
     async with httpx.AsyncClient(timeout=10.0) as client:
-        if is_ultra:
-            await client.post(f"{BROSKI_URL}/ultra-mode")
-        r = await client.post(f"{BROSKI_URL}/broski-actions",
-                              params={"action_type": action})
-        result_data = r.json()
+        try:
+            if is_ultra:
+                resp = await client.post(f"{BROSKI_URL}/ultra-mode")
+                logger.info(f"Ultra-mode: {resp.status_code}")
+            r = await client.post(f"{BROSKI_URL}/broski-actions", params={"action_type": action})
+            r.raise_for_status()
+            result_data = r.json()
+        except httpx.RequestError as e:
+            logger.error(f"Downstream dead: {e}")
+            raise HTTPException(status_code=502, detail="Downstream unavailable")
+        except (ValueError, json.JSONDecodeError) as e:
+            logger.error(f"Bad JSON: {e}")
+            raise HTTPException(status_code=502, detail="Invalid downstream response")
 
     vibe, energy = 100, 100
     try:

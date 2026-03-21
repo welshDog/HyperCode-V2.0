@@ -144,46 +144,59 @@ async def get_throttle_state() -> Dict[str, Any]:
     return {"containers": sorted(set(containers)), "backend": "memory"}
 
 
-# Circuit Breaker Pattern - Prevents infinite retry loops
+from enum import Enum
+from typing import Any, Dict, List, Optional, Callable, Coroutine
+
+# ... (rest of the imports)
+
+# ... (code before Circuit Breaker)
+
+class CircuitState(Enum):
+    CLOSED = "closed"        # Normal operation
+    OPEN = "open"            # Failing, reject requests
+    HALF_OPEN = "half_open"  # Testing if service recovered
+
 class CircuitBreaker:
-    def __init__(self, failure_threshold=3, timeout=60):
-        self.failure_counts = defaultdict(int)
-        self.last_failure_time = {}
+    def __init__(self, failure_threshold=3, recovery_timeout=60):
+        self.state = CircuitState.CLOSED
+        self.failure_count = 0
         self.failure_threshold = failure_threshold
-        self.timeout = timeout
+        self.recovery_timeout = recovery_timeout
+        self.last_failure_time = None
 
-    def is_open(self, agent_name: str) -> bool:
-        """Check if circuit is open (too many failures)"""
-        if agent_name not in self.last_failure_time:
-            return False
+    async def call(self, func: Callable[[], Coroutine[Any, Any, Any]]):
+        if self.state == CircuitState.OPEN:
+            if self.last_failure_time is None or (datetime.now() - self.last_failure_time > timedelta(seconds=self.recovery_timeout)):
+                self.state = CircuitState.HALF_OPEN
+                logger.info("Circuit breaker: HALF_OPEN (testing recovery)")
+            else:
+                raise Exception("Circuit breaker is OPEN")
 
-        # Reset after timeout
-        if datetime.now() - self.last_failure_time[agent_name] > timedelta(
-            seconds=self.timeout
-        ):
-            self.failure_counts[agent_name] = 0
-            return False
+        try:
+            result = await func()
+            self.on_success()
+            return result
+        except Exception as e:
+            self.on_failure()
+            raise e
 
-        return self.failure_counts[agent_name] >= self.failure_threshold
-
-    def record_failure(self, agent_name: str):
-        self.failure_counts[agent_name] += 1
-        self.last_failure_time[agent_name] = datetime.now()
-        logger.warning(
-            f"Circuit breaker: {agent_name} failures = {self.failure_counts[agent_name]}/{self.failure_threshold}"
-        )
-
-    def record_success(self, agent_name: str):
-        if self.failure_counts[agent_name] > 0:
-            logger.info(
-                f"Circuit breaker: {agent_name} recovered - resetting failure count"
-            )
-        self.failure_counts[agent_name] = 0
-        if agent_name in self.last_failure_time:
-            del self.last_failure_time[agent_name]
+    def on_success(self):
+        if self.state != CircuitState.CLOSED:
+            logger.info("Circuit breaker: CLOSED (recovered)")
+            self.state = CircuitState.CLOSED
+            self.failure_count = 0
+            self.last_failure_time = None
 
 
-circuit_breaker = CircuitBreaker(failure_threshold=3, timeout=60)
+    def on_failure(self):
+        self.failure_count += 1
+        self.last_failure_time = datetime.now()
+        if self.failure_count >= self.failure_threshold:
+            if self.state != CircuitState.OPEN:
+                logger.warning(f"Circuit breaker: OPEN (failures: {self.failure_count})")
+                self.state = CircuitState.OPEN
+
+circuit_breakers = defaultdict(CircuitBreaker)
 
 
 @asynccontextmanager
@@ -368,105 +381,82 @@ async def attempt_heal_agent(
     Uses exponential backoff and circuit breaker pattern to prevent
     resource exhaustion from repeatedly healing broken agents.
     """
+    breaker = circuit_breakers[agent_name]
 
-    # Check circuit breaker first
-    if circuit_breaker.is_open(agent_name):
-        logger.warning(f"Circuit breaker OPEN for {agent_name} - skipping heal attempt")
-        return HealResult(
-            agent=agent_name,
-            status="circuit_open",
-            action="none",
-            details="Too many consecutive failures - circuit breaker active (will retry in 60s)",
-            timestamp=datetime.now().isoformat(),
-        )
-
-    if await is_throttle_paused(agent_name):
-        return HealResult(
-            agent=agent_name,
-            status="paused_by_throttle",
-            action="none",
-            details="Throttle Agent marked this container as intentionally paused",
-            timestamp=datetime.now().isoformat(),
-        )
-
-    # Phase 1: Check if truly unhealthy
-    logger.info(f"Checking health of {agent_name}...")
-    healthy = await ping_agent_health(agent_url, timeout)
-    if healthy:
-        circuit_breaker.record_success(agent_name)
-        return HealResult(
-            agent=agent_name,
-            status="healthy",
-            action="none",
-            details="No action required",
-            timestamp=datetime.now().isoformat(),
-        )
-
-    # Phase 2: Restart via Docker Adapter
-    logger.warning(f"Agent {agent_name} is unhealthy. Attempting Docker restart...")
-
-    if not docker_adapter:
-        logger.error("Docker adapter not initialized")
-        circuit_breaker.record_failure(agent_name)
-        return HealResult(
-            agent=agent_name,
-            status="failed",
-            action="restart",
-            details="Docker adapter unavailable",
-            timestamp=datetime.now().isoformat(),
-        )
-
-    restarted = await docker_adapter.restart_container(agent_name, force=force_restart)
-    if not restarted:
-        logger.error(f"Docker restart failed for {agent_name}")
-        circuit_breaker.record_failure(agent_name)
-        return HealResult(
-            agent=agent_name,
-            status="failed",
-            action="restart",
-            details="Docker restart command failed",
-            timestamp=datetime.now().isoformat(),
-        )
-
-    # Phase 3: Wait for recovery with exponential backoff
-    wait_times = [2, 5, 10]  # Try after 2s, 5s, 10s
-
-    for wait_time in wait_times:
-        await asyncio.sleep(wait_time)
-
-        try:
-            # Add timeout to prevent hanging
-            is_healthy = await asyncio.wait_for(
-                ping_agent_health(agent_url, timeout), timeout=5.0
+    async def heal_task():
+        if await is_throttle_paused(agent_name):
+            return HealResult(
+                agent=agent_name,
+                status="paused_by_throttle",
+                action="none",
+                details="Throttle Agent marked this container as intentionally paused",
+                timestamp=datetime.now().isoformat(),
             )
 
-            if is_healthy:
-                logger.info(f"✅ Agent {agent_name} recovered after {wait_time}s")
-                circuit_breaker.record_success(agent_name)
-                return HealResult(
-                    agent=agent_name,
-                    status="recovered",
-                    action="restart",
-                    details=f"Restart successful - recovered after {wait_time}s",
-                    timestamp=datetime.now().isoformat(),
-                )
-        except asyncio.TimeoutError:
-            logger.warning(f"Agent {agent_name} still unresponsive after {wait_time}s")
-            continue
-        except Exception as e:
-            logger.error(f"Error checking {agent_name} health: {e}")
-            continue
+        # Phase 1: Check if truly unhealthy
+        logger.info(f"Checking health of {agent_name}...")
+        healthy = await ping_agent_health(agent_url, timeout)
+        if healthy:
+            return HealResult(
+                agent=agent_name,
+                status="healthy",
+                action="none",
+                details="No action required",
+                timestamp=datetime.now().isoformat(),
+            )
 
-    # Failed all attempts
-    logger.error(f"❌ Agent {agent_name} failed to recover after restart + 17s wait")
-    circuit_breaker.record_failure(agent_name)
-    return HealResult(
-        agent=agent_name,
-        status="failed",
-        action="restart",
-        details="Agent unresponsive after restart and multiple health checks",
-        timestamp=datetime.now().isoformat(),
-    )
+        # Phase 2: Restart via Docker Adapter
+        logger.warning(f"Agent {agent_name} is unhealthy. Attempting Docker restart...")
+
+        if not docker_adapter:
+            logger.error("Docker adapter not initialized")
+            raise Exception("Docker adapter unavailable")
+
+        restarted = await docker_adapter.restart_container(agent_name, force=force_restart)
+        if not restarted:
+            logger.error(f"Docker restart failed for {agent_name}")
+            raise Exception("Docker restart command failed")
+
+        # Phase 3: Wait for recovery with exponential backoff
+        wait_times = [2, 5, 10]  # Try after 2s, 5s, 10s
+
+        for wait_time in wait_times:
+            await asyncio.sleep(wait_time)
+
+            try:
+                is_healthy = await asyncio.wait_for(
+                    ping_agent_health(agent_url, timeout), timeout=5.0
+                )
+
+                if is_healthy:
+                    logger.info(f"✅ Agent {agent_name} recovered after {wait_time}s")
+                    return HealResult(
+                        agent=agent_name,
+                        status="recovered",
+                        action="restart",
+                        details=f"Restart successful - recovered after {wait_time}s",
+                        timestamp=datetime.now().isoformat(),
+                    )
+            except asyncio.TimeoutError:
+                logger.warning(f"Agent {agent_name} still unresponsive after {wait_time}s")
+                continue
+            except Exception as e:
+                logger.error(f"Error checking {agent_name} health: {e}")
+                continue
+        
+        raise Exception("Agent unresponsive after restart and multiple health checks")
+
+    try:
+        result = await breaker.call(heal_task)
+        return result
+    except Exception as e:
+        return HealResult(
+            agent=agent_name,
+            status="circuit_open" if breaker.state == CircuitState.OPEN else "failed",
+            action="none" if breaker.state == CircuitState.OPEN else "restart",
+            details=str(e),
+            timestamp=datetime.now().isoformat(),
+        )
 
 
 async def auto_heal_all():
@@ -548,7 +538,7 @@ async def health():
         "healer": "online",
         "redis": redis_ok,
         "docker": docker_ok,
-        "circuit_breaker_active": len(circuit_breaker.failure_counts) > 0,
+        "circuit_breaker_active": len(circuit_breakers) > 0,
         "timestamp": datetime.now().isoformat(),
     }
 
@@ -574,36 +564,38 @@ async def health_sweep():
 async def circuit_breaker_status():
     """Get current circuit breaker state for all agents"""
     return {
-        "failure_counts": dict(circuit_breaker.failure_counts),
-        "open_circuits": [
-            agent
-            for agent in circuit_breaker.failure_counts.keys()
-            if circuit_breaker.is_open(agent)
-        ],
-        "threshold": circuit_breaker.failure_threshold,
-        "timeout_seconds": circuit_breaker.timeout,
+        agent: {
+            "state": breaker.state.value,
+            "failure_count": breaker.failure_count,
+            "last_failure_time": breaker.last_failure_time.isoformat() if breaker.last_failure_time else None,
+        }
+        for agent, breaker in circuit_breakers.items()
     }
 
 
 @app.get("/circuit-breaker/{agent_name}")
 async def circuit_breaker_agent_status(agent_name: str):
-    count = int(circuit_breaker.failure_counts.get(agent_name, 0))
-    is_open = circuit_breaker.is_open(agent_name)
+    if agent_name not in circuit_breakers:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    breaker = circuit_breakers[agent_name]
     return {
         "agent": agent_name,
-        "state": "open" if is_open else "closed",
-        "failure_count": count,
-        "threshold": circuit_breaker.failure_threshold,
-        "timeout_seconds": circuit_breaker.timeout,
+        "state": breaker.state.value,
+        "failure_count": breaker.failure_count,
+        "threshold": breaker.failure_threshold,
+        "timeout_seconds": breaker.recovery_timeout,
+        "last_failure_time": breaker.last_failure_time.isoformat() if breaker.last_failure_time else None,
     }
 
 
 @app.post("/circuit-breaker/reset/{agent_name}")
 async def reset_circuit_breaker(agent_name: str):
     """Manually reset circuit breaker for a specific agent"""
-    circuit_breaker.record_success(agent_name)
-    logger.info(f"Circuit breaker manually reset for {agent_name}")
-    return {"message": f"Circuit breaker reset for {agent_name}"}
+    if agent_name in circuit_breakers:
+        circuit_breakers[agent_name].on_success()
+        logger.info(f"Circuit breaker manually reset for {agent_name}")
+        return {"message": f"Circuit breaker reset for {agent_name}"}
+    return {"message": f"No circuit breaker found for {agent_name}"}
 
 
 @app.post("/heal")
