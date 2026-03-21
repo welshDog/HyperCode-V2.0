@@ -29,11 +29,11 @@ param (
 
     [string]$GitRemote       = 'https://github.com/welshDog/HyperCode-V2.0.git',
     [string]$GitBranch       = 'main',
-    [string]$ProjectRoot     = 'C:\Projects\dashboard',
-    [string]$DeployTarget    = 'C:\Services\dashboard',
-    [string]$IISTarget       = 'C:\inetpub\wwwroot\dashboard',
-    [string]$DeployArchive   = 'C:\Deployments',
-    [string]$LogRoot         = 'C:\Logs',
+    [string]$ProjectRoot   = 'H:\HyperStation zone\HyperCode\deploy\dashboard',
+    [string]$DeployTarget  = 'H:\HyperStation zone\HyperCode\services\dashboard',
+    [string]$IISTarget     = 'C:\inetpub\wwwroot\dashboard',
+    [string]$DeployArchive = 'H:\HyperStation zone\HyperCode\deployments',
+    [string]$LogRoot       = 'H:\HyperStation zone\HyperCode\logs',
     [string]$TeamsWebhookUrl = '',   # <-- paste your webhook URL here
     [int]   $CoverageMin     = 80,
     [int]   $MaxArtifacts    = 3
