@@ -12,9 +12,8 @@ from urllib.parse import urlparse
 import httpx
 import redis.asyncio as redis
 from fastapi import FastAPI, HTTPException
-from healer.adapters.docker_adapter import DockerAdapter
-from healer.models import HealRequest, HealResult
-from pydantic import BaseModel
+from .adapters.docker_adapter import DockerAdapter
+from .models import HealRequest, HealResult, HealerException
 
 
 # Setup logging with JSON format for production
@@ -144,8 +143,10 @@ async def get_throttle_state() -> Dict[str, Any]:
     return {"containers": sorted(set(containers)), "backend": "memory"}
 
 
+from pydantic import BaseModel
 from enum import Enum
-from typing import Any, Dict, List, Optional, Callable, Coroutine
+from typing import Callable, Coroutine
+
 
 # ... (rest of the imports)
 
@@ -196,7 +197,7 @@ class CircuitBreaker:
                 logger.warning(f"Circuit breaker: OPEN (failures: {self.failure_count})")
                 self.state = CircuitState.OPEN
 
-circuit_breakers = defaultdict(CircuitBreaker)
+circuit_breakers: Dict[str, CircuitBreaker] = defaultdict(CircuitBreaker)
 
 
 @asynccontextmanager
@@ -385,12 +386,11 @@ async def attempt_heal_agent(
 
     async def heal_task():
         if await is_throttle_paused(agent_name):
-            return HealResult(
+            raise HealerException(
+                message="Healing paused by throttle",
                 agent=agent_name,
                 status="paused_by_throttle",
-                action="none",
                 details="Throttle Agent marked this container as intentionally paused",
-                timestamp=datetime.now().isoformat(),
             )
 
         # Phase 1: Check if truly unhealthy
@@ -410,12 +410,12 @@ async def attempt_heal_agent(
 
         if not docker_adapter:
             logger.error("Docker adapter not initialized")
-            raise Exception("Docker adapter unavailable")
+            raise HealerException("Docker adapter unavailable", agent=agent_name, status="failed", details="Docker adapter not initialized")
 
         restarted = await docker_adapter.restart_container(agent_name, force=force_restart)
         if not restarted:
             logger.error(f"Docker restart failed for {agent_name}")
-            raise Exception("Docker restart command failed")
+            raise HealerException("Docker restart command failed", agent=agent_name, status="failed", details="Docker restart command failed")
 
         # Phase 3: Wait for recovery with exponential backoff
         wait_times = [2, 5, 10]  # Try after 2s, 5s, 10s
@@ -444,12 +444,20 @@ async def attempt_heal_agent(
                 logger.error(f"Error checking {agent_name} health: {e}")
                 continue
         
-        raise Exception("Agent unresponsive after restart and multiple health checks")
+        raise HealerException("Agent unresponsive after restart", agent=agent_name, status="failed", details="Agent unresponsive after restart and multiple health checks")
 
     try:
         result = await breaker.call(heal_task)
         return result
     except Exception as e:
+        if isinstance(e, HealerException):
+            return HealResult(
+                agent=e.agent,
+                status=e.status,
+                action="none",
+                details=e.details,
+                timestamp=datetime.now().isoformat(),
+            )
         return HealResult(
             agent=agent_name,
             status="circuit_open" if breaker.state == CircuitState.OPEN else "failed",
@@ -498,16 +506,21 @@ async def auto_heal_all():
         failure_count = 0
 
         for res in results:
-            if isinstance(res, Exception):
-                logger.error(f"Healing task raised exception: {res}")
+            if isinstance(res, HealerException):
+                logger.error(f"Healing task failed for {res.agent}: {res.details}")
                 failure_count += 1
-            elif res.status == "recovered" or res.status == "healthy":
+            elif isinstance(res, Exception):
+                logger.error(f"An unexpected error occurred during healing: {res}")
+                failure_count += 1
+            elif hasattr(res, 'status') and (res.status == "recovered" or res.status == "healthy"):
                 logger.info(f"✅ {res.agent}: {res.status} - {res.details}")
                 success_count += 1
-            else:
+            elif hasattr(res, 'status'):
                 logger.warning(f"❌ {res.agent}: {res.status} - {res.details}")
                 failure_count += 1
-
+            else:
+                logger.error(f"Unknown result type in auto_heal_all: {res}")
+                failure_count += 1
         logger.info(
             f"Healing cycle complete: {success_count} succeeded, {failure_count} failed"
         )
