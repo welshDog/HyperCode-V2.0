@@ -118,9 +118,9 @@ class JSONFormatter(logging.Formatter):
         # Add structured fields from extra={}
         return json.dumps(log_data)
 
-logger.addHandler(logging.StreamHandler(
-    formatter=JSONFormatter()
-))
+handler = logging.StreamHandler()
+handler.setFormatter(JSONFormatter())
+logger.addHandler(handler)
 
 # Usage:
 logger.info("Paused container", extra={
@@ -465,3 +465,4 @@ throttle-agent is now **enterprise-grade** with:
 *Implementation Complete*  
 *Gordon — Docker AI Assistant*  
 *March 18, 2026*
+

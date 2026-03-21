@@ -229,7 +229,7 @@ def cached(ttl_seconds=60):
 @app.get("/slow-operation")
 @cached(ttl_seconds=30)
 async def slow_operation():
-    time.sleep(2)  # Simulate expensive operation
+    await asyncio.sleep(2)  # FIX: non-blocking in async route operation
     return {"data": "expensive result", "timestamp": time.time()}
 ```
 
@@ -284,7 +284,7 @@ import httpx
 AGENT_REGISTRY = {
     "backend-specialist": "http://backend-specialist:8003",
     "qa-engineer": "http://qa-engineer:8005",
-    "healer-agent": "http://healer-agent:8008",
+    "healer-agent": "http://healer-agent:8010",
 }
 
 @app.get("/call-agent/{agent_name}")
@@ -381,14 +381,14 @@ class CircuitBreaker:
     
     def call(self, func):
         if self.state == CircuitState.OPEN:
-            if datetime.now() - self.last_failure_time > timedelta(seconds=self.recovery_timeout):
+            if self.last_failure_time is None or (datetime.now() - self.last_failure_time > timedelta(seconds=self.recovery_timeout):
                 self.state = CircuitState.HALF_OPEN
-                logger.info(f"Circuit breaker: HALF_OPEN (testing recovery)")
+                logger.info("Circuit breaker: HALF_OPEN (testing recovery)")
             else:
                 raise Exception("Circuit breaker is OPEN")
         
         try:
-            result = func()
+            result = await func()  # FIX: coroutine must be awaited
             self.on_success()
             return result
         except Exception as e:
@@ -424,7 +424,7 @@ async def call_agent_resilient(agent_name: str):
                 response = await client.get(f"{AGENT_REGISTRY[agent_name]}/health")
                 return response.json()
         
-        result = breaker.call(call)
+        result = await breaker.call(call)  # FIX: async call must be awaited
         return {"agent": agent_name, "circuit_state": breaker.state.value, "result": result}
     
     except Exception as e:
@@ -1129,3 +1129,6 @@ Your system is **production-ready and scalable**. These recommendations elevate 
 
 *Report by Gordon*  
 *Last Updated: 2026-03-18*
+
+
+
