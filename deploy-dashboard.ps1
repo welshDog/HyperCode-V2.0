@@ -289,7 +289,7 @@ if ($script:DeployFailed) { return }
 # PHASE 9
 $ArtifactPath = "$DeployArchive\artifacts\dashboard-$BuildId.zip"
 Invoke-Step '9 · Packaging' {
-    if ($PSCmdlet.ShouldProcess($BuildDir,'zip')) { Compress-Archive "$BuildDir\*" $ArtifactPath -Force }
+    if ($PSCmdlet.ShouldProcess($BuildDir,'zip')) { Compress-Archive "$BuildDir\*" $ArtifactPath -Force -Exclude ".env.production" }
     if (Test-Path $ArtifactPath) {
         $sha256 = (Get-FileHash $ArtifactPath -Algorithm SHA256).Hash
         "$sha256  $ArtifactPath" | Out-File ($ArtifactPath -replace '\.zip$','.sha256') -Encoding utf8
@@ -355,3 +355,4 @@ Write-Log "║  🦅 DEPLOYED! NICE ONE BROski♾! 🔥       ║" 'SUCCESS'
 Write-Log "║  v$Version | $Environment | $($global:CommitSHA.Substring(0,[Math]::Min(8,$global:CommitSHA.Length)))" 'SUCCESS'
 Write-Log "║  Log: $LogFile" 'SUCCESS'
 Write-Log "╚══════════════════════════════════════════╝" 'SUCCESS'
+
