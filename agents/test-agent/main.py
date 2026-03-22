@@ -6,6 +6,12 @@ import signal
 import sys
 import time
 from collections.abc import Awaitable, Callable
+from fastapi import FastAPI
+from metrics import init_metrics  # 👈 import
+
+app = FastAPI()
+init_metrics(app)  # 👈 auto-exposes /metrics endpoint
+
 
 import uvicorn
 from fastapi import FastAPI, Request, Response

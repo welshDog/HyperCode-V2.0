@@ -9,6 +9,11 @@ import time
 from collections import deque
 from datetime import datetime
 from typing import Any
+from fastapi import FastAPI
+from metrics import init_metrics  # 👈 import
+
+app = FastAPI()
+init_metrics(app)  # 👈 auto-exposes /metrics endpoint
 
 from fastapi import FastAPI, Request, Response
 from prometheus_client import (

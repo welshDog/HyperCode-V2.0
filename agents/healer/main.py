@@ -4,6 +4,11 @@ import logging
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Callable  # remove Any, Dict, List, Optional — use builtins!
+from fastapi import FastAPI
+from metrics import init_metrics  # 👈 import
+
+app = FastAPI()
+init_metrics(app)  # 👈 auto-exposes /metrics endpoint
 
 # Third party
 import httpx
