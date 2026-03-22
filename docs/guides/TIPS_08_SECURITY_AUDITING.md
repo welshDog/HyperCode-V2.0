@@ -11,7 +11,7 @@ Never, ever hardcode your keys. Use a `.env` file and ensure it's in your `.giti
 **Copy-Paste: Secure `.env` Template**:
 ```bash
 # --- 🛡️ HYPERCODE CORE SECRETS ---
-ANTHROPIC_API_KEY=sk-ant-your-key-here
+PERPLEXITY_API_KEY=sk-ant-your-key-here
 OPENAI_API_KEY=sk-your-key-here
 HYPERCODE_JWT_SECRET=use-a-long-random-string-here
 
@@ -65,10 +65,10 @@ Instead of passing keys via `environment:` in Compose, use `secrets:`.
 services:
   hypercode-core:
     secrets:
-      - anthropic_key
+      - PERPLEXITY_key
 secrets:
-  anthropic_key:
-    file: ./secrets/anthropic_key.txt
+  PERPLEXITY_key:
+    file: ./secrets/PERPLEXITY_key.txt
 ```
 
 - **Why?**: Secrets are mounted as files in `/run/secrets/`, which is much harder to leak via environment dumps.

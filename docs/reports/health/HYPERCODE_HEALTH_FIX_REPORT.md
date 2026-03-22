@@ -44,7 +44,7 @@ Now all 8 specialist agents + the orchestrator will start uniformly with the `--
     - The `.env` file (and `.env.example`) contains default credentials like `changeme` and `admin`.
     - **Action:** Immediately update `POSTGRES_PASSWORD`, `GF_SECURITY_ADMIN_PASSWORD`, and `HYPERCODE_JWT_SECRET` in your local `.env` file to strong, unique values.
 2.  **API Keys:**
-    - Ensure `ANTHROPIC_API_KEY` and other sensitive keys are set in `.env` and never committed to version control.
+    - Ensure `PERPLEXITY_API_KEY` and other sensitive keys are set in `.env` and never committed to version control.
 
 ### 🏗️ Architecture & Infrastructure
 1.  **Sub-Project Integration:**

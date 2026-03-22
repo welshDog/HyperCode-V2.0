@@ -10,7 +10,7 @@ fastapi>=0.104.0
 uvicorn>=0.24.0
 pydantic>=2.4.0
 redis>=5.0.0
-anthropic>=0.7.0
+PERPLEXITY>=0.7.0
 
 # NEW - Shared Intelligence
 chromadb>=0.4.18
@@ -66,7 +66,7 @@ services:
       - "8000:8000"
     environment:
       - REDIS_URL=redis://redis:6379
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
     volumes:
       <<: *agent-volumes
     depends_on:

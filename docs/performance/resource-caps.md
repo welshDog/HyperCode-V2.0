@@ -58,7 +58,7 @@ docker compose up  # No agent profiles
 
 ### NANO mode (4 GB machine 🌟)
 ```bash
-# Uses cloud LLM — set ANTHROPIC_API_KEY or OPENAI_API_KEY in .env first!
+# Uses cloud LLM — set PERPLEXITY_API_KEY or OPENAI_API_KEY in .env first!
 docker compose -f docker-compose.yml -f docker-compose.nano.yml up
 ```
 

@@ -75,10 +75,10 @@ function New-SecretFile {
 # Create each required secret
 Write-Host "Creating required secret files...`n" -ForegroundColor Yellow
 
-# Anthropic API Key
+# PERPLEXITY API Key
 New-SecretFile `
-    -filename "anthropic_api_key.txt" `
-    -prompt "Enter Anthropic API Key"
+    -filename "PERPLEXITY_API_KEY.txt" `
+    -prompt "Enter PERPLEXITY API Key"
 
 # PostgreSQL Password
 Write-Host "PostgreSQL Password:" -ForegroundColor Cyan

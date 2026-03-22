@@ -612,7 +612,7 @@ curl http://localhost:8081/agents/list
 
 ### 8. **Add AI-Powered Self-Diagnostics Endpoint** 🤖
 
-**What**: Use Claude/Anthropic API to analyze system health and generate diagnostics.
+**What**: Use Claude/PERPLEXITY API to analyze system health and generate diagnostics.
 
 **Why**:
 - AI-driven troubleshooting
@@ -624,9 +624,9 @@ curl http://localhost:8081/agents/list
 
 ```python
 # agents/test-agent/main.py
-from anthropic import Anthropic
+from PERPLEXITY import PERPLEXITY
 
-client = Anthropic()
+client = PERPLEXITY()
 
 @app.post("/diagnose")
 async def diagnose(symptom: str):
@@ -685,14 +685,14 @@ async def diagnose(symptom: str):
 
 **Update Dockerfile**:
 ```dockerfile
-RUN pip install ... anthropic==0.25.0
+RUN pip install ... PERPLEXITY==0.25.0
 ```
 
 **Update docker-compose.yml**:
 ```yaml
 test-agent:
   environment:
-    - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
 ```
 
 **Verify**:

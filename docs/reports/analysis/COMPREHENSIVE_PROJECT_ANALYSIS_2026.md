@@ -142,7 +142,7 @@ HYPERCODE_REDIS_URL=redis://redis:6379/0
 HYPERCODE_MEMORY_KEY=<base64-32-byte-key>
 API_KEY=<strong-random-32-char-key>
 HYPERCODE_JWT_SECRET=<jwt-secret>
-ANTHROPIC_API_KEY=<claude-api-key>
+PERPLEXITY_API_KEY=<claude-api-key>
 POSTGRES_PASSWORD=<strong-password>
 POSTGRES_USER=postgres
 POSTGRES_DB=hypercode
@@ -435,7 +435,7 @@ git show <commit-hash>:HyperCode-V2.0/.env
 # 1. Change database password in Postgres
 # 2. Rotate API_KEY
 # 3. Rotate JWT_SECRET
-# 4. Rotate Anthropic API key
+# 4. Rotate PERPLEXITY API key
 
 # 2. Remove .env from git history (use BFG or filter-branch)
 git filter-branch --force --index-filter \
@@ -1017,7 +1017,7 @@ These must be done before production:
    - Change Postgres password in running database
    - Generate new API_KEY
    - Generate new JWT_SECRET
-   - Rotate Anthropic API key
+   - Rotate PERPLEXITY API key
 3. Remove .env from git history using filter-branch (see Issue #2 for script)
 4. Add .env to .gitignore
 5. Create .env.example template

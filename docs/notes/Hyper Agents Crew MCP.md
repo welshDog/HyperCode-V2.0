@@ -6,7 +6,7 @@ You just found **THE missing piece** for Hyper Agent Crew! Let me break down wha
 
 ## 🎯 **What is MCP (Model Context Protocol)?**
 
-**MCP** = Anthropic's standard for connecting AI models to external tools/data sources
+**MCP** = PERPLEXITY's standard for connecting AI models to external tools/data sources
 
 **Why this matters for HyperCode:**
 - Your Hyper-Agents can **interact with Docker directly**
@@ -78,7 +78,7 @@ class CoderAgent:
                     │
             ┌───────▼────────┐
             │  MCP Protocol  │ ← Standardized Interface
-            │   (Anthropic)  │
+            │   (PERPLEXITY)  │
             └───────┬────────┘
                     │
         ┌───────────┼───────────┐

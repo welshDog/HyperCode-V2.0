@@ -4,7 +4,7 @@ $RequiredVars = @(
     "API_KEY",
     "HYPERCODE_JWT_SECRET",
     "POSTGRES_PASSWORD",
-    "ANTHROPIC_API_KEY",
+    "PERPLEXITY_API_KEY",
     "HYPERCODE_MEMORY_KEY"
 )
 

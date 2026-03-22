@@ -39,7 +39,7 @@
   - HYPERCODE_DB_URL=postgresql://postgres:changeme@postgres:5432/hypercode
   - HYPERCODE_REDIS_URL=redis://redis:6379/0
   - API_KEY=your_secure_api_key_here
-  - ANTHROPIC_API_KEY=sk-ant-api03-...
+  - PERPLEXITY_API_KEY=sk-ant-api03-...
   - JWT_SECRET=your_jwt_secret_here
 - **Dependencies:**
   - Requires: PostgreSQL (healthy)
@@ -86,7 +86,7 @@
   - CELERY_RESULT_BACKEND=redis://redis:6379/1
   - HYPERCODE_DB_URL=postgresql://postgres:changeme@postgres:5432/hypercode
   - HYPERCODE_REDIS_URL=redis://redis:6379/0
-  - ANTHROPIC_API_KEY=sk-ant-api03-...
+  - PERPLEXITY_API_KEY=sk-ant-api03-...
   - PERPLEXITY_API_KEY=pplx-************************************************
 - **Volumes:**
   - `/app` - Application code
@@ -285,7 +285,7 @@ All agents follow this pattern:
 - **Common Environment:**
   - CORE_URL=http://hypercode-core:8000
   - REDIS_URL=redis://redis:6379
-  - ANTHROPIC_API_KEY=sk-ant-api03-...
+  - PERPLEXITY_API_KEY=sk-ant-api03-...
 
 | Agent | Container | Port | Image Size | Status | Role |
 |-------|-----------|------|-----------|--------|------|
@@ -523,7 +523,7 @@ All agents follow this pattern:
 | API_KEY | hypercode-core env | your_secure_api_key_here | ⚠️ PLACEHOLDER | 🔴 CHANGE |
 | JWT_SECRET | hypercode-core env | your_jwt_secret_here | ⚠️ PLACEHOLDER | 🔴 CHANGE |
 | HYPERCODE_MEMORY_KEY | hypercode-core env | your_memory_encryption_key_here | ⚠️ PLACEHOLDER | 🔴 CHANGE |
-| ANTHROPIC_API_KEY | multiple | sk-ant-api03-... | ✅ REAL | 🟢 OK |
+| PERPLEXITY_API_KEY | multiple | sk-ant-api03-... | ✅ REAL | 🟢 OK |
 | PERPLEXITY_API_KEY | celery-worker | pplx-fjqqr6Pa0p9... | ✅ REAL | 🟢 OK |
 
 ### ⚠️ Security Issues

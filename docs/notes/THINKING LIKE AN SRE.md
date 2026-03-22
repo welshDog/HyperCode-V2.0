@@ -212,7 +212,7 @@ Scenario 2: Gateway Latency High ⚠️
 text
 ⚠️ p95 = 5-10s (above 3s target)
 ✅ 0 errors
-Diagnosis: LLM API calls are slow (likely OpenAI/Anthropic throttling).
+Diagnosis: LLM API calls are slow (likely OpenAI/PERPLEXITY throttling).
 
 Fix: Add connection pooling + request timeouts:
 

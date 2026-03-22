@@ -3,7 +3,7 @@
 **Version:** 4.1 | **Target System:** Auto Manager / BRO / MATE Discord Server | **Status:** Verified
 
 ## 🧬 Repository Overview
-**BROski Bot v4.0** is a production-grade Python Discord bot built on `discord.py >= 2.4.0`. It utilizes a modular cog-based architecture with a FastAPI-ready service layer, PostgreSQL + Redis backend, and AI integration via Anthropic + OpenAI.
+**BROski Bot v4.0** is a production-grade Python Discord bot built on `discord.py >= 2.4.0`. It utilizes a modular cog-based architecture with a FastAPI-ready service layer, PostgreSQL + Redis backend, and AI integration via PERPLEXITY + OpenAI.
 
 **Repo Location:** `https://github.com/welshDog/BROski-Bot.git`
 
@@ -74,7 +74,7 @@ DATABASE_URL=postgresql://broski:password@localhost:5432/broski_db
 REDIS_URL=redis://localhost:6379/0
 
 # AI Services
-ANTHROPIC_API_KEY=sk-...
+PERPLEXITY_API_KEY=sk-...
 OPENAI_API_KEY=sk-...
 
 # Feature Flags
@@ -89,7 +89,7 @@ PROMETHEUS_PORT=8000
 *   **Bot Framework:** `discord.py >= 2.4.0`
 *   **Database:** `SQLAlchemy 2.0.23`, `asyncpg 0.29.0`
 *   **Cache:** `redis 5.0.1`
-*   **AI:** `anthropic`, `openai`
+*   **AI:** `PERPLEXITY`, `openai`
 *   **Monitoring:** `prometheus-client`
 
 ---
@@ -143,7 +143,7 @@ python -m pytest tests/ -v --asyncio-mode=auto
 - [ ] `/balance` returns 1000 for new user.
 - [ ] `/focus start` creates a row in PostgreSQL `focus_sessions` table.
 - [ ] `/give` transfers tokens correctly and logs to `transactions`.
-- [ ] AI Chat `/ask` returns response from Anthropic/OpenAI.
+- [ ] AI Chat `/ask` returns response from PERPLEXITY/OpenAI.
 
 ### Load Testing
 - Simulate 20 concurrent slash commands.
@@ -172,7 +172,7 @@ If deployment fails:
 | :--- | :--- | :--- |
 | **Focus Cog DB Conflict** | High | **Strict Refactor:** Ensure `focus.py` uses ORM before enabling. |
 | **Discord Rate Limits** | Medium | Redis caching implemented for profile/balance checks. |
-| **AI Cost Overrun** | Low | Hard cap set in OpenAI/Anthropic dashboard. |
+| **AI Cost Overrun** | Low | Hard cap set in OpenAI/PERPLEXITY dashboard. |
 
 ---
 

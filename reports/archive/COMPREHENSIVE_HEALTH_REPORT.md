@@ -16,7 +16,7 @@ The HyperCode V2.0 system is currently in a **CRITICAL** state. The Kubernetes c
 
 ### 2.2 Missing Secrets
 - **Observation:** `hypercode-core` pods failed with `CreateContainerConfigError`.
-- **Root Cause:** The `hypercode-secrets` Secret object was missing required keys: `HYPERCODE_DB_URL` and `anthropic-api-key`.
+- **Root Cause:** The `hypercode-secrets` Secret object was missing required keys: `HYPERCODE_DB_URL` and `PERPLEXITY-api-key`.
 - **Impact:** Core application service cannot start.
 
 ### 2.3 Storage Configuration Mismatch

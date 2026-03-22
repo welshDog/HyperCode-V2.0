@@ -56,7 +56,7 @@ APIs: GraphQL (flexibility) + REST (bulk/admin)
 
 Database: PostgreSQL (metadata) + Redis (cache) + Qdrant (vectors)
 
-AI: OpenAI / Anthropic for auto-tagging, embedding models for semantic search
+AI: OpenAI / PERPLEXITY for auto-tagging, embedding models for semantic search
 
 Plugins: Python importlib + entry_points (setuptools)
 

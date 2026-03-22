@@ -1,4 +1,4 @@
-# ⚠️ IMPORTANT: Add Your Anthropic API Key
+# ⚠️ IMPORTANT: Add Your PERPLEXITY API Key
 
 Your `.env` file has been created with secure, randomly-generated secrets for:
 - ✅ API_KEY
@@ -8,16 +8,16 @@ Your `.env` file has been created with secure, randomly-generated secrets for:
 
 ## 🔑 Action Required
 
-**You need to add your Anthropic API key to make the AI agents work.**
+**You need to add your PERPLEXITY API key to make the AI agents work.**
 
 ### Steps:
 
 1. Open `.env` file in this directory
 2. Find this line:
    ```
-   ANTHROPIC_API_KEY=your_anthropic_api_key_here
+   PERPLEXITY_API_KEY=your_PERPLEXITY_API_KEY_here
    ```
-3. Replace `your_anthropic_api_key_here` with your actual Anthropic API key
+3. Replace `your_PERPLEXITY_API_KEY_here` with your actual PERPLEXITY API key
 4. Save the file
 5. Restart the services:
    ```bash
@@ -25,10 +25,10 @@ Your `.env` file has been created with secure, randomly-generated secrets for:
    docker-compose restart frontend-specialist backend-specialist database-architect qa-engineer devops-engineer security-engineer system-architect project-strategist
    ```
 
-### Get an Anthropic API Key
+### Get an PERPLEXITY API Key
 
 If you don't have one:
-1. Go to https://console.anthropic.com/
+1. Go to https://console.PERPLEXITY.com/
 2. Sign up or log in
 3. Navigate to API Keys section
 4. Create a new key

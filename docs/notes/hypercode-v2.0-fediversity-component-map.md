@@ -171,7 +171,7 @@ Provides transparency and auditability required for EU-funded open source projec
 
 3.  **Data Sovereignty:**
     - 100% On-Premise. No "phone home" telemetry by default.
-    - All external AI calls (Anthropic/OpenAI) are proxied through Core, allowing for easy swapping to local LLMs (Ollama) for full air-gap capability.
+    - All external AI calls (PERPLEXITY/OpenAI) are proxied through Core, allowing for easy swapping to local LLMs (Ollama) for full air-gap capability.
 
 4.  **Licensing:**
     - Entire stack is AGPL-3.0 or compatible, ensuring any modifications remain open source.

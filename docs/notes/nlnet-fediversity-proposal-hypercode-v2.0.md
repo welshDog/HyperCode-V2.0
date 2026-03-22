@@ -63,7 +63,7 @@ HyperCode V2.0 inverts traditional IDE design:
 - Healer Agent auto-fixes errors without breaking concentration
 
 **Full Self-Hosting:**  
-- All AI inference happens locally via Ollama (no OpenAI/Anthropic API dependency)
+- All AI inference happens locally via Ollama (no OpenAI/PERPLEXITY API dependency)
 - User data never leaves the local network (GDPR-compliant by design)
 - Runs on commodity hardware (16GB RAM, Docker-capable machine)
 

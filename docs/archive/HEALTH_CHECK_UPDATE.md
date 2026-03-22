@@ -82,7 +82,7 @@ API_KEY=$(openssl rand -hex 32)
 HYPERCODE_JWT_SECRET=$(openssl rand -hex 64)
 HYPERCODE_MEMORY_KEY=$(openssl rand -hex 32)
 POSTGRES_PASSWORD=$(openssl rand -hex 16)
-ANTHROPIC_API_KEY=your_actual_key_here
+PERPLEXITY_API_KEY=your_actual_key_here
 EOF
 ```
 
@@ -220,8 +220,8 @@ HYPERCODE_MEMORY_KEY=$(openssl rand -hex 32)
 # Database
 POSTGRES_PASSWORD=$(openssl rand -hex 16)
 
-# Anthropic (replace with your key)
-ANTHROPIC_API_KEY=sk-ant-your-key-here
+# PERPLEXITY (replace with your key)
+PERPLEXITY_API_KEY=sk-ant-your-key-here
 
 # URLs
 HYPERCODE_REDIS_URL=redis://redis:6379/0
@@ -233,7 +233,7 @@ OTLP_EXPORTER_DISABLED=false
 ENVIRONMENT=production
 EOF
 
-echo "⚠️  Now edit .env and add your actual ANTHROPIC_API_KEY"
+echo "⚠️  Now edit .env and add your actual PERPLEXITY_API_KEY"
 echo "⚠️  Then update docker-compose.yml to use \${API_KEY}, \${HYPERCODE_JWT_SECRET}, etc."
 ```
 

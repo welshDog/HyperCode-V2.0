@@ -52,7 +52,7 @@ The system aligns well with the "HyperCode Vision" pillars:
 *   **Network Segregation:** The report implies internal networking (GitHub repo accessible, likely via bridge network), keeping internal traffic off the host network.
 
 ### ⚠️ Potential Gaps (Needs Verification)
-*   **Secrets Management:** The report mentions `ANTHROPIC_API_KEY` defaulting to blank. Ensure these secrets are passed via Docker Secrets or secure `.env` files, not hardcoded.
+*   **Secrets Management:** The report mentions `PERPLEXITY_API_KEY` defaulting to blank. Ensure these secrets are passed via Docker Secrets or secure `.env` files, not hardcoded.
 *   **Agent Permissions:** Do agents like `devops` have root access to the Docker socket? If so, a compromised agent could take over the host.
 *   **API Security:** Does the `hypercode-core` API require authentication for agent registration? If not, a rogue process could register malicious agents.
 
