@@ -6,6 +6,11 @@ from datetime import datetime
 from typing import Any
 import httpx
 from fastapi import FastAPI
+from metrics import init_metrics  # 👈 import
+
+app = FastAPI()
+init_metrics(app)  # 👈 auto-exposes /metrics endpoint
+
 from pydantic import BaseModel
 
 class JSONFormatter(logging.Formatter):
