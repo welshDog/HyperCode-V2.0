@@ -65,7 +65,7 @@ console.log('✅ OpenAI adapter registered');
 import { AnthropicAdapter } from '@hypercode/ai-adapters/anthropic';
 
 const claudePlugin = new AnthropicAdapter({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: process.env.PERPLEXITY_API_KEY,
   model: 'claude-3-5-sonnet',
   maxTokens: 4096,
   enableExtendedThinking: true
