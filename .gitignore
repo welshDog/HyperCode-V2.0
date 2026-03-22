@@ -16,6 +16,7 @@ token.txt
 secrets/
 credentials.json
 client_secret.json
+.env1
 
 # .cursorignore / .traeIgnore / .aiexclude
 .env
@@ -24,6 +25,7 @@ client_secret.json
 *.secret
 .env.nemoclaw
 .env.production
+.env1
 
 # IDE and Editor files
 .idea/
@@ -118,3 +120,4 @@ coverage.xml
 test-*.txt
 .coverage
 
+.env1
