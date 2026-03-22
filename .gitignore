@@ -22,6 +22,8 @@ client_secret.json
 .env.local
 .env.production
 *.secret
+.env.nemoclaw
+.env.production
 
 # IDE and Editor files
 .idea/
