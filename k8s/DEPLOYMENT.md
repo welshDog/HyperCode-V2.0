@@ -93,7 +93,7 @@ Update image names in the manifests to match your registry.
 
 ```bash
 # Generate secure secrets
-ANTHROPIC_KEY="your-anthropic-api-key"
+PERPLEXITY_KEY="your-PERPLEXITY-api-key"
 JWT_SECRET=$(openssl rand -base64 32)
 POSTGRES_PASS=$(openssl rand -base64 24)
 REDIS_PASS=$(openssl rand -base64 24)
@@ -101,7 +101,7 @@ GRAFANA_PASS=$(openssl rand -base64 16)
 
 # Update the secrets file or create directly
 kubectl create secret generic hypercode-secrets \
-  --from-literal=anthropic-api-key="$ANTHROPIC_KEY" \
+  --from-literal=PERPLEXITY-api-key="$PERPLEXITY_KEY" \
   --from-literal=hypercode-jwt-secret="$JWT_SECRET" \
   --from-literal=postgres-password="$POSTGRES_PASS" \
   --from-literal=redis-password="$REDIS_PASS" \

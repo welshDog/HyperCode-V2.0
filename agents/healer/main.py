@@ -416,7 +416,7 @@ async def attempt_heal_agent(
         logger.warning(f"Agent {agent_name} is unhealthy. Attempting Docker restart...")
 
         if not docker_adapter:
-            logger.error("Docker
+            logger.error("Docker adapter not available")
 
 
 # ============================================

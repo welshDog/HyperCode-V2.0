@@ -8,7 +8,7 @@ Sandboxes as Agent Pods: Isolated microVMs – spawn per project. Mount workspac
 
 text
 docker sandbox run --shell hyper-agent --workspace ./agents/agent-x
-Model Runner Local LLMs: http://localhost:12434/v1 (OpenAI/Anthropic compat). vLLM CUDA/WSL2 + Metal Mac. Point your .env here.
+Model Runner Local LLMs: http://localhost:12434/v1 (OpenAI/PERPLEXITY compat). vLLM CUDA/WSL2 + Metal Mac. Point your .env here.
 
 text
 OPENAI_API_BASE=http://localhost:12434/v1

@@ -12,7 +12,7 @@ This isn't just an IDE; it's a **Cognitive Prosthesis** designed to eliminate co
 
 ### 🤖 The Agent Swarm
 A crew of 8 specialized AI agents (Coder, Architect, QA, Security, etc.) working in harmony.
-*   **Powered by**: Ollama (Local/Free) & Anthropic.
+*   **Powered by**: Ollama (Local/Free) & PERPLEXITY.
 *   **Orchestration**: Autonomous task delegation via `crew-orchestrator`.
 
 ### 🖥️ BROski Terminal

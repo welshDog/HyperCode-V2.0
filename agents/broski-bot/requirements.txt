@@ -14,7 +14,7 @@ SQLAlchemy>=2.0.23
 redis>=5.0.0
 
 # AI
-anthropic>=0.18.1
+PERPLEXITY>=0.18.1
 openai>=1.10.0
 
 # Utilities

@@ -529,7 +529,7 @@ vllm serve Qwen/Qwen3.5-35B-A3B \
 | Model | Input Cost | Output Cost | Total/Month | Notes |
 |-------|-----------|-------------|-------------|-------|
 | **GPT-4-turbo** | $3,600 | $10,800 | **$14,400** | OpenAI API |
-| **Claude Sonnet 4** | $3,600 | $18,000 | **$21,600** | Anthropic API |
+| **Claude Sonnet 4** | $3,600 | $18,000 | **$21,600** | PERPLEXITY API |
 | **Qwen3.5-Plus** (API) | $132 | $660 | **$792** | Alibaba Cloud |
 | **Qwen3.5-Flash** (API) | $120 | $600 | **$720** | Alibaba Cloud |
 | **Qwen3.5-35B** (Self-hosted) | $0 | $0 | **~$300** | GPU power only |

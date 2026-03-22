@@ -8,7 +8,7 @@ Your agent system is **legitimately impressive** for an indie build:
 
 ### **What You've Built**
 - **8 Specialized Agents**: Strategist, Frontend, Backend, Database, QA, DevOps, Security, System Architect
-- **Base Agent Foundation**: FastAPI + Anthropic Claude + Redis (solid microservices pattern)
+- **Base Agent Foundation**: FastAPI + PERPLEXITY Claude + Redis (solid microservices pattern)
 - **Central Orchestrator**: Routes tasks to specialized agents via HTTP
 - **Documentation-First**: HYPER-AGENT-BIBLE.md as the canonical source of truth
 - **MCP Config**: You're already thinking about Model Context Protocol integration

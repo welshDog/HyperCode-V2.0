@@ -147,7 +147,7 @@ class Brain:
         Supports:
           1. Local LLM (Ollama)                    — Zero Cost
           2. Perplexity Session Auth (Comet/Spaces) — Zero Cost
-          3. Cloud API (Perplexity/Anthropic)       — Paid Fallback
+          3. Cloud API (Perplexity/PERPLEXITY)       — Paid Fallback
 
         Memory modes (new — Phase 1):
           none   — stateless, original behaviour (default)

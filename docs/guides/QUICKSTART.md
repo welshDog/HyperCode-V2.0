@@ -20,7 +20,7 @@ cd HyperCode-V2.0
 Set up your environment variables (API keys, Database credentials).
 ```bash
 cp .env.example .env
-# Edit .env and add your ANTHROPIC_API_KEY / OPENAI_API_KEY
+# Edit .env and add your PERPLEXITY_API_KEY / OPENAI_API_KEY
 ```
 
 ### 3. Launch the Stack

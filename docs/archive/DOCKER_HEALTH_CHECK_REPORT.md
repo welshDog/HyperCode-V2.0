@@ -192,8 +192,8 @@ volumes:
 ```yaml
 # docker-compose.prod.yml defines secrets but files don't exist:
 secrets:
-  anthropic_api_key:
-    file: ./secrets/anthropic_api_key.txt     # ❌ Not found
+  PERPLEXITY_API_KEY:
+    file: ./secrets/PERPLEXITY_API_KEY.txt     # ❌ Not found
   postgres_password:
     file: ./secrets/postgres_password.txt     # ❌ Not found
   grafana_admin_password:
@@ -203,7 +203,7 @@ secrets:
 #### C. Weak Default Passwords in .env
 ```env
 POSTGRES_PASSWORD=3b8c21e59108cde0cf9982a3ee5e8270  # In version control
-ANTHROPIC_API_KEY=your_anthropic_api_key_here      # Placeholder
+PERPLEXITY_API_KEY=your_PERPLEXITY_API_KEY_here      # Placeholder
 ```
 
 #### D. Missing Security Options
@@ -301,7 +301,7 @@ crew-orchestrator:
 3. **Create missing secret files**
    ```bash
    mkdir -p secrets
-   echo "your-actual-anthropic-key" > secrets/anthropic_api_key.txt
+   echo "your-actual-PERPLEXITY-key" > secrets/PERPLEXITY_API_KEY.txt
    echo "strong-password-here" > secrets/postgres_password.txt
    echo "grafana-admin-password" > secrets/grafana_admin_password.txt
    chmod 600 secrets/*

@@ -113,7 +113,7 @@ services:
 **Step 2: Switch to External API**
 ```yaml
 # .env
-ANTHROPIC_API_KEY=sk-ant-xxxxx  # Use Claude API instead
+PERPLEXITY_API_KEY=sk-ant-xxxxx  # Use Claude API instead
 # OR
 OPENAI_API_KEY=sk-xxxxx  # Use GPT API instead
 ```
@@ -122,7 +122,7 @@ OPENAI_API_KEY=sk-xxxxx  # Use GPT API instead
 ```python
 # agents/orchestrator/config.py
 LLM_MODE = "api"  # Was "local"
-LLM_PROVIDER = "anthropic"  # claude-4.1-opus
+LLM_PROVIDER = "PERPLEXITY"  # claude-4.1-opus
 ```
 
 **Why This Works (Short-Term):**

@@ -4,7 +4,7 @@
 
 - **Docker & Docker Compose** (or Kubernetes)
 - **4GB+ RAM** available
-- **Anthropic/OpenAI API key**
+- **PERPLEXITY/OpenAI API key**
 - **Domain name** (optional, for HTTPS)
 
 ## Deployment Options
@@ -26,7 +26,7 @@ nano .env
 
 #### 2. Configure Settings
 Ensure your `.env` file has:
-- `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`
+- `PERPLEXITY_API_KEY` / `OPENAI_API_KEY`
 - Secure passwords for Database (`POSTGRES_PASSWORD`) if exposing to public.
 - `HYPERCODE_JWT_SECRET` (generate a random string).
 
@@ -56,7 +56,7 @@ kubectl create namespace hypercode-agents
 
 #### 2. Create Secrets
 ```bash
-kubectl create secret generic anthropic-key \
+kubectl create secret generic PERPLEXITY-key \
   --from-literal=api-key=sk-ant-xxxxx \
   -n hypercode-agents
 

@@ -127,7 +127,7 @@ init:
 	@if [ ! -f .env.agents ]; then \
 		echo "Creating .env.agents from example..."; \
 		cp .env.agents.example .env.agents; \
-		echo "⚠️  Please edit .env.agents and add your ANTHROPIC_API_KEY"; \
+		echo "⚠️  Please edit .env.agents and add your PERPLEXITY_API_KEY"; \
 	else \
 		echo ".env.agents already exists"; \
 	fi

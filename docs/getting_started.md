@@ -23,7 +23,7 @@ Welcome to HyperCode V2.0! This guide will take you from `git clone` to your fir
    ```bash
    cp .env.example .env
    ```
-   *Important: Open `.env` and add your `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` to enable AI agent capabilities.*
+   *Important: Open `.env` and add your `PERPLEXITY_API_KEY` or `OPENAI_API_KEY` to enable AI agent capabilities.*
 
 3. **Start the Stack**
    Launch the entire ecosystem (Agents, API, DB, Observability):

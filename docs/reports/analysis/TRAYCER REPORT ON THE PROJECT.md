@@ -53,7 +53,7 @@ crew-orchestrator	Python / FastAPI	8080	Agent coordination & task routing
 hypercode-dashboard	Nginx (static HTML)	8088	Agent status dashboard
 hypercode-nginx	Nginx	80/443	Reverse proxy / SSL gateway
 celery-worker	Python / Celery	—	Background task queue (broker: Redis)
-8 Specialist AI Agents (Python, Anthropic Claude)
+8 Specialist AI Agents (Python, PERPLEXITY Claude)
 Agent	Port	Model	Role
 project-strategist	8001	Claude Opus	Planning & delegation
 frontend-specialist	8002	Claude Sonnet	UI/UX development
@@ -183,7 +183,7 @@ Layer	Technology
 Backend	Python 3.11, FastAPI, Celery
 Frontend	Next.js (React), Vite/React
 Database	PostgreSQL 15, Redis 7
-AI / LLM	Anthropic Claude (Opus + Sonnet), Ollama (tinyllama local)
+AI / LLM	PERPLEXITY Claude (Opus + Sonnet), Ollama (tinyllama local)
 Containerization	Docker, Docker Compose, Kubernetes (k8s/)
 Monitoring	Prometheus, Grafana, Jaeger, AlertManager, cAdvisor, node-exporter
 CI/CD	GitHub Actions (.github/), Husky + commitlint (conventional commits)

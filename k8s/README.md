@@ -68,7 +68,7 @@ nano ./k8s/02-secrets.yaml
 # - POSTGRES_PASSWORD: Strong database password
 # - HYPERCODE_JWT_SECRET: Secure JWT key
 # - API_KEY: Application API key
-# - ANTHROPIC_API_KEY: LLM API key
+# - PERPLEXITY_API_KEY: LLM API key
 # - MINIO_ROOT_PASSWORD: MinIO credentials
 ```
 

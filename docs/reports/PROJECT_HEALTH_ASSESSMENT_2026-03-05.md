@@ -26,7 +26,7 @@ However, the "last mile" of engineering hygiene—specifically **secret manageme
 ## 2. 🚨 Critical Issues & Root Cause Analysis
 
 ### **2.1 Security: The "Open Door" Risk (Severity: Critical)**
-*   **Finding:** Valid API keys (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `POSTGRES_PASSWORD`) are hardcoded in the root `.env` file.
+*   **Finding:** Valid API keys (`PERPLEXITY_API_KEY`, `OPENAI_API_KEY`, `POSTGRES_PASSWORD`) are hardcoded in the root `.env` file.
 *   **Root Cause:** Lack of a centralized secrets management workflow during rapid prototyping.
 *   **Impact:** Immediate compromise of funds and data if the repo is public or leaked.
 *   **Action:** **Revoke all keys immediately.** Remove `.env` from git history. Implement GitHub Secrets.

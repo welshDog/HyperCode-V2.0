@@ -117,7 +117,7 @@ make setup    # Initialize, build, and start
 ```bash
 # 1. Setup
 cp .env.agents.example .env.agents
-# Edit .env.agents and add ANTHROPIC_API_KEY
+# Edit .env.agents and add PERPLEXITY_API_KEY
 
 # 2. Start
 docker-compose -f docker-compose.agents.yml --env-file .env.agents up -d
@@ -372,7 +372,7 @@ deploy:
 docker-compose -f docker-compose.agents.yml logs
 
 # Verify API key
-cat .env.agents | grep ANTHROPIC_API_KEY
+cat .env.agents | grep PERPLEXITY_API_KEY
 ```
 
 ### **Port conflicts?**

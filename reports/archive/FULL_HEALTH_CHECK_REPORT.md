@@ -485,7 +485,7 @@ time=2026-03-16T15:32:20.493Z level=INFO msg="server session disconnected"  <-- 
 - ✅ Localhost binding: API (8000) and MinIO (9000/9001) bound to 127.0.0.1
 - ⚠️ Passwords in .env file: Exposed credentials (should use secrets manager)
 - ⚠️ GitHub token in .env: Exposed (should use Docker secrets)
-- ⚠️ API keys in .env: Anthropic, Perplexity, etc. exposed
+- ⚠️ API keys in .env: PERPLEXITY, Perplexity, etc. exposed
 
 ---
 

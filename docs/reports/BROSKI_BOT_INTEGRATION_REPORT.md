@@ -12,7 +12,7 @@ This report confirms the successful integration of the BROski Bot into the Hyper
     - Verified all dependencies (`discord.py`, `sqlalchemy`, `asyncpg`, etc.) are listed.
 - **Docker Configuration**:
     - Updated `agents/broski-bot/Dockerfile` to run the bot process (`src.main run`) instead of the API.
-    - Added `broski-bot` service to `docker-compose.yml` with necessary environment variables (`DISCORD_TOKEN`, `DATABASE_URL`, `REDIS_URL`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`).
+    - Added `broski-bot` service to `docker-compose.yml` with necessary environment variables (`DISCORD_TOKEN`, `DATABASE_URL`, `REDIS_URL`, `PERPLEXITY_API_KEY`, `OPENAI_API_KEY`).
 
 ### 2. Critical Fix Implementation: Focus Cog Refactor
 - **Issue**: The original `focus.py` cog relied on legacy `aiosqlite` and was disabled.

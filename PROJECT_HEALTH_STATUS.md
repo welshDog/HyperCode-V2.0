@@ -192,7 +192,7 @@ docker logs mcp-github --tail 100 | grep -i error
 - GITHUB_TOKEN (PAT)
 - DISCORD_TOKEN
 - MINIO_ROOT_PASSWORD
-- ANTHROPIC_API_KEY / OPENAI_API_KEY (if set)
+- PERPLEXITY_API_KEY / OPENAI_API_KEY (if set)
 
 **Risk:** File system access = credential compromise  
 **Fix:** Use Docker Secrets Manager or encrypted vault

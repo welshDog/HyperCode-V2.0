@@ -55,7 +55,7 @@ nano k8s/02-secrets.yaml
 - `HYPERCODE_JWT_SECRET`: Secure JWT key
 - `API_KEY`: Application API key
 - `MINIO_ROOT_PASSWORD`: MinIO credentials
-- `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`: LLM API keys
+- `PERPLEXITY_API_KEY`, `OPENAI_API_KEY`: LLM API keys
 - `DISCORD_TOKEN`, `DISCORD_GUILD_ID`: Bot credentials
 
 ### 2. Create Namespace and ConfigMaps
