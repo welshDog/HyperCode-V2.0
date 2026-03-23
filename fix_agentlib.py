@@ -1,4 +1,8 @@
-import React from 'react';
+"""Read the AgentLibrary.tsx file and return its contents as a string."""
+
+content = open('agents/dashboard/components/panels/AgentLibrary.tsx', encoding='utf-8').read()
+
+new_content = """import React from 'react';
 import { motion } from 'framer-motion';
 import { AGENT_TEMPLATES } from '../../data/agentTemplates';
 
@@ -24,8 +28,7 @@ export const AgentLibrary = () => {
             className="group relative"
           >
             <motion.div
-              whileHover={{ x: 4, scale: 1.02, backgroundColor: 
-          'rgba(0, 255, 255, 0.1)' }}
+              whileHover={{ x: 4, scale: 1.02, backgroundColor: \15 }}
               whileTap={{ scale: 0.98 }}
               className="p-3 rounded-lg border border-white/5 bg-white/5 cursor-grab active:cursor-grabbing hover:border-cyan-500/30 transition-colors"
             >
@@ -53,3 +56,7 @@ export const AgentLibrary = () => {
     </div>
   );
 };
+"""
+
+_ = open('agents/dashboard/components/panels/AgentLibrary.tsx', 'w', encoding='utf-8').write(new_content)
+print('Fixed!')
