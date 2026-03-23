@@ -20,12 +20,11 @@ export const AgentLibrary = () => {
           <div
             key={agent.role}
             draggable
-            onDragStart={(e: React.DragEvent<HTMLDivElement>) => onDragStart(e, agent)}
+            onDragStart={(e) => onDragStart(e, agent)}
             className="group relative"
           >
             <motion.div
-              whileHover={{ x: 4, scale: 1.02, backgroundColor: 
-          'rgba(0, 255, 255, 0.1)' }}
+              whileHover={{ x: 4, scale: 1.02, backgroundColor: 'rgba(0,255,255,0.08)' }}
               whileTap={{ scale: 0.98 }}
               className="p-3 rounded-lg border border-white/5 bg-white/5 cursor-grab active:cursor-grabbing hover:border-cyan-500/30 transition-colors"
             >
