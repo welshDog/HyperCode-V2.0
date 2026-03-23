@@ -10,9 +10,6 @@ from prometheus_client import (
     Counter,
     Histogram,
     Gauge,
-    Summary,
-    CollectorRegistry,
-    REGISTRY,
 )
 
 # ─────────────────────────────────────────────

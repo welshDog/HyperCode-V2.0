@@ -47,7 +47,7 @@ def test_root_endpoint(api_client):
 def test_unauthenticated_access_denied(api_client):
     """Verify that sensitive endpoints require API Key."""
     # Try to execute a task without auth
-    payload = {
+    {
         "task_id": str(uuid.uuid4()),
         "task": "echo 'hello'",
         "context": {}

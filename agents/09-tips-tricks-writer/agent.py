@@ -14,7 +14,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Note: In the container, /app will be the project root
 sys.path.append('/app')
 try:
-    from agents.base_agent.agent import BaseAgent, AgentConfig, TaskRequest
+    from agents.base_agent.agent import BaseAgent, AgentConfig
 except ImportError:
     # Local development fallback
     from base_agent.agent import BaseAgent, AgentConfig

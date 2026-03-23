@@ -42,7 +42,7 @@ try:
         pass
 
     from agents.shared.tools.deployer import Deployer
-    from agents.shared.protocols.evolution import ImprovementRequest, EvolutionStatus
+    from agents.shared.protocols.evolution import ImprovementRequest
     SHARED_MODULES_AVAILABLE = True
 except ImportError as e:
     # Log the specific error to help debugging

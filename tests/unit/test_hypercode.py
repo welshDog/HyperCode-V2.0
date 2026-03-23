@@ -51,7 +51,7 @@ def test_translate_file_success(mock_requests_post):
             mock_requests_post.return_value = mock_response
 
             # Capture stdout
-            with patch("sys.stdout") as mock_stdout:
+            with patch("sys.stdout"):
                 hypercode.translate_file("test_file.py")
                 
                 # Verify API call

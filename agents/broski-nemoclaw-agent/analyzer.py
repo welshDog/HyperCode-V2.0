@@ -6,9 +6,7 @@ import ast
 import json
 import logging
 import subprocess
-import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")

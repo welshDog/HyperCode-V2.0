@@ -17,13 +17,14 @@ try:
     from shared.rag_memory import AgentMemory
     from shared.project_memory import ProjectMemory
     from shared.logging_config import setup_logging
-    from shared.approval_system import ApprovalSystem, ApprovalStatus
+    from shared.approval_system import ApprovalSystem
 except ImportError:
     # Fallback for local testing or if shared modules not mounted
     # print("⚠️ Shared modules not found, running in limited mode")
     AgentMemory = None
     ProjectMemory = None
-    setup_logging = lambda name: None
+    def setup_logging(name):
+        return None
     ApprovalSystem = None
 
 class AgentConfig:

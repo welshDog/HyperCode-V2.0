@@ -1,7 +1,7 @@
 # ✅ STDLIB first — all together
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
 from typing import Callable  # remove Any, Dict, List, Optional — use builtins!
 from fastapi import FastAPI
@@ -13,12 +13,12 @@ init_metrics(app)  # 👈 auto-exposes /metrics endpoint
 # Third party
 import httpx
 import redis.asyncio
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
 
 # Local
 from .adapters.docker_adapter import DockerAdapter
-from .models import HealRequest, HealResult, HealerException
+from .models import HealResult, HealerException
 
 # Setup logging with JSON format for production
 class JSONFormatter(logging.Formatter):
@@ -148,8 +148,7 @@ async def get_throttle_state() -> Dict[str, Any]:
     return {"containers": sorted(set(containers)), "backend": "memory"}
 
 
-from enum import Enum
-from typing import Callable, Coroutine
+from typing import Coroutine
 
 
 # ... (rest of the imports)
@@ -389,7 +388,7 @@ async def attempt_heal_agent(
     Uses exponential backoff and circuit breaker pattern to prevent
     resource exhaustion from repeatedly healing broken agents.
     """
-    breaker = circuit_breakers[agent_name]
+    circuit_breakers[agent_name]
 
     async def heal_task():
         if await is_throttle_paused(agent_name):

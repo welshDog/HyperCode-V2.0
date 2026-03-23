@@ -130,7 +130,7 @@ Create a detailed breakdown with specific subtasks for each specialist agent."""
                         plan = json.loads(json_match.group(0))
                     else:
                         plan = json.loads(result)
-                except:
+                except Exception:
                     # If not JSON, wrap it
                     plan = {"raw_plan": result, "tasks": []}
             except Exception as e:
@@ -201,3 +201,4 @@ Create a detailed breakdown with specific subtasks for each specialist agent."""
                         )
                     except Exception as e:
                         print(f"Failed to delegate to {agent}: {e}")
+

@@ -50,7 +50,7 @@ async def test_focus_start(focus_cog, mock_ctx):
         # Verify user feedback
         mock_ctx.send.assert_called_once()
         args, kwargs = mock_ctx.send.call_args
-        embed = kwargs.get('embed') or (args[0] if args else None)
+        kwargs.get('embed') or (args[0] if args else None)
         # assert "Hyperfocus Session Started" in embed.title (Checking title logic if needed, skipping deep embed inspect)
 
 @pytest.mark.asyncio

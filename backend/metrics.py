@@ -4,7 +4,7 @@ Drop this in backend/ and import into main.py
 Covers all 12 core Hyper Agent + LLM + Healer + Agent X metrics
 """
 
-from prometheus_client import Counter, Histogram, Gauge, Summary
+from prometheus_client import Counter, Histogram, Gauge
 from prometheus_fastapi_instrumentator import Instrumentator
 
 # ─────────────────────────────────────────────

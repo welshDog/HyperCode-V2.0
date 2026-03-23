@@ -9,7 +9,7 @@ import docker
 import pytest
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, List, Tuple
+from typing import Dict
 import json
 import logging
 
@@ -134,7 +134,7 @@ def test_prometheus_scrape_targets():
 def test_loki_log_ingestion():
     """Loki is receiving logs from all services"""
     response = requests.get(
-        f"http://loki:3100/loki/api/v1/query",
+        "http://loki:3100/loki/api/v1/query",
         params={"query": '{job="docker"}'},
         timeout=10,
     )
@@ -441,7 +441,7 @@ def test_72h_uptime_soak(request):
 
         # Final report
         uptime_percent = (request_count - error_count) / request_count if request_count > 0 else 0
-        log.info(f"\n✓ 72h soak complete!")
+        log.info("\n✓ 72h soak complete!")
         log.info(f"  Total requests: {request_count}")
         log.info(f"  Errors: {error_count}")
         log.info(f"  Success rate: {uptime_percent:.4%}")

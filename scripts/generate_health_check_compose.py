@@ -42,7 +42,7 @@ def parse_k8s_manifests(k8s_dir):
                     
                     kind = doc.get('kind')
                     metadata = doc.get('metadata', {})
-                    name = metadata.get('name')
+                    metadata.get('name')
                     
                     if kind in ['Deployment', 'StatefulSet', 'DaemonSet']:
                         spec = doc.get('spec', {}).get('template', {}).get('spec', {})
@@ -248,7 +248,7 @@ def generate_docker_compose(services):
         if service['resources']:
             # Docker Compose v3 resources are under deploy
             limits = service['resources'].get('limits', {})
-            reservations = service['resources'].get('requests', {})
+            service['resources'].get('requests', {})
             
             comp_svc['deploy'] = {
                 'resources': {

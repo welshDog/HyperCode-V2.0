@@ -6,7 +6,6 @@ import sys
 # Ensure we can import healer package
 try:
     from agents.healer.adapters.docker_adapter import DockerAdapter
-    from agents.healer.models import ContainerStatus
 except ImportError:
     # Attempt to patch sys.path to find 'healer'
     # Assume we are in .../agents/healer/cli.py
@@ -18,7 +17,6 @@ except ImportError:
     
     try:
         from agents.healer.adapters.docker_adapter import DockerAdapter
-        from agents.healer.models import ContainerStatus
     except ImportError:
         # Fallback: try adding project root if agents is not package root
         # .../HyperCode-V2.0/agents/healer -> .../HyperCode-V2.0
@@ -29,7 +27,6 @@ except ImportError:
         # Try importing via full path if needed, or rely on previous successful import
         try:
             from agents.healer.adapters.docker_adapter import DockerAdapter
-            from agents.healer.models import ContainerStatus
         except ImportError:
             raise ImportError("Failed to import Healer Agent components. Check sys.path.")
 
