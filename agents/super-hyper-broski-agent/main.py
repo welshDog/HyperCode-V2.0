@@ -18,7 +18,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../backend"))
 app = FastAPI()
 init_metrics(app) 
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
     CollectorRegistry,

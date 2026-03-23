@@ -26,8 +26,8 @@ async def test_quest_service_timed_quest():
     # Mock transaction context and repositories
     with patch("src.services.quest.db") as mock_db, \
          patch("src.services.quest.UserQuestRepository") as MockUserQuestRepo, \
-         patch("src.services.quest.UserRepository") as MockUserRepo, \
-         patch("src.services.quest.QuestRepository") as MockQuestRepo:
+         patch("src.services.quest.UserRepository"), \
+         patch("src.services.quest.QuestRepository"):
         
         tx_context = AsyncMock()
         mock_db.transaction.return_value = tx_context
@@ -88,7 +88,7 @@ async def test_quest_service_tiered_quest():
         mock_user_repo.get_by_id.return_value = MagicMock(id=1) # Returns user profile
         
         # Call complete_quest
-        result = await service.complete_quest(1, 1)
+        await service.complete_quest(1, 1)
         
         # Verify status update
         mock_user_quest_repo.update_status.assert_called_with(1, QuestStatus.COMPLETED)

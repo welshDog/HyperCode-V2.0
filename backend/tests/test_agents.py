@@ -124,11 +124,6 @@ class TestCrewOrchestrator:
     @pytest.mark.asyncio
     async def test_orchestrator_routes_tasks(self):
         """Test orchestrator routes tasks to correct agents."""
-        task = {
-            "id": "task_001",
-            "type": "code_generation",
-            "content": "Generate a Python function"
-        }
         
         # Should route to coder-agent
         target_agent = "coder-agent"
@@ -155,7 +150,6 @@ class TestCrewOrchestrator:
 ])
 def test_agents_exist(agent_name):
     """Test all required agents exist."""
-    agents_dir = "agents"
     
     # This is a simple check - extend as needed
     assert agent_name is not None

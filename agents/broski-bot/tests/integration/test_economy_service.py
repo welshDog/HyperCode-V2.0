@@ -38,7 +38,6 @@ async def test_economy_service_e2e():
 
         # 1. Run Migrations
         alembic_cfg = Config("alembic.ini")
-        db_url = f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{dbname}"
         with patch("src.config.settings.settings", test_settings):
             command.upgrade(alembic_cfg, "head")
 

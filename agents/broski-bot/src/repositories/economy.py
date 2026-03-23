@@ -332,7 +332,7 @@ class FocusSessionRepository(BaseRepository[FocusSession]):
         stmt = (
             select(FocusSession)
             .where(FocusSession.user_id == user_id)
-            .where(FocusSession.is_active == True)
+            .where(FocusSession.is_active)
             .order_by(FocusSession.start_time.desc())
         )
         result = await self.session.execute(stmt)
