@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { AGENT_TEMPLATES } from '../../data/agentTemplates';
 
 export const AgentLibrary = () => {
-  const onDragStart = (e: React.DragEvent, agent: typeof AGENT_TEMPLATES[0]) => {
+  const onDragStart = (e: React.DragEvent<HTMLDivElement>, agent: typeof AGENT_TEMPLATES[0]) => {
     e.dataTransfer.setData('application/hyperflow', JSON.stringify(agent));
     e.dataTransfer.effectAllowed = 'move';
   };
@@ -23,7 +23,7 @@ export const AgentLibrary = () => {
           <motion.div
             key={agent.role}
             draggable
-            onDragStart={(e) => onDragStart(e, agent)}
+            onDragStart={(e: React.DragEvent<HTMLDivElement>) => onDragStart(e, agent)}
             whileHover={{ x: 4, scale: 1.02, backgroundColor: `${agent.color}15` }}
             whileTap={{ scale: 0.98 }}
             className="group relative p-3 rounded-lg border border-white/5 bg-white/5 cursor-grab active:cursor-grabbing hover:border-cyan-500/30 transition-colors"
