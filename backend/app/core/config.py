@@ -86,7 +86,7 @@ class Settings(BaseSettings):
 
     # Telemetry (OpenTelemetry)
     OTLP_ENDPOINT: str = "http://tempo:4317"
-    OTLP_EXPORTER_DISABLED: bool = False
+    OTLP_EXPORTER_DISABLED: bool = True
     SERVICE_NAME: str = "hypercode-core"
 
     # HTTP security
