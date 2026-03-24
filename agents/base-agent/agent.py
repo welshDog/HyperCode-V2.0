@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import os
 import redis.asyncio as redis
-from PERPLEXITY import AsyncPERPLEXITY
 from contextlib import asynccontextmanager
 import sys
 
@@ -19,13 +18,25 @@ try:
     from shared.logging_config import setup_logging
     from shared.approval_system import ApprovalSystem
 except ImportError:
-    # Fallback for local testing or if shared modules not mounted
     print("⚠️ Shared modules not found, running in limited mode")
     AgentMemory = None
     ProjectMemory = None
     def setup_logging(name):
         return None
     ApprovalSystem = None
+
+# AI Client — try anthropic first, fallback to openai
+try:
+    from anthropic import AsyncAnthropic as AIClient
+    AI_BACKEND = "anthropic"
+except ImportError:
+    try:
+        from openai import AsyncOpenAI as AIClient
+        AI_BACKEND = "openai"
+    except ImportError:
+        AIClient = None
+        AI_BACKEND = None
+        print("⚠️ No AI client found (anthropic or openai). Running in limited mode.")
 
 class AgentConfig:
     """Base configuration for all agents"""
@@ -34,15 +45,15 @@ class AgentConfig:
         self.role = os.getenv("AGENT_ROLE", "Generic Agent")
         self.model = os.getenv("AGENT_MODEL", "claude-3-5-sonnet-20241022")
         self.port = int(os.getenv("AGENT_PORT", "8001"))
-        self.PERPLEXITY_key = os.getenv("PERPLEXITY_API_KEY")
+        self.api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("PERPLEXITY_API_KEY") or os.getenv("OPENAI_API_KEY")
         self.redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
         self.core_url = os.getenv("CORE_URL", "http://hypercode-core:8000")
-        self.api_key = os.getenv("HYPERCODE_API_KEY")
+        self.hypercode_api_key = os.getenv("HYPERCODE_API_KEY")
 
 class TaskRequest(BaseModel):
     id: Optional[str] = None
-    task_id: Optional[str] = None  # Backward compatibility
-    task: Optional[str] = None     # Backward compatibility
+    task_id: Optional[str] = None
+    task: Optional[str] = None
     description: Optional[str] = None
     type: Optional[str] = "generic"
     context: Optional[Dict[str, Any]] = None
@@ -60,7 +71,6 @@ class BaseAgent:
         self.config = config
         self.logger = setup_logging(config.name)
         
-        # Initialize systems placeholders
         self.redis = None
         self.agent_memory = None
         self.project_memory = None
@@ -85,22 +95,20 @@ class BaseAgent:
         self.redis = await redis.from_url(self.config.redis_url, decode_responses=True)
         
         # Initialize AI Client
-        if self.config.PERPLEXITY_key:
-            self.client = AsyncPERPLEXITY(api_key=self.config.PERPLEXITY_key)
+        if AIClient and self.config.api_key:
+            self.client = AIClient(api_key=self.config.api_key)
         
         # Initialize Shared Systems
-        # (This import might fail if shared modules are missing, but we handle it gracefully)
         try:
             if AgentMemory:
                 self.agent_memory = AgentMemory(self.config.name)
-                # Try to ingest Bible if available
                 bible_path = "/app/HYPER-AGENT-BIBLE.md"
                 if os.path.exists(bible_path):
                     self.agent_memory.ingest_document(bible_path)
             
             if ProjectMemory:
                 self.project_memory = ProjectMemory(self.config.redis_url)
-        except NameError:
+        except Exception:
             if self.logger:
                 self.logger.warning("Shared memory modules not available")
             
@@ -111,8 +119,6 @@ class BaseAgent:
         pass
 
     def register_tool(self, tool_func):
-        """Placeholder for tool registration (future implementation)"""
-        # In a real implementation, this would register the tool with the LLM client
         if self.logger:
             self.logger.info(f"Registered tool: {tool_func.__name__}")
             
@@ -148,7 +154,6 @@ class BaseAgent:
 
         @self.app.post("/execute")
         async def execute(request: TaskRequest):
-            # Normalize input
             task_desc = request.description or request.task
             task_id = request.id or request.task_id or "unknown"
             
@@ -165,39 +170,30 @@ class BaseAgent:
 
     async def process_task(self, task: str, context: Dict[str, Any], requires_approval: bool):
         """Override this method in specialized agents"""
-        # Default implementation for base agent
-        
-        # 1. Get Context (RAG)
         rag_context = ""
         if self.agent_memory:
             rag_context = self.agent_memory.query_relevant_context(task)
             
-        # 2. Get Project Context
         project_context = {}
         if self.project_memory:
             project_context = self.project_memory.get_project_context()
 
-        # 3. Generate Plan (LLM)
         plan = await self.generate_plan(task, rag_context, project_context)
         
-        # 4. Approval
         if requires_approval and self.approval_system:
             approval = await self.approval_system.request_approval(
                 self.config.name,
                 "execute_task",
                 {"task": task, "plan": plan}
             )
-            
             if approval['status'] != "approved":
                 raise Exception(f"Task rejected: {approval.get('reason')}")
         
-        # 5. Execute
         return f"Executed task: {task} based on plan: {plan}"
 
     async def generate_plan(self, task, rag_context, project_context):
-        # Simple LLM call
         if not self.client:
-            return "No LLM client configured"
+            return "No AI client configured — running in limited mode"
             
         prompt = f"""
         You are {self.config.name} ({self.config.role}).
@@ -214,13 +210,21 @@ class BaseAgent:
         Create a brief execution plan.
         """
         
-        response = await self.client.messages.create(
-            model=self.config.model,
-            max_tokens=1000,
-            messages=[{"role": "user", "content": prompt}]
-        )
+        if AI_BACKEND == "anthropic":
+            response = await self.client.messages.create(
+                model=self.config.model,
+                max_tokens=1000,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            return response.content[0].text
+        elif AI_BACKEND == "openai":
+            response = await self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": prompt}]
+            )
+            return response.choices[0].message.content
         
-        return response.content[0].text
+        return "No AI backend available"
 
     def run(self):
         import uvicorn
