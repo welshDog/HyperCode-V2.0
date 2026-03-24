@@ -5,7 +5,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Callable  # remove Any, Dict, List, Optional — use builtins!
 from fastapi import FastAPI
-from metrics import init_metrics  # 👈 import
+from .metrics import init_metrics  # 👈 fixed: relative import
 
 app = FastAPI()
 init_metrics(app)  # 👈 auto-exposes /metrics endpoint
