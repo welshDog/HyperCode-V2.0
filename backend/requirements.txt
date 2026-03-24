@@ -8,7 +8,7 @@ alembic==1.18.4
 altair==5.5.0
 amqp==5.3.1
 annotated-types==0.7.0
-# PERPLEXITY==0.84.0  <- removed: not a real pip package
+# audioop-lts==0.2.1 <- removed: requires Python >=3.13, we use 3.11
 anyio==4.9.0
 APScheduler==3.11.2
 argon2-cffi==25.1.0
@@ -19,7 +19,6 @@ astroid==4.0.4
 asyncio==3.4.3
 asyncio-throttle==1.0.2
 attrs==25.3.0
-audioop-lts==0.2.1
 Authlib==1.6.1
 backoff==2.2.1
 bandit==1.8.6
