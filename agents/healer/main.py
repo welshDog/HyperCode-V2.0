@@ -1,4 +1,4 @@
-# ✅ STDLIB — all imports in one clean block
+# ✅ STDLIB — complete clean import block
 import asyncio
 import json
 import logging
@@ -14,17 +14,13 @@ from urllib.parse import urlparse
 # Third party
 import httpx
 import redis.asyncio as redis
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 # Local
 from .adapters.docker_adapter import DockerAdapter
 from .metrics import init_metrics
-from .models import HealResult, HealerException
-
-# ── App bootstrap ──────────────────────────────────────────────────────────────
-app = FastAPI()
-init_metrics(app)  # auto-exposes /metrics endpoint
+from .models import HealResult, HealerException, HealRequest
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 class JSONFormatter(logging.Formatter):
@@ -43,30 +39,23 @@ class JSONFormatter(logging.Formatter):
             log_data["exception"] = self.formatException(record.exc_info)
         return json.dumps(log_data)
 
-
 handler = logging.StreamHandler()
 handler.setFormatter(JSONFormatter())
 logger = logging.getLogger("healer.main")
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
-# ── Config from env ───────────────────────────────────────────────────────────
+# ── Config ─────────────────────────────────────────────────────────────────────
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")
 ORCHESTRATOR_URL = os.getenv("ORCHESTRATOR_URL", "http://crew-orchestrator:8080")
-WATCHDOG_ENABLED = (
-    os.getenv("HEALER_WATCHDOG_ENABLED", "false").strip().lower() == "true"
-)
-WATCHDOG_INTERVAL_SECONDS = float(
-    os.getenv("HEALER_WATCHDOG_INTERVAL_SECONDS", "60").strip() or "60"
-)
+WATCHDOG_ENABLED = os.getenv("HEALER_WATCHDOG_ENABLED", "false").strip().lower() == "true"
+WATCHDOG_INTERVAL_SECONDS = float(os.getenv("HEALER_WATCHDOG_INTERVAL_SECONDS", "60").strip() or "60")
 WATCHDOG_SMOKE_API_KEY = os.getenv("HEALER_SMOKE_API_KEY", "").strip()
 WATCHDOG_ORCHESTRATOR_API_KEY = os.getenv("HEALER_ORCHESTRATOR_API_KEY", "").strip()
 WATCHDOG_AGENT = os.getenv("HEALER_WATCHDOG_AGENT", "").strip()
-WATCHDOG_FORCE_RESTART = (
-    os.getenv("HEALER_WATCHDOG_FORCE_RESTART", "false").strip().lower() == "true"
-)
+WATCHDOG_FORCE_RESTART = os.getenv("HEALER_WATCHDOG_FORCE_RESTART", "false").strip().lower() == "true"
 
-# ── Global state ──────────────────────────────────────────────────────────────
+# ── Global state ─────────────────────────────────────────────────────────────
 redis_client: Optional[redis.Redis] = None
 docker_adapter: Optional[DockerAdapter] = None
 _throttle_paused_local: Dict[str, float] = {}
@@ -89,27 +78,16 @@ async def set_throttle_state(update: ThrottleStateUpdate) -> Dict[str, Any]:
     now = time.time()
     ttl = max(int(update.ttl_seconds), 10)
     applied: List[str] = []
-
     if redis_client:
         if update.paused:
-            payload = json.dumps(
-                {
-                    "paused": True,
-                    "reason": update.reason,
-                    "until_ts": now + ttl,
-                }
-            )
+            payload = json.dumps({"paused": True, "reason": update.reason, "until_ts": now + ttl})
             for c in update.containers:
                 if not isinstance(c, str) or not c:
                     continue
                 await redis_client.set(_throttle_pause_key(c), payload, ex=ttl)
                 applied.append(c)
         else:
-            keys = [
-                _throttle_pause_key(c)
-                for c in update.containers
-                if isinstance(c, str) and c
-            ]
+            keys = [_throttle_pause_key(c) for c in update.containers if isinstance(c, str) and c]
             if keys:
                 await redis_client.delete(*keys)
                 applied = [c for c in update.containers if isinstance(c, str) and c]
@@ -127,7 +105,6 @@ async def set_throttle_state(update: ThrottleStateUpdate) -> Dict[str, Any]:
                     continue
                 _throttle_paused_local.pop(c, None)
                 applied.append(c)
-
     return {"applied": applied, "paused": update.paused, "ttl_seconds": ttl}
 
 
@@ -176,8 +153,7 @@ class CircuitBreaker:
     async def call(self, func: Callable[[], Coroutine[Any, Any, Any]]):
         if self.state == CircuitState.OPEN:
             if self.last_failure_time is None or (
-                datetime.now() - self.last_failure_time
-                > timedelta(seconds=self.recovery_timeout)
+                datetime.now() - self.last_failure_time > timedelta(seconds=self.recovery_timeout)
             ):
                 self.state = CircuitState.HALF_OPEN
                 logger.info("Circuit breaker: HALF_OPEN (testing recovery)")
@@ -203,9 +179,7 @@ class CircuitBreaker:
         self.last_failure_time = datetime.now()
         if self.failure_count >= self.failure_threshold:
             if self.state != CircuitState.OPEN:
-                logger.warning(
-                    f"Circuit breaker: OPEN (failures: {self.failure_count})"
-                )
+                logger.warning(f"Circuit breaker: OPEN (failures: {self.failure_count})")
                 self.state = CircuitState.OPEN
 
 
@@ -218,20 +192,17 @@ async def lifespan(app: FastAPI):
     global redis_client, docker_adapter
     redis_client = await redis.from_url(REDIS_URL, decode_responses=True)
     docker_adapter = DockerAdapter(redis_url=REDIS_URL)
-
     asyncio.create_task(alert_listener())
     if WATCHDOG_ENABLED:
         asyncio.create_task(watchdog_loop())
-
     logger.info("Healer Agent started - monitoring system health")
     yield
-
     if redis_client:
         await redis_client.close()
     logger.info("Healer Agent shutting down")
 
 
-# ── FastAPI app (with lifespan) ───────────────────────────────────────────────
+# ── App ───────────────────────────────────────────────────────────────────────
 app = FastAPI(
     title="Healer Agent",
     version="0.2.0",
@@ -276,12 +247,7 @@ async def fetch_agent_roster() -> Dict[str, str]:
                     continue
                 agent_id = item.get("id")
                 url = item.get("url")
-                if (
-                    isinstance(agent_id, str)
-                    and isinstance(url, str)
-                    and agent_id
-                    and url
-                ):
+                if isinstance(agent_id, str) and isinstance(url, str) and agent_id and url:
                     roster[agent_id] = url
             return roster
     except Exception:
@@ -292,40 +258,29 @@ async def fetch_agent_roster() -> Dict[str, str]:
 async def watchdog_cycle() -> None:
     if not WATCHDOG_SMOKE_API_KEY:
         return
-
     headers = {
         "Content-Type": "application/json",
         "X-API-Key": WATCHDOG_SMOKE_API_KEY,
         "X-Smoke-Mode": "true",
     }
-
     roster = await fetch_agent_roster()
-
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             payload: Dict[str, Any] = {"mode": "probe_health"}
             if WATCHDOG_AGENT:
                 payload["agent"] = WATCHDOG_AGENT
-            r = await client.post(
-                f"{ORCHESTRATOR_URL}/execute/smoke",
-                headers=headers,
-                json=payload,
-            )
+            r = await client.post(f"{ORCHESTRATOR_URL}/execute/smoke", headers=headers, json=payload)
     except Exception:
         return
-
     if r.status_code != 200:
         return
-
     try:
         payload = r.json()
     except Exception:
         return
-
     agents = payload.get("agents")
     if not isinstance(agents, dict):
         return
-
     heal_tasks = []
     for agent_id, result in agents.items():
         if not isinstance(agent_id, str) or not isinstance(result, dict):
@@ -338,26 +293,12 @@ async def watchdog_cycle() -> None:
             continue
         parsed = urlparse(agent_url)
         container_name = parsed.hostname or agent_id.replace("_", "-")
-        logger.warning(
-            f"Watchdog detected {agent_id}={status} -> healing {container_name}"
-        )
-        heal_tasks.append(
-            attempt_heal_agent(
-                container_name,
-                agent_url,
-                attempts=2,
-                timeout=5.0,
-                force_restart=WATCHDOG_FORCE_RESTART,
-            )
-        )
-
+        logger.warning(f"Watchdog detected {agent_id}={status} -> healing {container_name}")
+        heal_tasks.append(attempt_heal_agent(container_name, agent_url, attempts=2, timeout=5.0, force_restart=WATCHDOG_FORCE_RESTART))
     if not heal_tasks:
         return
-
     try:
-        await asyncio.wait_for(
-            asyncio.gather(*heal_tasks, return_exceptions=True), timeout=120.0
-        )
+        await asyncio.wait_for(asyncio.gather(*heal_tasks, return_exceptions=True), timeout=120.0)
     except Exception:
         return
 
@@ -373,7 +314,7 @@ async def watchdog_loop() -> None:
         await asyncio.sleep(max(WATCHDOG_INTERVAL_SECONDS, 5.0))
 
 
-# ── Agent helpers ─────────────────────────────────────────────────────────────
+# ── Healing logic ─────────────────────────────────────────────────────────────
 async def ping_agent_health(agent_url: str, timeout: float) -> bool:
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -391,11 +332,7 @@ async def attempt_heal_agent(
     timeout: float,
     force_restart: bool = False,
 ) -> HealResult:
-    """
-    Attempt to heal an unhealthy agent.
-    Uses exponential backoff + circuit breaker to prevent resource exhaustion.
-    """
-    circuit_breakers[agent_name]
+    breaker = circuit_breakers[agent_name]
 
     async def heal_task():
         if await is_throttle_paused(agent_name):
@@ -405,25 +342,188 @@ async def attempt_heal_agent(
                 status="paused_by_throttle",
                 details="Throttle Agent marked this container as intentionally paused",
             )
-
         logger.info(f"Checking health of {agent_name}...")
         healthy = await ping_agent_health(agent_url, timeout)
         if healthy:
-            return HealResult(
-                agent=agent_name,
-                status="healthy",
-                action="none",
-                details="No action required",
-                timestamp=datetime.now().isoformat(),
-            )
+            return HealResult(agent=agent_name, status="healthy", action="none", details="No action required", timestamp=datetime.now().isoformat())
 
         logger.warning(f"Agent {agent_name} is unhealthy. Attempting Docker restart...")
         if not docker_adapter:
-            logger.error("Docker adapter not available")
+            raise HealerException("Docker adapter unavailable", agent=agent_name, status="failed", details="Docker adapter not initialized")
 
-    return await heal_task()
+        restarted = await docker_adapter.restart_container(agent_name, force=force_restart)
+        if not restarted:
+            raise HealerException("Docker restart command failed", agent=agent_name, status="failed", details="Docker restart command failed")
+
+        for wait_time in [2, 5, 10]:
+            await asyncio.sleep(wait_time)
+            try:
+                is_healthy = await asyncio.wait_for(ping_agent_health(agent_url, timeout), timeout=5.0)
+                if is_healthy:
+                    logger.info(f"✅ Agent {agent_name} recovered after {wait_time}s")
+                    return HealResult(agent=agent_name, status="recovered", action="restart", details=f"Restart successful - recovered after {wait_time}s", timestamp=datetime.now().isoformat())
+            except asyncio.TimeoutError:
+                continue
+            except Exception as e:
+                logger.error(f"Error checking {agent_name} health: {e}")
+                continue
+
+        raise HealerException("Agent unresponsive after restart", agent=agent_name, status="failed", details="Agent unresponsive after restart and multiple health checks")
+
+    try:
+        return await breaker.call(heal_task)
+    except Exception as e:
+        if isinstance(e, HealerException):
+            return HealResult(agent=e.agent, status=e.status, action="none", details=e.details, timestamp=datetime.now().isoformat())
+        return HealResult(
+            agent=agent_name,
+            status="circuit_open" if breaker.state == CircuitState.OPEN else "failed",
+            action="none" if breaker.state == CircuitState.OPEN else "restart",
+            details=str(e),
+            timestamp=datetime.now().isoformat(),
+        )
 
 
-# stub so lifespan doesn't crash on missing alert_listener
-async def alert_listener() -> None:
-    pass
+async def auto_heal_all():
+    logger.info("🔧 Auto-healing triggered by system alert")
+    health_data = await fetch_system_health()
+    if not health_data:
+        logger.warning("No health data available - skipping healing cycle")
+        return
+    tasks = []
+    for name, info in health_data.items():
+        if info.get("status") == "unhealthy":
+            url = info.get("url", f"http://{name}:8000")
+            tasks.append(attempt_heal_agent(name, url, attempts=2, timeout=5.0))
+    if not tasks:
+        logger.info("✅ All agents healthy - no healing needed")
+        return
+    try:
+        results = await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=60.0)
+        success_count = sum(1 for r in results if hasattr(r, 'status') and r.status in ("recovered", "healthy"))
+        failure_count = len(results) - success_count
+        logger.info(f"Healing cycle complete: {success_count} succeeded, {failure_count} failed")
+    except asyncio.TimeoutError:
+        logger.error("⏱️ Auto-heal cycle exceeded 60s timeout")
+
+
+async def alert_listener():
+    if not redis_client:
+        logger.error("Redis client not initialized - cannot start alert listener")
+        return
+    logger.info("Alert listener started - subscribed to 'system_alert' channel")
+    pubsub = redis_client.pubsub()
+    await pubsub.subscribe("system_alert")
+    try:
+        async for message in pubsub.listen():
+            if message["type"] == "message":
+                logger.info(f"📢 Received alert: {message['data']}")
+                try:
+                    await auto_heal_all()
+                except Exception as e:
+                    logger.error(f"Error processing alert: {e}", exc_info=True)
+    except Exception as e:
+        logger.error(f"Alert listener crashed: {e}", exc_info=True)
+    finally:
+        await pubsub.unsubscribe("system_alert")
+        logger.warning("Alert listener stopped")
+
+
+# ── Routes ──────────────────────────────────────────────────────────────────────
+@app.get("/health")
+async def health():
+    docker_ok = False
+    if docker_adapter and docker_adapter.client:
+        try:
+            docker_adapter.client.ping()
+            docker_ok = True
+        except Exception:
+            pass
+    redis_ok = redis_client is not None
+    status = "healthy" if (docker_ok and redis_ok) else "degraded"
+    return {
+        "status": status,
+        "healer": "online",
+        "redis": redis_ok,
+        "docker": docker_ok,
+        "circuit_breaker_active": len(circuit_breakers) > 0,
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
+@app.get("/health/sweep")
+async def health_sweep():
+    if not docker_adapter:
+        raise HTTPException(status_code=503, detail="Docker adapter not initialized")
+    try:
+        return await docker_adapter.check_all_containers()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/circuit-breaker/status")
+async def circuit_breaker_status():
+    return {
+        agent: {
+            "state": breaker.state.value,
+            "failure_count": breaker.failure_count,
+            "last_failure_time": breaker.last_failure_time.isoformat() if breaker.last_failure_time else None,
+        }
+        for agent, breaker in circuit_breakers.items()
+    }
+
+
+@app.get("/circuit-breaker/{agent_name}")
+async def circuit_breaker_agent_status(agent_name: str):
+    if agent_name not in circuit_breakers:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    breaker = circuit_breakers[agent_name]
+    return {
+        "agent": agent_name,
+        "state": breaker.state.value,
+        "failure_count": breaker.failure_count,
+        "threshold": breaker.failure_threshold,
+        "timeout_seconds": breaker.recovery_timeout,
+        "last_failure_time": breaker.last_failure_time.isoformat() if breaker.last_failure_time else None,
+    }
+
+
+@app.post("/circuit-breaker/reset/{agent_name}")
+async def reset_circuit_breaker(agent_name: str):
+    if agent_name in circuit_breakers:
+        circuit_breakers[agent_name].on_success()
+        logger.info(f"Circuit breaker manually reset for {agent_name}")
+        return {"message": f"Circuit breaker reset for {agent_name}"}
+    return {"message": f"No circuit breaker found for {agent_name}"}
+
+
+@app.post("/heal")
+async def trigger_heal(request: HealRequest) -> HealResult:
+    logger.info(f"Manual heal requested for {request.agent_name}")
+    return await attempt_heal_agent(request.agent_name, request.agent_url, request.attempts, request.timeout)
+
+
+@app.post("/alerts/webhook")
+async def alert_webhook(request: Dict[str, Any]) -> Dict[str, Any]:
+    logger.info(f"🔔 Alert webhook received: {len(request.get('alerts', []))} alerts")
+    for alert in request.get("alerts", []):
+        status = alert.get("status")
+        labels = alert.get("labels", {})
+        alert_name = labels.get("alertname")
+        instance = labels.get("instance")
+        if status == "firing" and alert_name in ["ServiceDown", "ContainerKilled", "ContainerAbsent"]:
+            logger.warning(f"🚨 Critical Alert: {alert_name} on {instance}")
+            service_name = instance.split(":")[0] if instance else "unknown"
+            if service_name != "unknown":
+                asyncio.create_task(attempt_heal_agent(agent_name=service_name, agent_url=f"http://{instance}", attempts=2, timeout=10.0))
+    return {"status": "processed"}
+
+
+@app.get("/throttle/state")
+async def throttle_state_get():
+    return await get_throttle_state()
+
+
+@app.post("/throttle/state")
+async def throttle_state_post(update: ThrottleStateUpdate):
+    return await set_throttle_state(update)
