@@ -46,6 +46,9 @@ core_api_breaker = CircuitBreaker(
 
 START_TIME = time.time()
 
+# Paths exempt from rate limiting (health + metrics must always respond)
+RATE_LIMIT_EXEMPT = {"/health", "/metrics", "/"}
+
 
 def _is_truthy(value: str | None) -> bool:
     """Return True if a string represents a truthy value."""
@@ -136,23 +139,25 @@ def metrics() -> Response:
 async def log_and_rate_limit(
     request: Request, call_next: Callable
 ) -> Response:
-    """Log requests and enforce rate limiting."""
+    """Log requests and enforce rate limiting. Health/metrics paths are always exempt."""
     start = time.time()
-    
-    # Apply rate limit (100/minute)
-    try:
-        limiter.hit(request)
-    except Exception as e:
-        logger.warning("Rate limit exceeded: %s", e)
-        return JSONResponse(
-            status_code=429,
-            content={"detail": "Rate limit exceeded"}
-        )
-    
+
+    # Skip rate limiting for health + metrics — must always respond for Docker
+    if request.url.path not in RATE_LIMIT_EXEMPT:
+        try:
+            if hasattr(limiter, 'hit'):
+                limiter.hit(request)
+        except Exception as e:
+            logger.warning("Rate limit exceeded: %s", e)
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Rate limit exceeded"}
+            )
+
     response = await call_next(request)
     duration_seconds = time.time() - start
     duration_ms = round(duration_seconds * 1000, 2)
-    
+
     logger.info(
         "%s %s -> %s (%.2fms)",
         request.method,
@@ -181,13 +186,12 @@ async def cached_endpoint(query: str = "test"):
 async def circuit_breaker_test():
     """Test circuit breaker on external call."""
     try:
-        # Simulate calling another service through circuit breaker
         import httpx
         async def call_core():
             async with httpx.AsyncClient(timeout=5) as client:
                 resp = await client.get("http://hypercode-core:8000/health")
                 return resp.json()
-        
+
         result = await core_api_breaker.call_async(call_core)
         return {"status": "ok", "core": result, "breaker": "CLOSED"}
     except Exception as e:
