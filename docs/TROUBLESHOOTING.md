@@ -62,3 +62,37 @@
 1.  This is usually a strict health check timeout during the initial build/start.
 2.  If the UI is accessible at `http://localhost:8088`, you can ignore this or increase the `start_period` in `docker-compose.yml`.
 
+### 9. Tempo crashes immediately on startup ⭐ NEW
+**Symptom**: `tempo` container exits right after starting. Logs show errors like:
+```
+field not found, node: root, field: kafka
+```
+or:
+```
+field not found, node: root, field: ingester.lifecycler
+```
+**Root Cause**: `grafana/tempo:latest` resolves to v2.10.3+ which has breaking config changes.
+**Fix**:
+1. Pin Tempo image in `docker-compose.yml`:
+   ```yaml
+   image: grafana/tempo:2.4.2
+   ```
+2. Strip deprecated fields (`kafka`, `ingester.lifecycler`) from `tempo/tempo.yaml`.
+3. Recreate the container:
+   ```powershell
+   docker compose up -d --force-recreate tempo
+   Start-Sleep 20
+   curl http://localhost:3200/ready
+   ```
+4. Expected response: `ready` ✅
+
+> 📖 See full details in [TEMPO_FIX_GUIDE.md](TEMPO_FIX_GUIDE.md)
+
+### 10. Tempo `/ready` returns "waiting for 15s after being ready"
+**Symptom**: Tempo is running but `/ready` says it's not ready yet.
+**Fix**: This is **normal behaviour** — not an error! The ingester has a built-in 15-second warm-up buffer after boot. Wait 20 seconds and retry:
+```powershell
+Start-Sleep 20
+curl http://localhost:3200/ready
+```
+Expected: `ready` ✅

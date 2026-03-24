@@ -2,7 +2,7 @@
 
 > **built with WelshDog + BROski 🚀🌙**
 
-**Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-10
+**Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-24
 
 All notable changes to this project will be documented in this file.
 
@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- 📡 **Tempo fix guide** — full walkthrough for resolving `grafana/tempo:latest` Kafka crash: [TEMPO_FIX_GUIDE.md](TEMPO_FIX_GUIDE.md)
 - Repository report for community visibility: [REPOSITORY_REPORT.md](REPOSITORY_REPORT.md)
 - Documentation audit + sync checklist:
   - [docs/DOC_AUDIT_REPORT.md](docs/DOC_AUDIT_REPORT.md)
@@ -19,11 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Code of Conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 
 ### Changed
+- 🐳 **`docker-compose.yml`** — Pinned `grafana/tempo` image from `latest` to `2.4.2` to prevent startup crash caused by breaking Kafka config in newer versions.
 - SQLAlchemy Base migrated to `DeclarativeBase` with SQLAlchemy 2.0 typed models (`Mapped[]`, `mapped_column`).
 - Local-first LLM defaults (TinyLlama-first) with auto model selection and tuned generation options.
 - Backend documentation links standardized to repo-relative paths.
 
 ### Fixed
+- 🔥 **Tempo container crash on startup** — `grafana/tempo:latest` (v2.10.3+) introduced hardcoded Kafka/ingester config fields that caused immediate exit. Fixed by pinning to `grafana/tempo:2.4.2` and cleaning `tempo/tempo.yaml` of deprecated fields.
 - Test suite stability improved via deterministic mocks and reduced external side effects during imports.
 
 ## [2.0.0] - 2026-01-15
