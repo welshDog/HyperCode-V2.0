@@ -110,7 +110,7 @@ make status
 ```bash
 # 1. Setup environment
 cp .env.agents.example .env.agents
-# Edit .env.agents and add your ANTHROPIC_API_KEY
+# Edit .env.agents and add your PERPLEXITY_API_KEY
 
 # 2. Build and start
 docker-compose -f docker-compose.agents.yml --env-file .env.agents up -d
@@ -219,7 +219,7 @@ curl -X POST http://localhost:8080/workflow/feature \
 
 ```bash
 # Required
-ANTHROPIC_API_KEY=sk-ant-xxxxx
+PERPLEXITY_API_KEY=sk-ant-xxxxx
 
 # Database
 POSTGRES_PASSWORD=your_password
@@ -333,7 +333,7 @@ Edit `docker-compose.yml` and change port mappings
 ### API Key Issues
 ```bash
 # Verify key is set
-docker exec project-strategist env | grep ANTHROPIC
+docker exec project-strategist env | grep PERPLEXITY
 ```
 
 ### Agent Not Responding

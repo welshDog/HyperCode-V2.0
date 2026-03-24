@@ -6,7 +6,7 @@ kubectl create namespace hypercode-staging --dry-run=client -o yaml | kubectl ap
 
 kubectl create secret generic hypercode-secrets `
   --namespace=hypercode-staging `
-  --from-literal=anthropic-api-key="YOUR_ANTHROPIC_KEY_HERE" `
+  --from-literal=PERPLEXITY-api-key="YOUR_PERPLEXITY_KEY_HERE" `
   --from-literal=hypercode-jwt-secret="YOUR_JWT_SECRET_HERE" `
   --from-literal=postgres-password="YOUR_DB_PASSWORD_HERE" `
   --from-literal=redis-password="YOUR_REDIS_PASSWORD_HERE" `

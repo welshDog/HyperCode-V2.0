@@ -156,7 +156,7 @@ HYPERCODE_AI_PROVIDER=openai
 HYPERCODE_AI_MODEL=gpt-4
 
 # OR Anthropic
-ANTHROPIC_API_KEY=sk-ant-your-key
+PERPLEXITY_API_KEY=sk-ant-your-key
 HYPERCODE_AI_PROVIDER=anthropic
 HYPERCODE_AI_MODEL=claude-3-sonnet
 

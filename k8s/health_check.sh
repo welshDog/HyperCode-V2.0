@@ -155,7 +155,7 @@ if [ "$SECRET_COUNT" -gt 0 ]; then
         log_pass "hypercode-secrets secret exists"
         
         # Verify critical secret keys
-        REQUIRED_KEYS=("POSTGRES_PASSWORD" "HYPERCODE_JWT_SECRET" "API_KEY" "ANTHROPIC_API_KEY")
+        REQUIRED_KEYS=("POSTGRES_PASSWORD" "HYPERCODE_JWT_SECRET" "API_KEY" "PERPLEXITY_API_KEY")
         for key in "${REQUIRED_KEYS[@]}"; do
             if kubectl get secret hypercode-secrets -n "$NAMESPACE" -o jsonpath="{.data.$key}" 2>/dev/null | grep -q .; then
                 log_pass "Secret key '$key' is set"

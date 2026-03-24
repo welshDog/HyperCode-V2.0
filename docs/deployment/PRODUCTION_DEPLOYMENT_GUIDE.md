@@ -82,7 +82,7 @@ Create a `.env` file in the project root:
 ENVIRONMENT=production
 API_KEY=<your-secure-api-key>
 HYPERCODE_JWT_SECRET=<min-32-char-secret>
-ANTHROPIC_API_KEY=<your-anthropic-key>
+PERPLEXITY_API_KEY=<your-PERPLEXITY-key>
 
 # Database
 POSTGRES_DB=hypercode
@@ -310,7 +310,7 @@ docker logs <agent-name>
 **Solutions:**
 ```bash
 # Verify environment variables
-docker exec <agent-name> env | grep ANTHROPIC_API_KEY
+docker exec <agent-name> env | grep PERPLEXITY_API_KEY
 
 # Test Redis connectivity
 docker exec <agent-name> redis-cli -h redis ping
@@ -429,7 +429,7 @@ docker stats --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemPerc}}"
 - ✅ Use `.env` file (never commit to Git)
 - ✅ Rotate `HYPERCODE_JWT_SECRET` every 90 days
 - ✅ Use strong `API_KEY` (min 32 characters)
-- ✅ Restrict `ANTHROPIC_API_KEY` to necessary IP ranges
+- ✅ Restrict `PERPLEXITY_API_KEY` to necessary IP ranges
 
 ### Network Isolation
 - ✅ `data-net` is internal-only (no external access)

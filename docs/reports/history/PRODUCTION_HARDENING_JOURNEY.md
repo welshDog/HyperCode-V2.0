@@ -39,7 +39,7 @@ We have stabilized the test infrastructure to ensure reliable security and perfo
 ## 4. 🔑 Secrets Management
 
 - [ ] **Audit:** Scan codebase for hardcoded secrets (using `trufflehog` or `gitleaks`).
-- [ ] **Rotation:** Rotate all API keys (Anthropic, OpenAI) and DB passwords.
+- [ ] **Rotation:** Rotate all API keys (PERPLEXITY, OpenAI) and DB passwords.
 - [ ] **Injection:** Ensure all secrets are injected via `.env` or Docker Secrets, never defaults.
 
 ## 5. ⚡ Performance Optimization

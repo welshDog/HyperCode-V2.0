@@ -1,43 +1,24 @@
-# Base Dockerfile for all specialized agents
-# Multi-stage build for optimal size and speed
+# agents/base-agent/Dockerfile
+# Every Hyper Agent extends FROM this
 
-FROM python:3.11-slim AS builder
+FROM python:3.12-slim
 
-WORKDIR /build
-
-# Install build dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy and install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
-
-# Final stage
-FROM python:3.11-slim
+# Non-root user — security hardening ✅
+RUN groupadd -r hyper && useradd -r -g hyper hyper
 
 WORKDIR /app
 
-# Copy Python packages from builder
-COPY --from=builder /root/.local /root/.local
+# Deps first (layer cache wins)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Update PATH
-ENV PATH=/root/.local/bin:$PATH
+COPY . .
+RUN chown -R hyper:hyper /app
 
-# Copy agent code
-COPY agent.py .
-COPY config/ ./config/
+USER hyper
 
-# Copy Hive Mind (shared memory/standards)
-COPY hive_mind/ ./hive_mind/
+# Health endpoint MUST exist — non-negotiable
+HEALTHCHECK --interval=15s --timeout=3s --retries=3 \
+  CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8001/health')" || exit 1
-
-EXPOSE 8001
-
-CMD ["python", "agent.py"]
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

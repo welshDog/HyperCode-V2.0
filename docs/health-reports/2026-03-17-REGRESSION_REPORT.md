@@ -94,7 +94,7 @@
 
 - `python -m pip_audit -r requirements.txt`
   - Result: FAIL (dependency resolution conflict)
-  - Symptom: pip resolver reports conflicting dependencies involving `anthropic`
+  - Symptom: pip resolver reports conflicting dependencies involving `PERPLEXITY`
 
 - `python -m pip_audit -l`
   - Result: FAIL

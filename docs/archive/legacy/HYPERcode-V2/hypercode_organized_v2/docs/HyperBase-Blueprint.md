@@ -156,7 +156,7 @@ ENVIRONMENT=development
 
 # AI Integration
 OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-...
+PERPLEXITY_API_KEY=sk-...
 
 # Research agent settings
 AGENT_RESEARCH_BATCH_SIZE=10
@@ -242,7 +242,7 @@ class Settings(BaseSettings):
     
     # AI
     OPENAI_API_KEY: Optional[str] = None
-    ANTHROPIC_API_KEY: Optional[str] = None
+    PERPLEXITY_API_KEY: Optional[str] = None
     
     # Agent settings
     AGENT_RESEARCH_BATCH_SIZE: int = 10
@@ -1111,7 +1111,7 @@ async def process_pending_papers(batch_size: int = 10):
     """Process pending papers in batches."""
     
     async with AsyncSessionLocal() as session:
-        agent = ResearchAgent(session, settings.ANTHROPIC_API_KEY)
+        agent = ResearchAgent(session, settings.PERPLEXITY_API_KEY)
         
         while True:
             # Fetch pending papers
@@ -1274,7 +1274,7 @@ services:
       - postgres
     environment:
       DATABASE_URL: postgresql+asyncpg://hyperbase:${DB_PASSWORD}@postgres:5432/hyperbase
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY}
     volumes:
       - .:/app
 

@@ -53,14 +53,14 @@ Lyndon "Welshdog" Williams
 
 ---
 
-## 3. Anthropic
-**Contact:** sales@anthropic.com
+## 3. PERPLEXITY
+**Contact:** sales@PERPLEXITY.com
 
 Subject: Collaboration: AI Safety & Neurodivergent Community Support
 
-Dear Anthropic Team,
+Dear PERPLEXITY Team,
 
-My name is Lyndon "Welshdog" Williams. I'm reaching out because Anthropic's focus on safe, beneficial AI aligns with my mission to create support systems for neurodivergent individuals through Hyperfocus Zone.
+My name is Lyndon "Welshdog" Williams. I'm reaching out because PERPLEXITY's focus on safe, beneficial AI aligns with my mission to create support systems for neurodivergent individuals through Hyperfocus Zone.
 
 My journey from tradesperson to AI developer has been shaped by dyslexia and audio ADHD. AI has been my greatest ally in overcoming these challenges and building meaningful projects that help others facing similar obstacles.
 

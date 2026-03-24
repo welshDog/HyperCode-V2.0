@@ -13,6 +13,13 @@ rule_files:
   - "/etc/prometheus/monitoring/rules/*.yml"
 
 scrape_configs:
+  - job_name: "hyper_agents_backend"
+    static_configs:
+      - targets: ["backend:8000"]   # or localhost:8000 if not in Docker
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+scrape_configs:
   - job_name: "prometheus"
     static_configs:
       - targets: ["localhost:9090"]

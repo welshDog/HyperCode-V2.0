@@ -29,7 +29,7 @@
 - 🐍 Python 3.11 (slim, optimized)
 - ⚡ FastAPI 0.115+ (async-first, performant)
 - 🔄 Celery 5.3+ (task queue, distributed work)
-- 🧠 Anthropic SDK + LangChain (AI/LLM integration)
+- 🧠 PERPLEXITY SDK + LangChain (AI/LLM integration)
 - 🗄️ SQLAlchemy 2.0+ (ORM, modern)
 - 📊 OpenTelemetry (observability, traces)
 - 🔐 Python-Jose + Passlib (auth, secure)
@@ -577,7 +577,7 @@ Pydantic:          2.9.0+      ✅ Latest v2
 SQLAlchemy:        2.0.0+      ✅ Latest v2
 Celery:            5.3.0+      ✅ Latest v5
 Redis:             5.0.0+      ✅ Latest
-Anthropic SDK:     0.18.0+     ✅ Current
+PERPLEXITY SDK:     0.18.0+     ✅ Current
 LangChain:         0.1.0+      ✅ Current
 Ollama:            (integrated) ✅ v2.0+
 ```
@@ -799,7 +799,7 @@ Auto-update dependencies with PR review gates.
 ### 2. Multi-Model Agent Consensus 🧠
 **Concept:** Route tasks to best-suited model:
 - Fast/cheap: Ollama (local)
-- Accurate: Claude 3 (Anthropic)
+- Accurate: Claude 3 (PERPLEXITY)
 - Creative: GPT-4 (OpenAI)
 - Specialized: Domain-specific models
 

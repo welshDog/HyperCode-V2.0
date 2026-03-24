@@ -53,7 +53,7 @@ References:
 - Hyperflow Editor .env:
   - VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY ([.env.example](file:///c:/Users/lyndz/Downloads/My%20Hyper%20Agents/THE%20HYPERCODE/hyperflow-editor/.env.example)).
 - Hyper-Agents-Box .env:
-  - DISCORD_TOKEN, OLLAMA_BASE_URL, OPENAI_API_KEY, ANTHROPIC_API_KEY, ENVIRONMENT, VAULT/paths, security/API_KEY_SECRET ([.env.example](file:///c:/Users/lyndz/Downloads/My%20Hyper%20Agents/Hyper-Agents-Box/.env.example)).
+  - DISCORD_TOKEN, OLLAMA_BASE_URL, OPENAI_API_KEY, PERPLEXITY_API_KEY, ENVIRONMENT, VAULT/paths, security/API_KEY_SECRET ([.env.example](file:///c:/Users/lyndz/Downloads/My%20Hyper%20Agents/Hyper-Agents-Box/.env.example)).
 - BROski Terminal .env:
   - NEXT_PUBLIC_CORE_URL ([.env.example](file:///c:/Users/lyndz/Downloads/My%20Hyper%20Agents/BROski%20Business%20Agents/broski-terminal/.env.example)).
 
@@ -89,7 +89,7 @@ References:
 ## Third-Party Integrations
 - Supabase (hyperflow-editor, broski-terminal): `@supabase/supabase-js`.
 - Discord Bot (Hyper-Agents-Box): `discord.py`.
-- LLMs: Ollama (local), OpenAI, Anthropic via LangChain adapters.
+- LLMs: Ollama (local), OpenAI, PERPLEXITY via LangChain adapters.
 - Google APIs (broski-terminal): `googleapis`.
 
 ## Database Schema and Migrations
@@ -162,7 +162,7 @@ graph TD
 - Documentation locations: [docs/](file:///c:/Users/lyndz/Downloads/My%20Hyper%20Agents/THE%20HYPERCODE/docs), project root `.trae/documents`.
 - Source repositories and paths confirmed in this inventory.
 - Credentials required:
-  - Supabase anon key (frontend), Discord token (agents), OpenAI/Anthropic keys (optional), OLLAMA local server.
+  - Supabase anon key (frontend), Discord token (agents), OpenAI/PERPLEXITY keys (optional), OLLAMA local server.
   - Backend secrets: `HYPERCODE_JWT_SECRET`, `HYPERCODE_DB_URL`, `HYPERCODE_REDIS_URL`.
 - Action: Distribute `.env.example` derivatives and central secrets via vault; run access checks with the Health API.
 

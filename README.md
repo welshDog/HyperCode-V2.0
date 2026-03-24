@@ -517,7 +517,7 @@ Get the entire ecosystem running in **under 2 minutes** with **Hyper Station**.
 2. **Configure Environment**
    ```powershell
    cp .env.example .env
-   # Edit .env and add your API keys (Anthropic/OpenAI)
+   # Edit .env and add your API keys (PERPLEXITY/OpenAI)
    ```
 
 3. **Install Shortcuts (Recommended)**

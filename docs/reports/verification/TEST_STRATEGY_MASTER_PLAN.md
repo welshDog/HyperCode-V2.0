@@ -47,7 +47,7 @@ We utilize **GitHub Actions** to enforce quality gates on every push to `main` a
    - Verify Next.js app builds (`npm run build`).
 
 ## 4. Test Data Management
-- **Mocking**: Use `unittest.mock` for external API calls (e.g., OpenAI, Anthropic) to avoid costs and flakiness during unit tests.
+- **Mocking**: Use `unittest.mock` for external API calls (e.g., OpenAI, PERPLEXITY) to avoid costs and flakiness during unit tests.
 - **Fixtures**: Use `pytest` fixtures for common setups (e.g., initialized Orchestrator app, mock Redis client).
 
 ## 5. Performance Testing

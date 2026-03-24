@@ -30,7 +30,7 @@ jobs:
     - name: Start services for testing
       run: |
         cp .env.example .env
-        echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> .env
+        echo "PERPLEXITY_API_KEY=${{ secrets.PERPLEXITY_API_KEY }}" >> .env
         # Use main docker-compose with agents profile
         docker-compose --profile agents up -d
         sleep 30  # Wait for services to be ready

@@ -66,7 +66,7 @@ The system follows a modular, microservices-based architecture orchestrated via 
 ### Agent Runtime (`hyper-agents-box`)
 *   **Language**: Python 3.11
 *   **Framework**: FastAPI 0.115.5
-*   **Integrations**: Discord.py, OpenAI/Anthropic SDKs
+*   **Integrations**: Discord.py, OpenAI/PERPLEXITY SDKs
 
 ### Frontend - Terminal (`broski-terminal`)
 *   **Framework**: Next.js 16.1 (App Router)
@@ -108,7 +108,7 @@ The system follows a modular, microservices-based architecture orchestrated via 
 ## 5. Identified Dependencies & Integrations
 
 ### Critical 3rd Party Services
-*   **LLM Providers**: OpenAI, Anthropic (via LangChain/Keys).
+*   **LLM Providers**: OpenAI, PERPLEXITY (via LangChain/Keys).
 *   **Authentication**: Supabase (for Frontend Auth), JWT (Internal Service Auth).
 *   **Communication**: Discord (Bot Interface).
 *   **Database**: PostgreSQL, Redis.

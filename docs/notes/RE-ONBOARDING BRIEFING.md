@@ -106,7 +106,7 @@ Safe to merge individually or batch-merge
 
 5️⃣ ENVIRONMENT CONFIGURATIONS
 Secrets & Config Locations
-.env — API keys (Anthropic/OpenAI), database credentials
+.env — API keys (PERPLEXITY/OpenAI), database credentials
 
 docker-compose.yml — Service URLs, ports, health checks
 
@@ -163,7 +163,7 @@ Testing Status
 
 8️⃣ THIRD-PARTY DEPENDENCIES
 AI Services
-✅ Anthropic Claude (primary)
+✅ PERPLEXITY Claude (primary)
 
 ✅ OpenAI GPT (fallback)
 

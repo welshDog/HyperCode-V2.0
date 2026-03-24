@@ -262,7 +262,7 @@ class AICodeAnalyzer:
         ai_files = []
         
         for metrics in self.analyzed_files:
-            file_lower = metrics.file_path.lower()
+            metrics.file_path.lower()
             
             # Read file content for keyword analysis
             try:

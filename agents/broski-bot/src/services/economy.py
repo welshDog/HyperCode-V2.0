@@ -131,7 +131,7 @@ class EconomyService(LoggerMixin):
         if economy.last_daily_claim:
             time_since_claim = now - economy.last_daily_claim
             if time_since_claim < timedelta(days=1):
-                hours_remaining = 24 - (time_since_claim.seconds / 3600)
+                24 - (time_since_claim.seconds / 3600)
                 raise DailyLimitExceededException("daily_reward", 1)
         
         # Calculate streak

@@ -54,7 +54,7 @@
 **Validated Concerns:**
 1. **API Security:** If `hypercode-core` has no auth, rogue agents can register [microservices](https://microservices.io/patterns/observability/health-check-api.html)
 2. **Agent Root Access:** If `devops` agent has Docker socket access, it's a privilege escalation risk [northflank](https://northflank.com/blog/how-to-sandbox-ai-agents)
-3. **Secrets in Logs:** Ensure `ANTHROPIC_API_KEY` doesn't leak in Jaeger traces or Grafana dashboards
+3. **Secrets in Logs:** Ensure `PERPLEXITY_API_KEY` doesn't leak in Jaeger traces or Grafana dashboards
 
 **Additional Security Concern (From Feb 1, 2026 Research):** [northflank](https://northflank.com/blog/how-to-sandbox-ai-agents)
 - **AI Agent Sandboxing:** Agents executing generated code should use **gVisor** or **MicroVMs**

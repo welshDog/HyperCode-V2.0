@@ -22,8 +22,8 @@ class QuestRepository(BaseRepository[Quest]):
     async def get_available_quests(self, limit: int = 10) -> List[Quest]:
         """Get active quests that are not expired."""
         stmt = select(Quest).where(
-            Quest.is_active == True,
-            (Quest.expires_at == None) | (Quest.expires_at > datetime.utcnow())
+            Quest.is_active,
+            (Quest.expires_at is None) | (Quest.expires_at > datetime.utcnow())
         ).limit(limit)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())

@@ -52,7 +52,7 @@ Expected: `✅ DB tables ensured`
    ```
 
 2. **Add your API keys:**
-   Edit `.env` and set at least `POSTGRES_PASSWORD` and your chosen LLM keys (e.g. `ANTHROPIC_API_KEY`). Avoid committing `.env`.
+   Edit `.env` and set at least `POSTGRES_PASSWORD` and your chosen LLM keys (e.g. `PERPLEXITY_API_KEY`). Avoid committing `.env`.
 
 3. **Start the stack:**
    ```bash

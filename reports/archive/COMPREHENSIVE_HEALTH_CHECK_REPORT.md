@@ -286,7 +286,7 @@ cp .env.example .env
 # Edit .env with real values:
 # - POSTGRES_PASSWORD=<strong-password>
 # - GRAFANA_ADMIN_PASSWORD=<strong-password>
-# - ANTHROPIC_API_KEY=<your-key>
+# - PERPLEXITY_API_KEY=<your-key>
 # - MINIO credentials
 ```
 

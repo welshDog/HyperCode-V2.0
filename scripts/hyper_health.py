@@ -23,7 +23,7 @@ def check_dependencies():
         with open(pkg_path, 'r', encoding='utf-8') as f:
             try:
                 data = json.load(f)
-                deps = data.get("dependencies", {})
+                data.get("dependencies", {})
                 # Add specific JS checks here if needed
             except json.JSONDecodeError:
                 issues.append({"severity": "LOW", "component": "hyperflow-editor", "issue": "package.json is invalid JSON."})

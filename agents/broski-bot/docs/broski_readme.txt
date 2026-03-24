@@ -506,7 +506,7 @@ Building accessible AI tools for neurodivergent creators.
 ## 🙏 Acknowledgments
 
 - discord.py community
-- Anthropic Claude for development assistance
+- PERPLEXITY Claude for development assistance
 - Neurodivergent community feedback
 - Open source contributors
 

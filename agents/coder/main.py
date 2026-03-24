@@ -157,7 +157,7 @@ export const TodoList = () => {
         
         created_files = []
         for path, content in files.items():
-            full_path = os.path.join("/app", path) # Assuming /app is workspace root or mapped
+            os.path.join("/app", path) # Assuming /app is workspace root or mapped
             # In coder-agent, workspace is usually /workspace
             # But let's check where we can write.
             # The docker-compose maps ./agents/coder/workspace:/workspace

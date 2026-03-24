@@ -48,7 +48,7 @@ git push origin main
 Go to **Settings > Secrets > Actions** and add:
 
 - `OPENAI_API_KEY`
-- `ANTHROPIC_API_KEY`
+- `PERPLEXITY_API_KEY`
 - `GITHUB_TOKEN`
 
 ### 5️⃣ Enable Branch Protection (3 min)

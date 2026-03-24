@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 
 class ContainerStatus(BaseModel):
     name: str
@@ -16,7 +16,14 @@ class HealResult(BaseModel):
     timestamp: str
 
 class HealRequest(BaseModel):
-    agents: Optional[List[str]] = None
-    force: bool = False
-    retry_attempts: int = 2
-    timeout_seconds: int = 5
+    agent_name: str
+    agent_url: str
+    attempts: int = 3
+    timeout: float = 10.0
+
+class HealerException(Exception):
+    def __init__(self, message: str, agent: str, status: str, details: str):
+        super().__init__(message)
+        self.agent = agent
+        self.status = status
+        self.details = details

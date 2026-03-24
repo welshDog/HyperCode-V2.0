@@ -25,7 +25,7 @@ cp .env.example .env
 
 **Edit `.env` and add your API keys:**
 
-*   **`ANTHROPIC_API_KEY`**: Required for Agent X and most swarm agents.
+*   **`PERPLEXITY_API_KEY`**: Required for Agent X and most swarm agents.
 *   **`PERPLEXITY_API_KEY`**: Required for the **Brain** (Cognitive Core).
 *   **`OPENAI_API_KEY`**: Optional (if using OpenAI models).
 

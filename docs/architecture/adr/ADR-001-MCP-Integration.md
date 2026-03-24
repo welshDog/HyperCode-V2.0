@@ -10,7 +10,7 @@ We needed a way for the CoderAgent to not just generate code, but also execute, 
 We decided to integrate the **Model Context Protocol (MCP)** standard, specifically using the **Docker MCP Server**.
 
 ### Key Choices:
-1.  **Protocol**: Used MCP (Anthropic's standard) to future-proof the agent interface.
+1.  **Protocol**: Used MCP (PERPLEXITY's standard) to future-proof the agent interface.
 2.  **Transport**: Used `stdio` transport to run the MCP server as a subprocess within the agent container (via `docker run` or direct python package execution).
 3.  **Permissions**: Mounted the host Docker socket to the agent container.
 

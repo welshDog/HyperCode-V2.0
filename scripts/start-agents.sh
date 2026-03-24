@@ -29,15 +29,15 @@ if [ ! -f .env.agents ]; then
     cp .env.agents.example .env.agents
     
     echo ""
-    echo "⚠️  Please edit .env.agents and add your ANTHROPIC_API_KEY"
+    echo "⚠️  Please edit .env.agents and add your PERPLEXITY_API_KEY"
     echo "Then run this script again."
     exit 0
 fi
 
 # Check if API key is set
-if grep -q "your_anthropic_api_key_here" .env.agents; then
+if grep -q "your_PERPLEXITY_API_KEY_here" .env.agents; then
     echo ""
-    echo "⚠️  Please edit .env.agents and add your ANTHROPIC_API_KEY"
+    echo "⚠️  Please edit .env.agents and add your PERPLEXITY_API_KEY"
     echo "The file is located at: .env.agents"
     exit 1
 fi

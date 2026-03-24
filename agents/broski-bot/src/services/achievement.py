@@ -58,7 +58,7 @@ class AchievementService(LoggerMixin):
                 # Check if current date is within season
                 # trigger_value format: "start_month-end_month" e.g. "12-02" for Winter
                 # This is simplified logic
-                current_month = datetime.utcnow().month
+                datetime.utcnow().month
                 # ... parsing logic ...
                 pass
 

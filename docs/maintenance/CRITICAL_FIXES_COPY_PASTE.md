@@ -102,8 +102,8 @@ openssl rand -base64 32
 # 3. Generate new JWT_SECRET
 openssl rand -base64 32
 
-# 4. Rotate Anthropic API key
-# (Log into Anthropic console and generate new key)
+# 4. Rotate PERPLEXITY API key
+# (Log into PERPLEXITY console and generate new key)
 
 # 5. Update .env file with new values
 nano .env  # or your editor
@@ -172,7 +172,7 @@ HYPERCODE_MEMORY_KEY=changeme-generate-base64-32-byte-key
 # API Keys
 API_KEY=changeme-generate-strong-32-char-key
 HYPERCODE_JWT_SECRET=changeme-generate-strong-jwt-secret
-ANTHROPIC_API_KEY=sk-your-actual-key-here
+PERPLEXITY_API_KEY=sk-your-actual-key-here
 
 # Celery Configuration
 CELERY_BROKER_URL=redis://redis:6379/0
@@ -220,7 +220,7 @@ HYPERCODE_REDIS_URL=redis://redis:6379/0
 HYPERCODE_MEMORY_KEY=${MEMORY_KEY}
 API_KEY=${API_KEY}
 HYPERCODE_JWT_SECRET=${JWT_SECRET}
-ANTHROPIC_API_KEY=sk-your-actual-key
+PERPLEXITY_API_KEY=sk-your-actual-key
 CELERY_BROKER_URL=redis://redis:6379/0
 CELERY_RESULT_BACKEND=redis://redis:6379/1
 ENVIRONMENT=production

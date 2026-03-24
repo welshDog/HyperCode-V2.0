@@ -118,7 +118,7 @@ HC_DATA_ROOT=./volumes
 ### Warning #2: Secrets in .env File
 **Exposed Credentials:**
 - `GITHUB_TOKEN` (valid GitHub PAT)
-- `ANTHROPIC_API_KEY` (can be empty, but if set: exposed)
+- `PERPLEXITY_API_KEY` (can be empty, but if set: exposed)
 - `DISCORD_TOKEN` (valid)
 - `MINIO_ROOT_PASSWORD` (plaintext: `071DaiRob09`)
 

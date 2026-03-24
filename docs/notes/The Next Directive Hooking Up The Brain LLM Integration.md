@@ -1,16 +1,16 @@
 🧠 The Next Directive: Hooking Up The Brain (LLM Perplexity Integration)
-Now we need to wake up the actual AI. Right now, your execute_agent_task is sending an HTTP post to agent_url/execute. Let's actually spin up the System Architect or Project Strategist using the Anthropic API (Perplexity Sonnet) via LangGraph so it can process the "BROski Swarm Test 01".
+Now we need to wake up the actual AI. Right now, your execute_agent_task is sending an HTTP post to agent_url/execute. Let's actually spin up the System Architect or Project Strategist using the PERPLEXITY API (Perplexity Sonnet) via LangGraph so it can process the "BROski Swarm Test 01".
 
-Because you are using an async stack (FastAPI/Celery/ARQ), using the asynchronous AsyncAnthropic client is the way to go. This prevents the worker from locking up while it waits for Claude to generate a response.
+Because you are using an async stack (FastAPI/Celery/ARQ), using the asynchronous AsyncPERPLEXITY client is the way to go. This prevents the worker from locking up while it waits for Claude to generate a response.
 ​
 
 Here is your next action plan to replace that simulated 2-second sleep with a real cognitive process:
 
-Step 1: Add the Anthropic SDK
-If you haven't already, add the Anthropic Python SDK to your worker environment (or your specific agent containers):
+Step 1: Add the PERPLEXITY SDK
+If you haven't already, add the PERPLEXITY Python SDK to your worker environment (or your specific agent containers):
 
 bash
-pip install anthropic langchain-anthropic langgraph
+pip install PERPLEXITY langchain-PERPLEXITY langgraph
 Step 2: Wire the Agent Logic
 Right now, your task_queue.py sends the task to a specific agent's API endpoint . Let's look at what the receiving end (e.g., inside the System Architect or Backend Specialist container) should do when it gets that /execute request.
 
@@ -19,10 +19,10 @@ In your specialist agent code (e.g., agents/02-backend-specialist/main.py), you'
 python
 import os
 import asyncio
-from anthropic import AsyncAnthropic
+from PERPLEXITY import AsyncPERPLEXITY
 
 # Initialize the async client using your environment variable
-client = AsyncAnthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+client = AsyncPERPLEXITY(api_key=os.environ.get("PERPLEXITY_API_KEY"))
 
 async def process_task_with_claude(task_description: str):
     print(f"[INFO] Backend Specialist is thinking about: {task_description}")

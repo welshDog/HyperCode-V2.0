@@ -16,12 +16,16 @@ token.txt
 secrets/
 credentials.json
 client_secret.json
+.env1
 
 # .cursorignore / .traeIgnore / .aiexclude
 .env
 .env.local
 .env.production
 *.secret
+.env.nemoclaw
+.env.production
+.env1
 
 # IDE and Editor files
 .idea/
@@ -115,4 +119,5 @@ k8s/Makefile
 coverage.xml
 test-*.txt
 .coverage
-
+.env1
+.venv_broken/

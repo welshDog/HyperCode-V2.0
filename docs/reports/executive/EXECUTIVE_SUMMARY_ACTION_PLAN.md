@@ -55,7 +55,7 @@ git push origin main
 
 **Before deploying:**
 1. Check if .env committed: `git log --all --oneline -- "**/.env"`
-2. If YES → rotate all credentials immediately (Postgres, API_KEY, JWT_SECRET, Anthropic API)
+2. If YES → rotate all credentials immediately (Postgres, API_KEY, JWT_SECRET, PERPLEXITY API)
 3. Remove from git history using filter-branch
 4. Push changes
 
