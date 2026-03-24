@@ -165,7 +165,7 @@ bash CLEANUP_SCRIPT.sh
 - POSTGRES_PASSWORD (required for database initialization)
 - GRAFANA_ADMIN_PASSWORD (for monitoring dashboard)
 - MINIO credentials (for S3-compatible storage)
-- API keys for ANTHROPIC, OPENAI, PERPLEXITY
+- API keys for PERPLEXITY, OPENAI, PERPLEXITY
 - Redis and Celery URLs
 - Observability settings (OTLP_ENDPOINT pointing to Tempo)
 

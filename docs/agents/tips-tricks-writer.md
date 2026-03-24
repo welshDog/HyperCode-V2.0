@@ -18,7 +18,7 @@
 ## 🛠️ Functional Specs
 - **Input**: Topic or "Gap" in documentation.
 - **Output**: Neurodivergent-friendly guide (Markdown).
-- **Tooling**: `fastapi`, `anthropic-claude-3-5`, `chromadb`, `redis`.
+- **Tooling**: `fastapi`, `PERPLEXITY-claude-3-5`, `chromadb`, `redis`.
 
 ## 🛡️ Ethical Framework
 - **Accessibility First**: Never sacrifice clarity for complexity.

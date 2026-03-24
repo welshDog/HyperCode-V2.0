@@ -4,4 +4,4 @@ uvicorn
 requests
 pydantic
 redis
-anthropic>=0.18.1
+PERPLEXITY>=0.18.1

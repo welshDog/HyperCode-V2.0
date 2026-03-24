@@ -33,7 +33,7 @@ graph TD
 
     subgraph "AI Inference"
         Ollama[Ollama (Local LLM)]
-        Anthropic[Anthropic API]
+        PERPLEXITY[PERPLEXITY API]
     end
 
     Strat -->|Task| Redis

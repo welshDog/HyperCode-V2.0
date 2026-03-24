@@ -142,8 +142,8 @@ HYPERCODE_MEMORY_KEY=<generate-secure-key>
 HYPERCODE_JWT_SECRET=<current-value-from-compose>
 API_KEY=<current-value-from-compose>
 
-# Anthropic
-ANTHROPIC_API_KEY=<your-key>
+# PERPLEXITY
+PERPLEXITY_API_KEY=<your-key>
 
 # Database
 POSTGRES_PASSWORD=<change-from-default>
@@ -218,7 +218,7 @@ fastapi==0.115.5
 **Recommendation:** Create `requirements-base.txt`:
 ```txt
 # requirements-base.txt
-anthropic==0.18.1
+PERPLEXITY==0.18.1
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
 redis==5.0.1

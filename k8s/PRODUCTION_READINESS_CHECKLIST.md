@@ -22,7 +22,7 @@ kubectl get pods -n cert-manager
 
 ### Secrets & Configuration
 - [ ] All default secrets updated (POSTGRES_PASSWORD, JWT_SECRET, API_KEY, etc.)
-- [ ] API keys configured (ANTHROPIC_API_KEY, OPENAI_API_KEY)
+- [ ] API keys configured (PERPLEXITY_API_KEY, OPENAI_API_KEY)
 - [ ] Discord credentials added (DISCORD_TOKEN, DISCORD_GUILD_ID)
 - [ ] MinIO credentials set to strong values
 - [ ] SSL/TLS certificates ready or Let's Encrypt configured

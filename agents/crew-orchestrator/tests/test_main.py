@@ -32,12 +32,16 @@ def test_health_check(mock_redis):
     assert response.json() == {"status": "ok", "service": "crew-orchestrator"}
 
 def test_list_agents():
-    response = client.get("/agents")
+    with patch("main.settings.enabled_agent_keys", return_value=["backend_specialist"]):
+        with patch("main.settings.agents", {"backend_specialist": "http://backend-specialist:8003"}):
+            with patch("main.redis_client", None):
+                response = client.get("/agents")
     assert response.status_code == 200
     agents = response.json()
     assert isinstance(agents, list)
     agent_ids = [a["id"] for a in agents]
     assert "backend_specialist" in agent_ids
+
 
 @pytest.mark.asyncio
 async def test_execute_task_simple(mock_redis):

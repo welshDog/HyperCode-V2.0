@@ -44,7 +44,7 @@ async def test_agent_dynamic_adaptation_under_load():
     
     async def task():
         start = asyncio.get_event_loop().time()
-        res = await orchestrator.evaluate_quest_adaptation(user_id, quest_id, context)
+        await orchestrator.evaluate_quest_adaptation(user_id, quest_id, context)
         end = asyncio.get_event_loop().time()
         return (end - start) * 1000  # ms
 

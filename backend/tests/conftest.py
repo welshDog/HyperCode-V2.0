@@ -81,9 +81,9 @@ async def redis_client():
 
 
 @pytest.fixture(scope="function")
-def mock_anthropic_api_key(monkeypatch):
-    """Mock Anthropic API key for tests."""
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test-key-12345")
+def mock_PERPLEXITY_API_KEY(monkeypatch):
+    """Mock PERPLEXITY API key for tests."""
+    monkeypatch.setenv("PERPLEXITY_API_KEY", "sk-ant-test-key-12345")
 
 
 @pytest.fixture(scope="function")

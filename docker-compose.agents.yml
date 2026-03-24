@@ -1,0 +1,169 @@
+# docker-compose.agents.yml — HyperCode V2.0 Full Agent Stack
+# Run: docker compose -f docker-compose.agents.yml up -d
+
+version: "3.9"
+
+networks:
+  hypercode-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+
+services:
+
+  # ── INFRA ──────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks: [hypercode-net]
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 3
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    networks: [hypercode-net]
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    environment:
+      POSTGRES_DB: hypercode
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      retries: 5
+
+  # ── CORE AGENTS ───────────────────────────────────────────
+  healer:
+    build: ./agents/healer
+    restart: always          # 🩺 ALWAYS — cannot die
+    ports: ["8008:8008"]
+    networks: [hypercode-net]
+    depends_on:
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8008/health"]
+      interval: 15s
+      retries: 3
+    environment:
+      REDIS_URL: redis://redis:6379
+      POSTGRES_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/hypercode
+
+  architect:
+    build: ./agents/architect
+    restart: unless-stopped
+    ports: ["8080:8080"]
+    networks: [hypercode-net]
+    depends_on:
+      healer: {condition: service_healthy}
+    environment:
+      REDIS_URL: redis://redis:6379
+      DOCKER_HOST: unix:///var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Agent X needs Docker access
+
+  crew-orchestrator:
+    build: ./agents/crew-orchestrator
+    restart: unless-stopped
+    ports: ["8081:8081"]
+    networks: [hypercode-net]
+    depends_on:
+      redis: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+    environment:
+      REDIS_URL: redis://redis:6379
+      POSTGRES_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/hypercode
+
+  memory:
+    build: ./agents/memory
+    restart: unless-stopped
+    ports: ["8082:8082"]
+    networks: [hypercode-net]
+    depends_on:
+      redis: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+
+  # ── SPECIALIST AGENTS ─────────────────────────────────────
+  frontend-specialist:
+    build: ./agents/01-frontend-specialist
+    restart: unless-stopped
+    networks: [hypercode-net]
+    depends_on: [crew-orchestrator]
+
+  backend-specialist:
+    build: ./agents/02-backend-specialist
+    restart: unless-stopped
+    networks: [hypercode-net]
+    depends_on: [crew-orchestrator]
+
+  database-architect:
+    build: ./agents/03-database-architect
+    restart: unless-stopped
+    networks: [hypercode-net]
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  qa-engineer:
+    build: ./agents/04-qa-engineer
+    restart: unless-stopped
+    networks: [hypercode-net]
+    depends_on: [crew-orchestrator]
+
+  devops-engineer:
+    build: ./agents/05-devops-engineer
+    restart: unless-stopped
+    networks: [hypercode-net]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  security-engineer:
+    build: ./agents/06-security-engineer
+    restart: unless-stopped
+    networks: [hypercode-net]
+
+  system-architect:
+    build: ./agents/07-system-architect
+    restart: unless-stopped
+    networks: [hypercode-net]
+    depends_on: [architect]
+
+  project-strategist:
+    build: ./agents/08-project-strategist
+    restart: unless-stopped
+    networks: [hypercode-net]
+    depends_on: [crew-orchestrator]
+
+  tips-writer:
+    build: ./agents/09-tips-tricks-writer
+    restart: unless-stopped
+    networks: [hypercode-net]
+
+  # ── INTERFACE LAYER ───────────────────────────────────────
+  broski-terminal:
+    build: ./agents/broski-bot
+    restart: unless-stopped
+    ports: ["3000:3000"]
+    networks: [hypercode-net]
+    environment:
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+
+  dashboard:
+    build: ./agents/dashboard
+    restart: unless-stopped
+    ports: ["8088:8088"]
+    networks: [hypercode-net]
+    depends_on: [crew-orchestrator, memory]
+
+  # ── OBSERVABILITY ─────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    ports: ["3001:3000"]
+    networks: [hypercode-net]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}

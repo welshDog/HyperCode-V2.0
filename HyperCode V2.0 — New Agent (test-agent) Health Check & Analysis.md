@@ -161,14 +161,14 @@ test-agent:
     - ./Configuration_Kit:/app/hive_mind:ro
     - ./agents/shared:/app/shared:ro
     - agent_memory:/app/memory
-8. Missing ANTHROPIC_API_KEY (OPTIONAL)
+8. Missing PERPLEXITY_API_KEY (OPTIONAL)
 Current: Not injected Issue: If test-agent calls LLMs, it will fail silently
 
 Recommendation:
 
 test-agent:
   environment:
-    - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
     - OPENAI_API_KEY=${OPENAI_API_KEY}
 🔍 Code Quality Analysis
 main.py Strengths ✅
@@ -299,7 +299,7 @@ test-agent:
     - CORE_URL=http://hypercode-core:8000
     - AGENT_ROLE=test-agent
     - PORT=8080
-    - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
   volumes:
     - ./agents/test-agent:/app
     - ./Configuration_Kit:/app/hive_mind:ro

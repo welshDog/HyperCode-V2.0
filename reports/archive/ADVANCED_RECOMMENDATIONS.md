@@ -229,7 +229,7 @@ def cached(ttl_seconds=60):
 @app.get("/slow-operation")
 @cached(ttl_seconds=30)
 async def slow_operation():
-    time.sleep(2)  # Simulate expensive operation
+    await asyncio.sleep(2)  # FIX: non-blocking in async route operation
     return {"data": "expensive result", "timestamp": time.time()}
 ```
 
@@ -284,7 +284,7 @@ import httpx
 AGENT_REGISTRY = {
     "backend-specialist": "http://backend-specialist:8003",
     "qa-engineer": "http://qa-engineer:8005",
-    "healer-agent": "http://healer-agent:8008",
+    "healer-agent": "http://healer-agent:8010",
 }
 
 @app.get("/call-agent/{agent_name}")
@@ -381,14 +381,14 @@ class CircuitBreaker:
     
     def call(self, func):
         if self.state == CircuitState.OPEN:
-            if datetime.now() - self.last_failure_time > timedelta(seconds=self.recovery_timeout):
+            if self.last_failure_time is None or (datetime.now() - self.last_failure_time > timedelta(seconds=self.recovery_timeout):
                 self.state = CircuitState.HALF_OPEN
-                logger.info(f"Circuit breaker: HALF_OPEN (testing recovery)")
+                logger.info("Circuit breaker: HALF_OPEN (testing recovery)")
             else:
                 raise Exception("Circuit breaker is OPEN")
         
         try:
-            result = func()
+            result = await func()  # FIX: coroutine must be awaited
             self.on_success()
             return result
         except Exception as e:
@@ -424,7 +424,7 @@ async def call_agent_resilient(agent_name: str):
                 response = await client.get(f"{AGENT_REGISTRY[agent_name]}/health")
                 return response.json()
         
-        result = breaker.call(call)
+        result = await breaker.call(call)  # FIX: async call must be awaited
         return {"agent": agent_name, "circuit_state": breaker.state.value, "result": result}
     
     except Exception as e:
@@ -612,7 +612,7 @@ curl http://localhost:8081/agents/list
 
 ### 8. **Add AI-Powered Self-Diagnostics Endpoint** 🤖
 
-**What**: Use Claude/Anthropic API to analyze system health and generate diagnostics.
+**What**: Use Claude/PERPLEXITY API to analyze system health and generate diagnostics.
 
 **Why**:
 - AI-driven troubleshooting
@@ -624,9 +624,9 @@ curl http://localhost:8081/agents/list
 
 ```python
 # agents/test-agent/main.py
-from anthropic import Anthropic
+from PERPLEXITY import PERPLEXITY
 
-client = Anthropic()
+client = PERPLEXITY()
 
 @app.post("/diagnose")
 async def diagnose(symptom: str):
@@ -685,14 +685,14 @@ async def diagnose(symptom: str):
 
 **Update Dockerfile**:
 ```dockerfile
-RUN pip install ... anthropic==0.25.0
+RUN pip install ... PERPLEXITY==0.25.0
 ```
 
 **Update docker-compose.yml**:
 ```yaml
 test-agent:
   environment:
-    - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
 ```
 
 **Verify**:
@@ -1129,3 +1129,6 @@ Your system is **production-ready and scalable**. These recommendations elevate 
 
 *Report by Gordon*  
 *Last Updated: 2026-03-18*
+
+
+

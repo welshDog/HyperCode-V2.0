@@ -4,13 +4,11 @@ Test infrastructure with fixtures and comprehensive test coverage.
 # tests/conftest.py
 import asyncio
 from typing import AsyncGenerator, Generator
-
 import pytest
 import pytest_asyncio
 from faker import Faker
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-
 from src.core.database import Base
 from src.models import User, Economy
 
@@ -95,7 +93,7 @@ from src.core.exceptions import (
     InsufficientBalanceException,
     InvalidAmountException,
 )
-from src.services import EconomyService
+from src.services.economy import EconomyService
 
 
 class TestEconomyService:

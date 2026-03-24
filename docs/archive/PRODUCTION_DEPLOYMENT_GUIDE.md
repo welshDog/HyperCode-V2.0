@@ -9,13 +9,13 @@ mkdir -p secrets
 chmod 700 secrets
 
 # Generate strong secrets
-openssl rand -base64 32 > secrets/anthropic_api_key.txt
+openssl rand -base64 32 > secrets/PERPLEXITY_API_KEY.txt
 openssl rand -base64 32 > secrets/hypercode_jwt_secret.txt
 openssl rand -base64 32 > secrets/postgres_password.txt
 openssl rand -base64 32 > secrets/grafana_admin_password.txt
 
-# Set your actual Anthropic API key
-echo "YOUR_ACTUAL_API_KEY" > secrets/anthropic_api_key.txt
+# Set your actual PERPLEXITY API key
+echo "YOUR_ACTUAL_API_KEY" > secrets/PERPLEXITY_API_KEY.txt
 
 chmod 600 secrets/*.txt
 ```

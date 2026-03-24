@@ -100,7 +100,7 @@ update_secrets() {
     echo "   - HYPERCODE_JWT_SECRET: Use a 32+ character secret"
     echo "   - MINIO_ROOT_PASSWORD: Use a strong password"
     echo "   - API_KEY: Use a unique key"
-    echo "   - ANTHROPIC_API_KEY: Add your actual key"
+    echo "   - PERPLEXITY_API_KEY: Add your actual key"
     echo ""
     
     read -p "Press ENTER after updating secrets, or type 'skip' to continue: " -r

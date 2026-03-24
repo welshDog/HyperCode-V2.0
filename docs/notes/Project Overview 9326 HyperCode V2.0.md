@@ -20,7 +20,7 @@ The `docker-compose.yml` defines a robust network of **33+ services**:
 ### 🧠 AI & Cognitive Architecture
 - **Meta-Architecture**: The system uses a "Crew" model where a `crew-orchestrator` manages specialized agents.
 - **Self-Healing**: The `healer-agent` monitors the Docker socket and Redis to autonomously restart failed services (confirmed by source code `agents/healer/main.py`).
-- **Local-First**: Configured to run with Ollama (`hypercode-ollama`) for zero-cost local inference, with fallbacks to Anthropic/OpenAI.
+- **Local-First**: Configured to run with Ollama (`hypercode-ollama`) for zero-cost local inference, with fallbacks to PERPLEXITY/OpenAI.
 
 ## 3. Documentation Quality Analysis
 The documentation is indeed "Legendary" in its empathy and structure.

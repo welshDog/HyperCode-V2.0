@@ -224,7 +224,7 @@ POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}  # ⚠️ Default is weak
 3. Add `.env.example` template:
    ```bash
    POSTGRES_PASSWORD=<generate-strong-password>
-   ANTHROPIC_API_KEY=<your-key>
+   PERPLEXITY_API_KEY=<your-key>
    ```
 
 ---

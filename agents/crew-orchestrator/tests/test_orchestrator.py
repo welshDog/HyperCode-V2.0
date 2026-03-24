@@ -159,15 +159,15 @@ async def test_health_check_monitor(mock_redis):
     test_agents = {"test_agent": "http://localhost:8000"}
     
     with patch("main.settings.agents", test_agents):
-        with patch("httpx.AsyncClient", return_value=mock_client):
-            with patch("main.redis_client", mock_redis):
-                # We need to break the infinite loop
-                # Throw CancelledError from sleep
-                with patch("asyncio.sleep", side_effect=asyncio.CancelledError):
-                    try:
-                        await monitor_agent_health()
-                    except asyncio.CancelledError:
-                        pass
+        with patch("main.settings.enabled_agent_keys", return_value=["test_agent"]):
+            with patch("httpx.AsyncClient", return_value=mock_client):
+                with patch("main.redis_client", mock_redis):
+                    with patch("asyncio.sleep", side_effect=asyncio.CancelledError):
+                        try:
+                            await monitor_agent_health()
+                        except asyncio.CancelledError:
+                            pass
+
                         
     # Assertions
     # Check if redis.set was called with health data
@@ -195,13 +195,15 @@ async def test_health_check_alert(mock_redis):
     agents = {f"agent_{i}": f"http://host{i}" for i in range(5)}
     
     with patch("main.settings.agents", agents):
-        with patch("httpx.AsyncClient", return_value=mock_client):
-            with patch("main.redis_client", mock_redis):
-                with patch("asyncio.sleep", side_effect=asyncio.CancelledError):
-                    try:
-                        await monitor_agent_health()
-                    except asyncio.CancelledError:
-                        pass
+        with patch("main.settings.enabled_agent_keys", return_value=list(agents.keys())):
+            with patch("httpx.AsyncClient", return_value=mock_client):
+                with patch("main.redis_client", mock_redis):
+                    with patch("asyncio.sleep", side_effect=asyncio.CancelledError):
+                        try:
+                            await monitor_agent_health()
+                        except asyncio.CancelledError:
+                            pass
+
                         
     # Should have published an alert
     assert mock_redis.publish.called

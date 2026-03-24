@@ -38,7 +38,7 @@
 - ✅ 32-byte API key (64 hex characters)
 - ✅ 16-byte Postgres password (32 hex characters)
 
-**⚠️ ACTION REQUIRED:** You still need to add your real `ANTHROPIC_API_KEY` to `.env`
+**⚠️ ACTION REQUIRED:** You still need to add your real `PERPLEXITY_API_KEY` to `.env`
 
 #### 2. ✅ hypercode-llama Health Fixed
 - **Status:** FIXED ✅
@@ -204,15 +204,15 @@ hypercode-llama: Up 49 seconds (healthy)  # FIXED! 🎉
 
 ## 📝 Remaining Tasks (Optional - Not Critical)
 
-### 1. Add ANTHROPIC_API_KEY to .env
+### 1. Add PERPLEXITY_API_KEY to .env
 **Priority:** HIGH (for AI features to work)
 **Time:** 1 minute
 
 ```bash
 # Edit .env and replace:
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
+PERPLEXITY_API_KEY=your_PERPLEXITY_API_KEY_here
 # With your actual key:
-ANTHROPIC_API_KEY=sk-ant-api03-...
+PERPLEXITY_API_KEY=sk-ant-api03-...
 ```
 
 ### 2. Investigate broski-terminal (Optional)
@@ -254,7 +254,7 @@ docker-compose restart broski-terminal
 | Documentation complete | ✅ PASS | 30+ docs |
 | Monitoring configured | ✅ PASS | Prometheus/Grafana/Jaeger |
 
-**Result:** ✅ **PRODUCTION READY** (with ANTHROPIC_API_KEY added)
+**Result:** ✅ **PRODUCTION READY** (with PERPLEXITY_API_KEY added)
 
 ---
 
@@ -276,11 +276,11 @@ docker-compose restart broski-terminal
 **Overall:** 9.5/10 🌟
 
 ### Why 9.5 and not 10.0?
-- Missing real ANTHROPIC_API_KEY (-0.25)
+- Missing real PERPLEXITY_API_KEY (-0.25)
 - 1 container still unhealthy (broski-terminal) (-0.25)
 
 **To reach 10.0:**
-1. Add real Anthropic API key to .env (1 minute)
+1. Add real PERPLEXITY API key to .env (1 minute)
 2. Fix or remove broski-terminal (5 minutes)
 
 ---
@@ -324,7 +324,7 @@ Your HyperCode V2.0 project has gone from **7.5/10** to **9.5/10** - a significa
 
 ## 📞 Next Steps
 
-1. **Add your ANTHROPIC_API_KEY** to `.env`
+1. **Add your PERPLEXITY_API_KEY** to `.env`
 2. **Test the agent swarm:**
    ```bash
    curl -X POST http://localhost:8080/plan \

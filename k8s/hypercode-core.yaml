@@ -29,7 +29,7 @@ data:
   # echo -n "your-secret" | base64
   HYPERCODE_JWT_SECRET: eW91ci1qd3Qtc2VjcmV0LWhlcmU=
   POSTGRES_PASSWORD: Y2hhbmdlbWU=
-  ANTHROPIC_API_KEY: c2stYW50LXlvdXItYXBpLWtleQ==
+  PERPLEXITY_API_KEY: c2stYW50LXlvdXItYXBpLWtleQ==
 
 ---
 apiVersion: apps/v1

@@ -73,7 +73,7 @@ docker image prune -a -f
 .\scripts\setup-secrets.ps1
 
 # Or manually create:
-# secrets/anthropic_api_key.txt
+# secrets/PERPLEXITY_API_KEY.txt
 # secrets/postgres_password.txt
 # secrets/grafana_admin_password.txt
 ```

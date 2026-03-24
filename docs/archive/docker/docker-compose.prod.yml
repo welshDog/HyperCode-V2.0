@@ -29,8 +29,8 @@ volumes:
 
 # Secrets management (use docker secrets or external secret manager in production)
 secrets:
-  anthropic_api_key:
-    file: ./secrets/anthropic_api_key.txt
+  PERPLEXITY_API_KEY:
+    file: ./secrets/PERPLEXITY_API_KEY.txt
   hypercode_jwt_secret:
     file: ./secrets/hypercode_jwt_secret.txt
   postgres_password:
@@ -54,7 +54,7 @@ services:
       - OTLP_ENDPOINT=http://jaeger:4318/v1/traces
     
     secrets:
-      - anthropic_api_key
+      - PERPLEXITY_API_KEY
       - hypercode_jwt_secret
     
     # Security context
@@ -173,7 +173,7 @@ services:
     container_name: crew-orchestrator
     
     secrets:
-      - anthropic_api_key
+      - PERPLEXITY_API_KEY
     
     environment:
       - REDIS_URL=redis://redis:6379
@@ -231,7 +231,7 @@ services:
     container_name: frontend-specialist
     
     secrets:
-      - anthropic_api_key
+      - PERPLEXITY_API_KEY
     
     environment:
       - REDIS_URL=redis://redis:6379
@@ -286,7 +286,7 @@ services:
     container_name: backend-specialist
     
     secrets:
-      - anthropic_api_key
+      - PERPLEXITY_API_KEY
     
     environment:
       - REDIS_URL=redis://redis:6379
@@ -341,7 +341,7 @@ services:
     container_name: database-architect
     
     secrets:
-      - anthropic_api_key
+      - PERPLEXITY_API_KEY
       - postgres_password
     
     environment:
@@ -400,7 +400,7 @@ services:
     container_name: qa-engineer
     
     secrets:
-      - anthropic_api_key
+      - PERPLEXITY_API_KEY
     
     environment:
       - REDIS_URL=redis://redis:6379
@@ -455,7 +455,7 @@ services:
     container_name: devops-engineer
     
     secrets:
-      - anthropic_api_key
+      - PERPLEXITY_API_KEY
     
     environment:
       - REDIS_URL=redis://redis:6379
@@ -514,7 +514,7 @@ services:
     container_name: security-engineer
     
     secrets:
-      - anthropic_api_key
+      - PERPLEXITY_API_KEY
     
     environment:
       - REDIS_URL=redis://redis:6379
@@ -569,7 +569,7 @@ services:
     container_name: system-architect
     
     secrets:
-      - anthropic_api_key
+      - PERPLEXITY_API_KEY
     
     environment:
       - REDIS_URL=redis://redis:6379
@@ -624,7 +624,7 @@ services:
     container_name: project-strategist
     
     secrets:
-      - anthropic_api_key
+      - PERPLEXITY_API_KEY
     
     environment:
       - REDIS_URL=redis://redis:6379

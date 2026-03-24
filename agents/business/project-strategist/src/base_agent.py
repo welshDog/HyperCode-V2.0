@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import os
 import redis.asyncio as redis
-from anthropic import AsyncAnthropic
+from PERPLEXITY import AsyncPERPLEXITY
 from contextlib import asynccontextmanager
 import sys
 
@@ -17,13 +17,14 @@ try:
     from shared.rag_memory import AgentMemory
     from shared.project_memory import ProjectMemory
     from shared.logging_config import setup_logging
-    from shared.approval_system import ApprovalSystem, ApprovalStatus
+    from shared.approval_system import ApprovalSystem
 except ImportError:
     # Fallback for local testing or if shared modules not mounted
     # print("⚠️ Shared modules not found, running in limited mode")
     AgentMemory = None
     ProjectMemory = None
-    setup_logging = lambda name: None
+    def setup_logging(name):
+        return None
     ApprovalSystem = None
 
 class AgentConfig:
@@ -33,7 +34,7 @@ class AgentConfig:
         self.role = os.getenv("AGENT_ROLE", "Generic Agent")
         self.model = os.getenv("AGENT_MODEL", "claude-3-5-sonnet-20241022")
         self.port = int(os.getenv("AGENT_PORT", "8001"))
-        self.anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+        self.PERPLEXITY_key = os.getenv("PERPLEXITY_API_KEY")
         self.redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
         self.core_url = os.getenv("CORE_URL", "http://hypercode-core:8000")
         self.api_key = os.getenv("HYPERCODE_API_KEY")
@@ -87,8 +88,8 @@ class BaseAgent:
             print(f"Warning: Failed to connect to Redis at startup: {e}")
         
         # Initialize AI Client
-        if self.config.anthropic_key:
-            self.client = AsyncAnthropic(api_key=self.config.anthropic_key)
+        if self.config.PERPLEXITY_key:
+            self.client = AsyncPERPLEXITY(api_key=self.config.PERPLEXITY_key)
         
         # Initialize Shared Systems
         # (This import might fail if shared modules are missing, but we handle it gracefully)

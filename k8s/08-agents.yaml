@@ -44,7 +44,7 @@ spec:
             configMapKeyRef:
               name: hypercode-config
               key: CORE_URL
-        - name: ANTHROPIC_API_KEY
+        - name: PERPLEXITY_API_KEY
           valueFrom:
             secretKeyRef:
               name: hypercode-secrets
@@ -118,7 +118,7 @@ spec:
             configMapKeyRef:
               name: hypercode-config
               key: CORE_URL
-        - name: ANTHROPIC_API_KEY
+        - name: PERPLEXITY_API_KEY
           valueFrom:
             secretKeyRef:
               name: hypercode-secrets
@@ -192,7 +192,7 @@ spec:
             configMapKeyRef:
               name: hypercode-config
               key: CORE_URL
-        - name: ANTHROPIC_API_KEY
+        - name: PERPLEXITY_API_KEY
           valueFrom:
             secretKeyRef:
               name: hypercode-secrets
@@ -268,7 +268,7 @@ spec:
             configMapKeyRef:
               name: hypercode-config
               key: CORE_URL
-        - name: ANTHROPIC_API_KEY
+        - name: PERPLEXITY_API_KEY
           valueFrom:
             secretKeyRef:
               name: hypercode-secrets
@@ -343,7 +343,7 @@ spec:
             configMapKeyRef:
               name: hypercode-config
               key: CORE_URL
-        - name: ANTHROPIC_API_KEY
+        - name: PERPLEXITY_API_KEY
           valueFrom:
             secretKeyRef:
               name: hypercode-secrets
@@ -417,7 +417,7 @@ spec:
             configMapKeyRef:
               name: hypercode-config
               key: CORE_URL
-        - name: ANTHROPIC_API_KEY
+        - name: PERPLEXITY_API_KEY
           valueFrom:
             secretKeyRef:
               name: hypercode-secrets
@@ -491,7 +491,7 @@ spec:
             configMapKeyRef:
               name: hypercode-config
               key: CORE_URL
-        - name: ANTHROPIC_API_KEY
+        - name: PERPLEXITY_API_KEY
           valueFrom:
             secretKeyRef:
               name: hypercode-secrets
@@ -566,7 +566,7 @@ spec:
             configMapKeyRef:
               name: hypercode-config
               key: CORE_URL
-        - name: ANTHROPIC_API_KEY
+        - name: PERPLEXITY_API_KEY
           valueFrom:
             secretKeyRef:
               name: hypercode-secrets

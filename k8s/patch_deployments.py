@@ -44,7 +44,7 @@ def patch_resources(resource_type):
             }
         }
         
-        patch_str = json.dumps(patch_json).replace('"', '\\"') # Escape quotes for shell if needed, but subprocess handles list args better.
+        json.dumps(patch_json).replace('"', '\\"') # Escape quotes for shell if needed, but subprocess handles list args better.
         
         # Using subprocess with list args avoids shell escaping hell
         cmd_list = [

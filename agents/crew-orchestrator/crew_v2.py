@@ -7,7 +7,7 @@ from langchain_openai import ChatOpenAI
 
 class HyperCodeCrew:
     def __init__(self):
-        # Configure the LLM - using Ollama for local, or Anthropic/OpenAI via LiteLLM
+        # Configure the LLM - using Ollama for local, or PERPLEXITY/OpenAI via LiteLLM
         # For this free architecture, we assume local or direct API calls
         self.llm = ChatOpenAI(
             openai_api_base=os.getenv("LLM_API_BASE", "http://localhost:11434/v1"),

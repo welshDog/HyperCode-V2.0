@@ -8,7 +8,7 @@ Windows PowerShell (already on Windows — just search it in Start Menu)
 
 Git → git-scm.com (to clone the repo)
 
-API Keys for at least one AI provider (Anthropic or OpenAI — or both!)
+API Keys for at least one AI provider (PERPLEXITY or OpenAI — or both!)
 
 📦 Step 1 — Clone the Repo
 Open PowerShell and run:
@@ -36,11 +36,11 @@ API_KEY	Any strong random string	Make one up, e.g. mySecretKey123!
 HYPERCODE_JWT_SECRET	A long random string	Generate at randomkeygen.com
 JWT_SECRET	Same or different random string	Same as above
 HYPERCODE_MEMORY_KEY	Another random string	Same as above
-ANTHROPIC_API_KEY	Starts with sk-ant-api03-...	console.anthropic.com
+PERPLEXITY_API_KEY	Starts with sk-ant-api03-...	console.PERPLEXITY.com
 OPENAI_API_KEY	Starts with sk-proj-...	platform.openai.com
 POSTGRES_PASSWORD	Change from changeme	Make it something secure!
 GF_SECURITY_ADMIN_PASSWORD	Change from admin	Your choice
-💡 You only NEED one of Anthropic or OpenAI — but both is better!
+💡 You only NEED one of PERPLEXITY or OpenAI — but both is better!
 
 ⚡ Step 3 — Install Desktop Shortcuts (Recommended!)
 Run this once — it puts one-click launch buttons on your Desktop:

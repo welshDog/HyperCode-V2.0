@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     ORCHESTRATOR_API_KEY: Optional[str] = None
     
     # AI
-    ANTHROPIC_API_KEY: Optional[str] = None
+    PERPLEXITY_API_KEY: Optional[str] = None
     PERPLEXITY_API_KEY: Optional[str] = None
     OPENROUTER_API_KEY: Optional[str] = None
     HYPERCODE_MEMORY_KEY: Optional[str] = None

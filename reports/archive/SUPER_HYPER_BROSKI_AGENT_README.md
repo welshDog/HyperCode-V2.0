@@ -291,7 +291,7 @@ super-hyper-broski-agent:
     - CORE_URL=http://hypercode-core:8000
     - AGENT_ROLE=super-hyper-broski-agent
     - PORT=8015
-    - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
   volumes:
     - ./agents/super-hyper-broski-agent:/app
     - ./Configuration_Kit:/app/hive_mind:ro

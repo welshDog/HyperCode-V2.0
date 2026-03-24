@@ -5,12 +5,20 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 import time
 from collections import deque
 from datetime import datetime
 from typing import Any
-
 from fastapi import FastAPI, Request, Response
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../backend"))
+# No separate metrics module - metrics are defined inline below
+
+app = FastAPI()
+init_metrics(app) 
+
+from fastapi import FastAPI
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
     CollectorRegistry,

@@ -121,7 +121,7 @@ nano ./k8s/02-secrets.yaml
 # HYPERCODE_JWT_SECRET=<secure-key>
 # API_KEY=<api-key>
 # MINIO_ROOT_PASSWORD=<strong-password>
-# ANTHROPIC_API_KEY=<your-key>
+# PERPLEXITY_API_KEY=<your-key>
 ```
 
 ### Step 3: Deploy

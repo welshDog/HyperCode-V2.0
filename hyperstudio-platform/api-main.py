@@ -517,7 +517,6 @@ async def process_video_generation(
         # In production, this would call the actual generator
         
         # Paths
-        avatar_path = f"avatars/{avatar_id}.png"
         output_path = f"/tmp/{video_id}.mp4"
         
         # Generate video (placeholder - replace with actual generator)
