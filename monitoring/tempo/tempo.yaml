@@ -10,12 +10,6 @@ distributor:
         http:
           endpoint: 0.0.0.0:4318
 
-ingester:
-  lifecycler:
-    ring:
-      kvstore:
-        store: inmemory
-
 storage:
   trace:
     backend: local
