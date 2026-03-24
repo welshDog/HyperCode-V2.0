@@ -360,7 +360,9 @@ const tracer = trace.getTracer('broski-terminal')
 async function fetchAgents() {
   const span = tracer.startSpan('fetch-agents')
   try {
-    const res = await fetch('/api/agents')
+    const res = await fetch(`${API_BASE_URL}/api/v1/orchestrator/agents`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
     span.setStatus({ code: SpanStatusCode.OK })
     return res.json()
   } finally {
