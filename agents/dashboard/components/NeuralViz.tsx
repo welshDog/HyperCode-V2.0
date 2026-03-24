@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import { useEffect, useState, type ComponentType } from 'react';
 import { Network, Cpu, Share2, Activity, Shield, Code, Server, Database, Eye, Wifi, WifiOff } from 'lucide-react';
-import { useAgentStatus } from '../../../dashboard/src/hooks/useAgentStatus';
+import { useAgentStatus } from '../hooks/useAgentStatus';
 
 // Agent Roles mapped to icons
 const AGENT_ICONS: Record<string, ComponentType<{ className?: string }>> = {
