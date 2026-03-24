@@ -1,447 +1,310 @@
-# QUICK REFERENCE GUIDE
-**Docker Environment:** HyperCode V2.0  
-**Last Updated:** 2026-03-01 23:00 UTC
+# ⚡ HyperCode Quick Reference
 
----
+## Port Map
 
-## 🚀 QUICK START COMMANDS
+```
+Core Services:
+  8000  → hypercode-core (API)
+  5432  → postgres (database)
+  6379  → redis (cache)
+  11434 → hypercode-ollama (LLM)
 
-### Check Status
-```bash
-# All containers
-docker ps -a
+Agents:
+  8001  → project-strategist
+  8002  → coder-agent
+  8003  → backend-specialist
+  8004  → database-architect
+  8005  → qa-engineer
+  8006  → devops-engineer
+  8007  → security-engineer
+  8008  → system-architect
+  8009  → tips-tricks-writer (mapped to 8011)
+  8010  → healer-agent ← Intelligence layer
+  8012  → frontend-specialist
+  8013  → test-agent
+  8014  → throttle-agent
+  8015  → super-hyper-broski-agent
+  8081  → crew-orchestrator (workflows)
+  8089  → coderabbit-webhook (Phase 2)
 
-# Health status detailed
-docker ps --format "table {{.Names}}\t{{.Status}}\t{{.State}}"
-
-# System resources
-docker stats --no-stream
-
-# Disk usage
-docker system df
+Observability:
+  3001  → grafana (dashboards)
+  9090  → prometheus (metrics)
+  3100  → loki (logs)
+  8090  → cadvisor (container metrics)
+  9100  → node-exporter (system metrics)
+  8009  → chroma (vector DB)
+  9001  → minio (storage UI)
+  9000  → minio (API)
 ```
 
-### View Logs
+## Health Checks
+
 ```bash
-# Real-time logs
-docker logs -f <container_name>
-
-# Last 50 lines
-docker logs --tail 50 <container_name>
-
-# Specific time range
-docker logs --since 1h <container_name>
-
-# Critical services
-docker logs -f hypercode-core
-docker logs -f postgres
-docker logs -f redis
-```
-
-### Restart Services
-```bash
-# Single service
-docker restart <container_name>
-
 # All services
-docker compose restart
+docker compose ps
 
-# Monitoring stack
-docker compose restart prometheus grafana loki tempo
+# Specific checks
+curl http://127.0.0.1:8000/health       # Core
+curl http://127.0.0.1:8010/health       # Healer (Intelligence!)
+curl http://127.0.0.1:8081/health       # Orchestrator (Workflows!)
+curl http://127.0.0.1:3001/api/health   # Grafana
+curl http://127.0.0.1:9090/-/healthy    # Prometheus
 
-# Specific service
-docker compose restart hypercode-core
+# Database
+docker exec postgres pg_isready -U postgres
+
+# Cache
+redis-cli ping
 ```
 
-### Execute Commands
+## Common Commands
+
 ```bash
-# Bash in container
-docker exec -it <container_name> bash
+# Start/stop everything
+docker compose up -d
+docker compose down
 
-# Run command
-docker exec <container_name> <command>
+# View logs
+docker compose logs SERVICE_NAME --tail 50 -f
 
-# PostgreSQL queries
-docker exec -it postgres psql -U postgres -d hypercode -c "SELECT * FROM users;"
+# Rebuild service
+docker compose build SERVICE_NAME --no-cache
+docker compose up SERVICE_NAME -d
 
-# Redis commands
-docker exec -it redis redis-cli
-docker exec -it redis redis-cli INFO
+# Enter container
+docker exec -it SERVICE_NAME /bin/bash
 
-# Check Ollama models
-docker exec -it hypercode-ollama ollama list
+# Scale service
+docker compose up -d --scale SERVICE_NAME=3
+
+# Health check
+docker compose ps | grep healthy
 ```
 
----
+## Phase 1 Features
 
-## 🔌 SERVICE ENDPOINTS
-
-### User-Facing Services
-| Service | URL | Credentials | Purpose |
-|---------|-----|-------------|---------|
-| **Dashboard** | http://localhost:8088 | None needed | Web UI |
-| **Grafana** | http://localhost:3001 | admin/admin | Monitoring |
-| **MinIO Console** | http://localhost:9001 | minioadmin/minioadmin | File storage |
-| **Prometheus** | http://localhost:9090 | None needed | Metrics |
-
-### API Endpoints (Internal)
-| Service | URL | Port | Purpose |
-|---------|-----|------|---------|
-| **HyperCode Core** | http://hypercode-core:8000 | 8000 | Main API |
-| **ChromaDB** | http://chroma:8000 | 8009 | Vector search |
-| **Ollama** | http://ollama:11434 | 11434 | LLM |
-| **PostgreSQL** | postgres:5432 | 5432 | Database |
-| **Redis** | redis:6379 | 6379 | Cache |
-| **Loki** | http://loki:3100 | 3100 | Logs |
-| **Tempo** | http://tempo:3200 | 3200 | Traces |
-
----
-
-## 📊 WHAT'S RUNNING
-
-### Core System (5 services)
-- ✅ **hypercode-core** - Main API server
-- ✅ **PostgreSQL** - Database (port 5432)
-- ✅ **Redis** - Cache (port 6379)
-- ✅ **ChromaDB** - Vector DB (port 8009)
-- ✅ **Ollama** - LLM service (port 11434)
-
-### Processing (2 services)
-- ✅ **Celery Worker** - Job processing
-- ✅ **Crew Orchestrator** - Agent management
-
-### AI Agents (9 services)
-- ✅ **Coder Agent** - Code generation
-- ✅ **Frontend Specialist** - UI/UX
-- ✅ **Backend Specialist** - Server logic
-- ✅ **Database Architect** - Schema design
-- ✅ **QA Engineer** - Testing
-- ✅ **DevOps Engineer** - Infrastructure
-- ✅ **Security Engineer** - Security review
-- ✅ **System Architect** - Architecture
-- ✅ **Project Strategist** - Planning
-
-### Storage (2 services)
-- ✅ **MinIO** - S3 storage (port 9000/9001)
-- ✅ **PostgreSQL** - Primary database
-
-### Monitoring (7 services)
-- ✅ **Prometheus** - Metrics (port 9090)
-- ✅ **Grafana** - Dashboards (port 3001)
-- ✅ **Node Exporter** - System metrics
-- ✅ **cAdvisor** - Container metrics
-- ✅ **Loki** - Log aggregation
-- ✅ **Tempo** - Distributed tracing
-- ✅ **Promtail** - Log shipper
-
-### UI (1 service)
-- ✅ **Dashboard** - Web interface (port 8088)
-
----
-
-## 🔐 DEFAULT CREDENTIALS (⚠️ CHANGE IN PRODUCTION)
-
-| Service | Username | Password | Location |
-|---------|----------|----------|----------|
-| PostgreSQL | postgres | changeme | Port 5432 |
-| MinIO | minioadmin | minioadmin | Port 9001 |
-| Grafana | admin | admin | Port 3001 |
-
-### Change Credentials
 ```bash
-# PostgreSQL
-docker exec -it postgres psql -U postgres -c "ALTER USER postgres WITH PASSWORD 'new_password';"
+# Metrics
+curl http://127.0.0.1:8010/metrics   # Healer
+curl http://127.0.0.1:8013/metrics   # Test-agent
 
-# Update docker-compose.yml: POSTGRES_PASSWORD=new_password
-# Restart: docker compose restart postgres
+# Rate limiting
+for i in {1..150}; do curl http://127.0.0.1:8013/; done
+# After 100 requests: 429 (Too Many Requests)
 
-# MinIO
-# Edit MINIO_ROOT_PASSWORD in docker-compose.yml
-# Restart: docker compose restart minio
+# Caching
+curl http://127.0.0.1:8013/test/cached-endpoint?query=test  # First: slow
+curl http://127.0.0.1:8013/test/cached-endpoint?query=test  # Second: cached (fast)
+
+# Circuit breaker
+docker compose stop test-agent
+curl http://127.0.0.1:8013/test/circuit-breaker  # Fast fail (open circuit)
+sleep 60
+docker compose start test-agent
+curl http://127.0.0.1:8013/test/circuit-breaker  # Recovers
+```
+
+## Phase 2 Intelligence
+
+```bash
+# Load life-plans
+curl http://127.0.0.1:8010/life-plan/healer-agent | jq .
+
+# Get failure modes
+curl http://127.0.0.1:8010/failure-modes/hypercode-core | jq .
+
+# Get SLOs
+curl http://127.0.0.1:8010/slos/hypercode-core | jq .
+
+# AI Diagnosis
+curl -X POST http://127.0.0.1:8010/diagnose \
+  -H "Content-Type: application/json" \
+  -d '{"agent_name":"test-agent","symptoms":["Connection refused","Port unreachable"]}'
+
+# Get playbook
+curl http://127.0.0.1:8010/playbook/healer-agent/alert_service_unhealthy | jq .
+
+# All metrics to monitor
+curl http://127.0.0.1:8010/all-metrics | jq .
+```
+
+## Workflow Execution
+
+```bash
+# Submit workflow
+curl -X POST http://127.0.0.1:8081/workflow/execute \
+  -H "X-API-Key: $(grep API_KEY .env | cut -d= -f2)" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Test Workflow",
+    "parallel": false,
+    "steps": [
+      {
+        "id": "step-1",
+        "agent_type": "test-agent",
+        "task_description": "Run health check",
+        "timeout_seconds": 60
+      }
+    ]
+  }'
+
+# Check status
+curl http://127.0.0.1:8081/workflow/test-workflow-1 \
+  -H "X-API-Key: $(grep API_KEY .env | cut -d= -f2)"
+
+# List workflows
+curl http://127.0.0.1:8081/workflows \
+  -H "X-API-Key: $(grep API_KEY .env | cut -d= -f2)"
+```
+
+## CodeRabbit Integration
+
+```bash
+# Simulate webhook
+curl -X POST http://127.0.0.1:8089/webhook/coderabbit \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "review_completed",
+    "pr": {
+      "number": 42,
+      "repo": "owner/repo",
+      "branch": "feature/new-api"
+    },
+    "review": {
+      "critical_issues": [
+        {"type": "backend", "description": "Missing error handling"},
+        {"type": "security", "description": "SQL injection risk"}
+      ]
+    }
+  }'
+
+# Check webhook status
+curl http://127.0.0.1:8089/health
+```
+
+## Monitoring
+
+```bash
+# Prometheus queries
+curl 'http://127.0.0.1:9090/api/v1/query?query=up'
+curl 'http://127.0.0.1:9090/api/v1/query?query=rate(requests_total[5m])'
 
 # Grafana
-# UI → Administration → Users → admin → Change password
+# UI: http://127.0.0.1:3001 (admin/admin)
+
+# Loki logs
+curl 'http://127.0.0.1:3100/loki/api/v1/query?query={job="healer-agent"}'
+
+# Check Redis cache
+redis-cli
+> info stats
+> keys *
+> get key_name
 ```
 
----
+## Troubleshooting
 
-## 🐛 TROUBLESHOOTING
-
-### Container Won't Start
 ```bash
-# Check logs
-docker logs <container_name>
+# If Postgres unhealthy
+docker compose restart postgres
+sleep 10
+docker compose restart celery-worker celery-exporter hyper-mission-api dashboard
 
-# Check resource limits
-docker inspect <container_name> --format='{{.HostConfig.Memory}}'
+# If test-agent keeps restarting
+docker compose logs test-agent --tail 100
+docker compose build test-agent --no-cache
+docker compose up test-agent -d
 
-# Check port conflicts
-docker ps | grep <port>
+# If metrics not showing
+docker compose ps | grep healthy  # Check all are healthy
+curl http://127.0.0.1:8010/metrics  # Verify endpoint works
+# Update prometheus.yml scrape targets
+curl -X POST http://127.0.0.1:9090/-/reload  # Reload config
+
+# If workflow doesn't execute
+curl http://127.0.0.1:8081/health  # Check orchestrator
+redis-cli ping  # Check Redis
+docker compose logs crew-orchestrator --tail 100
 ```
 
-### Database Connection Issues
-```bash
-# Test PostgreSQL
-docker exec -it postgres pg_isready -U postgres
+## Files to Know
 
-# Test Redis
-docker exec -it redis redis-cli ping
-
-# Check logs
-docker logs postgres
-docker logs redis
+```
+HyperCode-V2.0/
+├── .env                           # Secrets & config
+├── docker-compose.yml             # Main definition
+├── docker-compose.agents-lite.yml # Minimal profile
+├── STATUS_REPORT.md               # Current status
+├── PHASE_2_COMPLETE.md            # Phase 2 reference
+├── PHASE_2_INTEGRATION.md         # Integration guide
+├── VISION_AND_METRICS.md          # Strategy & KPIs
+├── BLOCKERS_FIXED.md              # What was fixed
+├── agents/
+│   ├── healer/
+│   │   ├── life_plans.py          # Load YAML life-plans
+│   │   ├── ai_diagnostics.py      # Claude/Perplexity integration
+│   │   ├── intelligence_endpoints.py  # API endpoints
+│   │   └── life-plans/            # Agent YAML plans
+│   ├── crew-orchestrator/
+│   │   ├── workflow_engine.py     # Multi-agent workflows
+│   │   └── main.py                # Orchestration logic
+│   ├── coderabbit-webhook/        # Agent #11 (new)
+│   │   ├── main.py
+│   │   ├── Dockerfile
+│   │   └── requirements.txt
+│   ├── test-agent/
+│   │   ├── main.py                # Phase 1 features demo
+│   │   ├── requirements.txt       # Redis, Prometheus, Anthropic
+│   │   └── Dockerfile
+│   └── shared/
+│       └── agent_utils.py         # Phase 1: Metrics, cache, limiter, breaker
+├── life-plans/                    # YAML knowledge base
+│   ├── healer-agent.yaml
+│   ├── hypercode-core.yaml
+│   ├── backend-specialist.yaml
+│   └── ...13 total
+└── monitoring/
+    ├── prometheus/prometheus.yml
+    └── grafana/provisioning/
 ```
 
-### Monitoring Issues
+## Environment Variables to Set
+
 ```bash
-# Test Prometheus scrape
-docker exec -it prometheus wget -O- http://prometheus:9090/api/v1/targets
-
-# Test Grafana datasource
-curl http://localhost:3001/api/datasources
-
-# Check Loki readiness
-docker exec -it loki curl http://localhost:3100/ready
+# .env file
+API_KEY=sk_live_...
+HYPERCODE_JWT_SECRET=...
+POSTGRES_PASSWORD=...
+PERPLEXITY_API_KEY=...  # For AI diagnostics
+OPENAI_API_KEY=...      # For fallback
+ANTHROPIC_API_KEY=...   # For Claude (preferred)
+CODERABBIT_WEBHOOK_SECRET=...  # For webhook auth
 ```
 
-### Agent Issues
+## One-Liner Health Check
+
 ```bash
-# Check agent logs
-docker logs project-strategist
-
-# Test agent health
-curl http://localhost:8001/health
-
-# Check core API
-curl http://hypercode-core:8000/health
+docker compose ps | grep -c "healthy"  # Should be ≥ 12
 ```
 
----
+## Emergency Restart (Everything)
 
-## 📈 MONITORING DASHBOARD
-
-### Access Monitoring
-1. Open Grafana: http://localhost:3001
-2. Login: admin/admin
-3. Select dashboard from dropdown
-
-### Key Metrics
-- CPU Usage: Should be <5% average
-- Memory: Should be <75% utilized
-- Disk: Monitor free space (should be >20% available)
-- Request Latency: Should be <200ms (95th percentile)
-
-### Create Alert
-1. Grafana → Alerts → Create Alert Rule
-2. Choose metric (e.g., CPU > 80%)
-3. Set notification channel (Discord configured)
-4. Save
-
----
-
-## 🔄 BACKUP & RESTORE
-
-### Backup Critical Data
 ```bash
-# Backup PostgreSQL
-docker exec postgres pg_dump -U postgres hypercode > backup.sql
-
-# Backup Redis
-docker exec redis redis-cli BGSAVE
-docker cp redis:/data/dump.rdb ./redis_backup.rdb
-
-# Backup volumes
-docker run --rm -v hypercode-v20_postgres-data:/data -v $(pwd):/backup \
-  alpine tar czf /backup/postgres_backup.tar.gz -C /data .
-```
-
-### Restore Data
-```bash
-# Restore PostgreSQL
-cat backup.sql | docker exec -i postgres psql -U postgres -d hypercode
-
-# Restore Redis
-docker cp redis_backup.rdb redis:/data/
-docker exec redis redis-cli SHUTDOWN
-docker restart redis
-```
-
----
-
-## 🔧 COMMON TASKS
-
-### View Container Resource Usage
-```bash
-docker stats --no-stream
-
-# Specific container
-docker stats --no-stream postgres
-```
-
-### Update Image
-```bash
-# Pull latest
-docker pull hypercode-v20-dashboard
-
-# Rebuild local image
-docker compose build hypercode-dashboard
-
-# Restart service
-docker compose up -d hypercode-dashboard
-```
-
-### Access Container Filesystem
-```bash
-# Copy from container
-docker cp hypercode-core:/app/outputs/file.txt ./
-
-# Copy to container
-docker cp ./file.txt hypercode-core:/app/
-```
-
-### View Environment Variables
-```bash
-docker exec <container_name> env
-
-# Specific variable
-docker exec <container_name> env | grep POSTGRES
-```
-
-### Check Network Connectivity
-```bash
-# From container to another service
-docker exec hypercode-core curl http://postgres:5432
-
-# Check DNS resolution
-docker exec hypercode-core nslookup postgres
-```
-
----
-
-## 🚨 ALERT THRESHOLDS
-
-### Memory
-- ⚠️ Warning: >75% utilized
-- 🔴 Critical: >90% utilized
-
-### CPU
-- ⚠️ Warning: >5% average
-- 🔴 Critical: >10% average
-
-### Disk
-- ⚠️ Warning: <20% available
-- 🔴 Critical: <10% available
-
-### Response Time
-- ⚠️ Warning: >200ms (95th percentile)
-- 🔴 Critical: >500ms (95th percentile)
-
-### Container Health
-- ⚠️ Warning: Unhealthy for >2 minutes
-- 🔴 Critical: Exited or restarting
-
----
-
-## 📞 SUPPORT
-
-### Check System Health
-```bash
-# Full status report
-docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.State}}"
-docker system df
-docker ps --format "{{.Names}}" | xargs -I {} docker exec {} curl -s http://localhost:8001/health
-```
-
-### Collect Diagnostic Info
-```bash
-# Docker daemon logs
-docker ps -a > docker_status.txt
-docker images >> docker_status.txt
-docker system df >> docker_status.txt
-docker ps --format "table {{.Names}}\t{{.Status}}" >> docker_status.txt
-
-# Container logs
-docker logs prometheus > prometheus.log
-docker logs grafana > grafana.log
-docker logs hypercode-core > hypercode-core.log
-```
-
-### Emergency Restart
-```bash
-# Restart everything
-docker compose restart
-
-# Restart with full cleanup
-docker compose down
+docker compose down -v
 docker compose up -d
+sleep 30
+docker compose ps
 ```
+
+## Next Steps
+
+1. **Week 1:** Enable Phase 1 metrics (30 min)
+2. **Week 2:** Test CodeRabbit integration (2 hours)
+3. **Week 3:** Build Grafana dashboards (1 hour)
+4. **Week 4:** Deploy to Kubernetes (Phase 3)
 
 ---
 
-## 🎓 LEARNING RESOURCES
+**Quick Tip:** Always check `docker compose ps` first. 90% of issues are simply unhealthy services needing restart.
 
-### Docker Commands
-- `docker ps` - List containers
-- `docker logs` - View container logs
-- `docker exec` - Run command in container
-- `docker stats` - Monitor resources
-- `docker restart` - Restart container
-
-### Useful Queries
-```sql
--- PostgreSQL: Check tables
-SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
-
--- PostgreSQL: Check users
-SELECT usename, usesuper, usecreatedb FROM pg_user;
-
--- Redis: Check memory
-INFO memory
-```
-
-### Monitoring Queries
-```
-# Prometheus: CPU usage
-rate(container_cpu_usage_seconds_total[5m])
-
-# Prometheus: Memory usage
-container_memory_usage_bytes / 1024 / 1024
-
-# Prometheus: Request latency
-http_request_duration_seconds_bucket
-```
-
----
-
-## 📋 FILE LOCATIONS
-
-### Important Files
-- `docker-compose.yml` - Container definitions
-- `.env.example` - Environment template
-- `./monitoring/` - Monitoring configs
-- `./backend/` - Backend source code
-- `./agents/` - AI agent implementations
-- `./dashboard/` - Frontend code
-
-### Volumes Location
-- PostgreSQL: `./docker_volumes/postgres-data`
-- Redis: `./docker_volumes/redis-data`
-- Prometheus: `./docker_volumes/prometheus-data`
-- Grafana: `./docker_volumes/grafana-data`
-- MinIO: `./docker_volumes/minio-data`
-
----
-
-## ✅ DAILY CHECKLIST
-
-- [ ] All containers running: `docker ps | wc -l`
-- [ ] No error logs: `docker logs postgres | grep ERROR`
-- [ ] Disk space available: `docker system df`
-- [ ] Monitoring accessible: http://localhost:3001
-- [ ] API responding: `curl http://localhost:8088`
-- [ ] Database healthy: `docker exec postgres pg_isready`
-- [ ] Cache healthy: `docker exec redis redis-cli ping`
-
----
-
-**Keep this guide handy for quick reference!**
