@@ -607,8 +607,8 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Docker Janitor (Auto-Cleanup) -- DISABLED due to docker socket version mismatch
-  # Re-enable by removing profiles: ["disabled"] when docker binary is updated
+  # Docker Janitor (DISABLED - meltwater/docker-cleanup has Docker API version mismatch)
+  # Replaced by auto-prune below which uses docker:cli and is always version-compatible
   docker-janitor:
     profiles: ["disabled"]
     image: meltwater/docker-cleanup:latest
@@ -616,27 +616,31 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - CLEAN_PERIOD=1800 # Run every 30 minutes
-      - DELAY_TIME=600 # Wait 10 minutes before removing
-      - KEEP_IMAGES=true # Don't remove images by default (safety)
-      - KEEP_CONTAINERS=true # Only remove stopped containers if specified (safety first)
+      - CLEAN_PERIOD=1800
+      - DELAY_TIME=600
+      - KEEP_IMAGES=true
+      - KEEP_CONTAINERS=true
       - CLEAN_STOPPED_CONTAINERS=false
       - CLEAN_UNUSED_IMAGES=false
-      - CLEAN_UNUSED_VOLUMES=false 
-      # We will use a more targeted script or command via cron if needed, 
-      # but for now, let's use a safer "prune" approach via a periodic task container
-      # Actually, let's use a simple alpine container with a cron job for maximum control
-  
+      - CLEAN_UNUSED_VOLUMES=false
+
+  # Auto Prune - Smart Docker cleanup (replaces docker-janitor)
+  # Runs every hour: prunes stopped containers, old images (48h+), keeps 5GB build cache max
   auto-prune:
     image: docker:cli
     container_name: auto-prune
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: >
-      sh -c "echo '0 * * * * docker system prune -f --filter \"until=24h\"' > /etc/crontabs/root && crond -f"
+      sh -c "echo '0 * * * * docker container prune -f && docker image prune -f --filter until=48h && docker builder prune -f --keep-storage=5gb' > /etc/crontabs/root && crond -f"
     restart: unless-stopped
     networks:
       - backend-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
 
   # Security Scanner (Trivy)
   security-scanner:
@@ -1215,7 +1219,7 @@ services:
       - HEALER_ORCHESTRATOR_API_KEY=${HEALER_ORCHESTRATOR_API_KEY:-}
       - HEALER_WATCHDOG_AGENT=${HEALER_WATCHDOG_AGENT:-}
       - HEALER_WATCHDOG_FORCE_RESTART=${HEALER_WATCHDOG_FORCE_RESTART:-false}
-      - HEALER_WATCHED_SERVICES=${HEALER_WATCHED_SERVICES:-hypercode-core,redis,postgres,celery-worker,hypercode-ollama,healer-agent,docker-janitor}
+      - HEALER_WATCHED_SERVICES=${HEALER_WATCHED_SERVICES:-hypercode-core,redis,postgres,celery-worker,hypercode-ollama,healer-agent}
     volumes:
       - ./agents/healer:/app/healer
       - ./Configuration_Kit:/app/hive_mind:ro
