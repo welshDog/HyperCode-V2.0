@@ -607,8 +607,10 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Docker Janitor (Auto-Cleanup)
+  # Docker Janitor (Auto-Cleanup) -- DISABLED due to docker socket version mismatch
+  # Re-enable by removing profiles: ["disabled"] when docker binary is updated
   docker-janitor:
+    profiles: ["disabled"]
     image: meltwater/docker-cleanup:latest
     container_name: docker-janitor
     volumes:
@@ -1213,7 +1215,7 @@ services:
       - HEALER_ORCHESTRATOR_API_KEY=${HEALER_ORCHESTRATOR_API_KEY:-}
       - HEALER_WATCHDOG_AGENT=${HEALER_WATCHDOG_AGENT:-}
       - HEALER_WATCHDOG_FORCE_RESTART=${HEALER_WATCHDOG_FORCE_RESTART:-false}
-      - HEALER_WATCHED_SERVICES=${HEALER_WATCHED_SERVICES:-hypercode-core,redis,postgres,celery-worker,hypercode-ollama,healer-agent}
+      - HEALER_WATCHED_SERVICES=${HEALER_WATCHED_SERVICES:-hypercode-core,redis,postgres,celery-worker,hypercode-ollama,healer-agent,docker-janitor}
     volumes:
       - ./agents/healer:/app/healer
       - ./Configuration_Kit:/app/hive_mind:ro
