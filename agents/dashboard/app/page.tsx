@@ -30,6 +30,9 @@ import { HyperCanvas } from "@/components/canvas/HyperCanvas";
 import { SensoryThemeSwitcher } from "@/app/themes/SensoryThemeSwitcher";
 import { LiveRegion } from "@/components/a11y/LiveRegion";
 import { diffAgentStatusAnnouncements, type AgentSnapshot } from "@/lib/a11y";
+// 🦅 Healer telemetry panels
+import HealerMissionLog from "@/components/panels/HealerMissionLog";
+import ActiveAgentsPanel from "@/components/panels/ActiveAgentsPanel";
 
 // --- Type Definitions ---
 interface Agent {
@@ -199,8 +202,8 @@ export default function Dashboard() {
       }
     };
 
-    poll(); // Initial call
-    const interval = setInterval(poll, 2000); // Poll every 2s
+    poll();
+    const interval = setInterval(poll, 2000);
     return () => clearInterval(interval);
   }, [token]);
 
@@ -239,7 +242,6 @@ export default function Dashboard() {
     e.preventDefault();
     if (!input.trim()) return;
     
-    // Optimistic log
     const newLog: Log = {
       id: Date.now(),
       agent: "USER",
@@ -249,7 +251,6 @@ export default function Dashboard() {
     };
     setLogs(prev => [newLog, ...prev]);
     
-    // Send to API
     const res = await sendCommand(input, token);
     
     if (res.status === "error") {
@@ -308,19 +309,17 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         
-        {/* Left Panel: The Crew */}
+        {/* Left Panel: Active Agents — now powered by Healer circuit breaker data */}
         <aside className="w-64 border-r border-zinc-800 bg-black/20 flex flex-col p-4 gap-4 overflow-y-auto shrink-0" aria-label="Active agents">
-          <h2 className="text-xs font-bold text-zinc-600 uppercase tracking-widest mb-2 flex items-center gap-2">
-            <Shield size={12} aria-hidden="true" /> Active Agents
-          </h2>
-          <ul className="space-y-3" aria-label="Agent list">
-            {agents.length === 0 && !connected && (
-                <li className="text-xs text-zinc-500 text-center py-4" aria-live="polite">Connecting to Neural Net...</li>
-            )}
-            {agents.map(agent => (
-              <AgentCard key={agent.id} agent={agent} />
-            ))}
-          </ul>
+          <ActiveAgentsPanel />
+          {/* Fallback: legacy agent cards still render if WebSocket provides data */}
+          {agents.length > 0 && (
+            <ul className="space-y-3 mt-2 border-t border-zinc-800 pt-3" aria-label="Core agent list">
+              {agents.map(agent => (
+                <AgentCard key={agent.id} agent={agent} />
+              ))}
+            </ul>
+          )}
         </aside>
 
         {/* Center Panel: Viewport */}
@@ -398,26 +397,38 @@ export default function Dashboard() {
               </div>
             )}
 
+            {/* 🦅 MISSION LOG — Healer XP + heal event history */}
             {activeTab === 'tasks' && (
-               <div className="space-y-4" role="tabpanel" id="panel-tasks" aria-labelledby="tab-tasks" tabIndex={0} aria-label="Mission log">
-                 {tasks.map(task => (
-                   <div key={task.id} className="border border-zinc-800 bg-zinc-900/20 p-4 rounded-sm">
-                      <div className="flex justify-between mb-2">
-                        <h3 className="font-bold text-cyan-400">{task.description || task.title}</h3>
-                        <span className="text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 uppercase">{task.status}</span>
-                      </div>
-                      <div className="h-1 bg-zinc-800 w-full rounded-full overflow-hidden" role="progressbar" aria-label={`Task progress: ${task.description || task.title || task.id}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={task.progress || 0}>
-                        <div className="h-full bg-emerald-500 transition-all" style={{ width: `${task.progress || 0}%` }} />
-                      </div>
-                      <div className="flex gap-2 mt-3">
-                         <div className="text-[10px] bg-zinc-900 border border-zinc-700 px-2 py-1 rounded text-zinc-500">
-                             ID: {task.id}
-                         </div>
-                      </div>
+               <div className="p-4 space-y-4" role="tabpanel" id="panel-tasks" aria-labelledby="tab-tasks" tabIndex={0} aria-label="Mission log">
+
+                 {/* 🦅 Live heal events from Healer Agent */}
+                 <HealerMissionLog />
+
+                 {/* Divider — legacy tasks below if any exist */}
+                 {tasks.length > 0 && (
+                   <div className="border-t border-zinc-800 pt-4">
+                     <h3 className="text-xs font-bold text-zinc-600 uppercase tracking-widest mb-3">Core Tasks</h3>
+                     {tasks.map(task => (
+                       <div key={task.id} className="border border-zinc-800 bg-zinc-900/20 p-4 rounded-sm mb-3">
+                          <div className="flex justify-between mb-2">
+                            <h4 className="font-bold text-cyan-400">{task.description || task.title}</h4>
+                            <span className="text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 uppercase">{task.status}</span>
+                          </div>
+                          <div className="h-1 bg-zinc-800 w-full rounded-full overflow-hidden" role="progressbar" aria-label={`Task progress: ${task.description || task.title || task.id}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={task.progress || 0}>
+                            <div className="h-full bg-emerald-500 transition-all" style={{ width: `${task.progress || 0}%` }} />
+                          </div>
+                          <div className="flex gap-2 mt-3">
+                             <div className="text-[10px] bg-zinc-900 border border-zinc-700 px-2 py-1 rounded text-zinc-500">
+                                 ID: {task.id}
+                             </div>
+                          </div>
+                       </div>
+                     ))}
                    </div>
-                 ))}
+                 )}
+
                  {tasks.length === 0 && (
-                     <div className="text-center text-zinc-600 py-10">No active missions. Standby.</div>
+                     <div className="text-center text-zinc-600 py-4 text-xs">No core tasks active. Healer standing by.</div>
                  )}
                </div>
             )}
@@ -458,7 +469,6 @@ export default function Dashboard() {
                <Zap size={12} aria-hidden="true" /> Resource Usage
             </h2>
             <div className="space-y-4">
-               {/* Mock Charts */}
                <div className="h-32 border border-zinc-800 bg-zinc-900/30 relative overflow-hidden flex items-end gap-1 p-2">
                   {[40, 60, 30, 80, 50, 90, 70, 40, 60, 50].map((h, i) => (
                     <div key={i} className="flex-1 bg-cyan-500/20 hover:bg-cyan-500/50 transition-colors" style={{ height: `${h}%` }} aria-hidden="true" />
