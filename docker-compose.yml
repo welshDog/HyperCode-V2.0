@@ -953,9 +953,9 @@ services:
       - AGENT_PORT=8003
     volumes:
       - ./agents/02-backend-specialist:/app
-      - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/shared:/app/shared:ro
       - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
@@ -1203,8 +1203,8 @@ services:
   healer-agent:
     profiles: ["agents"]
     build:
-      context: ./agents/healer
-      dockerfile: Dockerfile
+      context: ./agents       # <-- FIXED: was ./agents/healer, now ./agents so shared/ is reachable
+      dockerfile: healer/Dockerfile
     container_name: healer-agent
     environment:
       - CORE_URL=http://hypercode-core:8000
