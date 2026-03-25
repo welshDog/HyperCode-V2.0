@@ -22,7 +22,11 @@ from .adapters.docker_adapter import DockerAdapter
 from .metrics import init_metrics
 from .models import HealResult, HealerException, HealRequest
 
-# ── Logging ───────────────────────────────────────────────────────────────────
+# │ Phase 3 — Event Bus wiring │
+from agents.shared.agent_message import HealEvent, AgentMessage
+from agents.shared.event_bus import AgentEventBus
+
+# ── Logging ──────────────────────────────────────────────────────────────────────────────
 class JSONFormatter(logging.Formatter):
     def format(self, record):
         log_data = {
@@ -45,7 +49,7 @@ logger = logging.getLogger("healer.main")
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
-# ── Config ─────────────────────────────────────────────────────────────────────
+# ── Config ──────────────────────────────────────────────────────────────────────────────
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")
 ORCHESTRATOR_URL = os.getenv("ORCHESTRATOR_URL", "http://crew-orchestrator:8080")
 WATCHDOG_ENABLED = os.getenv("HEALER_WATCHDOG_ENABLED", "false").strip().lower() == "true"
@@ -54,14 +58,16 @@ WATCHDOG_SMOKE_API_KEY = os.getenv("HEALER_SMOKE_API_KEY", "").strip()
 WATCHDOG_ORCHESTRATOR_API_KEY = os.getenv("HEALER_ORCHESTRATOR_API_KEY", "").strip()
 WATCHDOG_AGENT = os.getenv("HEALER_WATCHDOG_AGENT", "").strip()
 WATCHDOG_FORCE_RESTART = os.getenv("HEALER_WATCHDOG_FORCE_RESTART", "false").strip().lower() == "true"
+HEALER_AGENT_ID = os.getenv("HEALER_AGENT_ID", "healer-01")
 
-# ── Global state ─────────────────────────────────────────────────────────────
+# ── Global state ───────────────────────────────────────────────────────────────────────
 redis_client: Optional[redis.Redis] = None
 docker_adapter: Optional[DockerAdapter] = None
 _throttle_paused_local: Dict[str, float] = {}
+event_bus: Optional[AgentEventBus] = None  # │ Phase 3 │
 
 
-# ── Models ────────────────────────────────────────────────────────────────────
+# ── Models ──────────────────────────────────────────────────────────────────────────────
 class ThrottleStateUpdate(BaseModel):
     containers: List[str]
     paused: bool = True
@@ -69,7 +75,7 @@ class ThrottleStateUpdate(BaseModel):
     reason: Optional[str] = None
 
 
-# ── Throttle helpers ──────────────────────────────────────────────────────────
+# ── Throttle helpers ──────────────────────────────────────────────────────────────
 def _throttle_pause_key(container: str) -> str:
     return f"throttle:paused:{container}"
 
@@ -135,7 +141,7 @@ async def get_throttle_state() -> Dict[str, Any]:
     return {"containers": sorted(set(containers)), "backend": "memory"}
 
 
-# ── Circuit Breaker ───────────────────────────────────────────────────────────
+# ── Circuit Breaker ───────────────────────────────────────────────────────────────────────
 class CircuitState(Enum):
     CLOSED = "closed"
     OPEN = "open"
@@ -186,33 +192,75 @@ class CircuitBreaker:
 circuit_breakers: Dict[str, CircuitBreaker] = defaultdict(CircuitBreaker)
 
 
-# ── Lifespan ──────────────────────────────────────────────────────────────────
+# ── Lifespan ──────────────────────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global redis_client, docker_adapter
+    global redis_client, docker_adapter, event_bus
     redis_client = await redis.from_url(REDIS_URL, decode_responses=True)
     docker_adapter = DockerAdapter(redis_url=REDIS_URL)
+
+    # │ Phase 3 — Connect event bus │
+    try:
+        event_bus = AgentEventBus(REDIS_URL)
+        await event_bus.connect()
+        logger.info("✅ AgentEventBus connected - healer now publishing XP events")
+    except Exception as e:
+        logger.warning(f"⚠️  EventBus failed to connect (non-fatal): {e}")
+        event_bus = None
+
     asyncio.create_task(alert_listener())
     if WATCHDOG_ENABLED:
         asyncio.create_task(watchdog_loop())
     logger.info("Healer Agent started - monitoring system health")
     yield
+    if event_bus:
+        await event_bus.disconnect()
     if redis_client:
         await redis_client.close()
     logger.info("Healer Agent shutting down")
 
 
-# ── App ───────────────────────────────────────────────────────────────────────
+# ── App ─────────────────────────────────────────────────────────────────────────────────
 app = FastAPI(
     title="Healer Agent",
-    version="0.2.0",
+    version="0.3.0",
     description="Autonomous healing service for agents and systems",
     lifespan=lifespan,
 )
 init_metrics(app)
 
 
-# ── System helpers ────────────────────────────────────────────────────────────
+# ── Phase 3: Event bus publish helper ───────────────────────────────────────────────
+async def _publish_heal_event(
+    healed_agent: str,
+    heal_pattern: str,
+    status: str,
+    error_msg: Optional[str] = None,
+) -> None:
+    """Fire-and-forget publish to the event bus. Never crashes the healer."""
+    if not event_bus:
+        return
+    try:
+        xp   = 50  if status == "recovered" else 5
+        coins = 10.0 if status == "recovered" else 1.0
+        event = HealEvent(
+            agent_id=HEALER_AGENT_ID,
+            status="healing_success" if status == "recovered" else "failed",
+            healed_agent_id=healed_agent,
+            heal_pattern=heal_pattern,
+            auto_resolved=True,
+            xp_earned=xp,
+            broski_coins=coins,
+            error_trace=error_msg,
+        )
+        await event_bus.publish(event)
+        await event_bus.award_xp(HEALER_AGENT_ID, xp=xp, coins=coins)
+        logger.info(f"📤 HealEvent published | {event.summary()}")
+    except Exception as e:
+        logger.warning(f"EventBus publish failed (non-fatal): {e}")
+
+
+# ── System helpers ──────────────────────────────────────────────────────────────────────
 async def fetch_system_health() -> Dict[str, Dict[Any, Any]]:
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -254,7 +302,7 @@ async def fetch_agent_roster() -> Dict[str, str]:
         return {}
 
 
-# ── Watchdog ──────────────────────────────────────────────────────────────────
+# ── Watchdog ──────────────────────────────────────────────────────────────────────────────
 async def watchdog_cycle() -> None:
     if not WATCHDOG_SMOKE_API_KEY:
         return
@@ -314,7 +362,7 @@ async def watchdog_loop() -> None:
         await asyncio.sleep(max(WATCHDOG_INTERVAL_SECONDS, 5.0))
 
 
-# ── Healing logic ─────────────────────────────────────────────────────────────
+# ── Healing logic ──────────────────────────────────────────────────────────────────────
 async def ping_agent_health(agent_url: str, timeout: float) -> bool:
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -361,6 +409,12 @@ async def attempt_heal_agent(
                 is_healthy = await asyncio.wait_for(ping_agent_health(agent_url, timeout), timeout=5.0)
                 if is_healthy:
                     logger.info(f"✅ Agent {agent_name} recovered after {wait_time}s")
+                    # │ Phase 3 — Publish success event │
+                    asyncio.create_task(_publish_heal_event(
+                        healed_agent=agent_name,
+                        heal_pattern="docker_restart",
+                        status="recovered",
+                    ))
                     return HealResult(agent=agent_name, status="recovered", action="restart", details=f"Restart successful - recovered after {wait_time}s", timestamp=datetime.now().isoformat())
             except asyncio.TimeoutError:
                 continue
@@ -373,13 +427,21 @@ async def attempt_heal_agent(
     try:
         return await breaker.call(heal_task)
     except Exception as e:
+        error_msg = str(e)
+        # │ Phase 3 — Publish failure event │
+        asyncio.create_task(_publish_heal_event(
+            healed_agent=agent_name,
+            heal_pattern="docker_restart",
+            status="failed",
+            error_msg=error_msg,
+        ))
         if isinstance(e, HealerException):
             return HealResult(agent=e.agent, status=e.status, action="none", details=e.details, timestamp=datetime.now().isoformat())
         return HealResult(
             agent=agent_name,
             status="circuit_open" if breaker.state == CircuitState.OPEN else "failed",
             action="none" if breaker.state == CircuitState.OPEN else "restart",
-            details=str(e),
+            details=error_msg,
             timestamp=datetime.now().isoformat(),
         )
 
@@ -429,7 +491,7 @@ async def alert_listener():
         logger.warning("Alert listener stopped")
 
 
-# ── Routes ──────────────────────────────────────────────────────────────────────
+# ── Routes ──────────────────────────────────────────────────────────────────────────────
 @app.get("/health")
 async def health():
     docker_ok = False
@@ -440,12 +502,14 @@ async def health():
         except Exception:
             pass
     redis_ok = redis_client is not None
-    status = "healthy" if (docker_ok and redis_ok) else "degraded"
+    bus_ok   = event_bus is not None and event_bus._connected
+    status   = "healthy" if (docker_ok and redis_ok) else "degraded"
     return {
         "status": status,
         "healer": "online",
         "redis": redis_ok,
         "docker": docker_ok,
+        "event_bus": bus_ok,   # │ Phase 3 │
         "circuit_breaker_active": len(circuit_breakers) > 0,
         "timestamp": datetime.now().isoformat(),
     }
@@ -459,6 +523,22 @@ async def health_sweep():
         return await docker_adapter.check_all_containers()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/xp/status")
+async def xp_status():
+    """Phase 3 — Get healer agent XP + level from Redis ledger."""
+    if not event_bus:
+        raise HTTPException(status_code=503, detail="EventBus not connected")
+    return await event_bus.get_agent_xp(HEALER_AGENT_ID)
+
+
+@app.get("/xp/history")
+async def xp_history():
+    """Phase 3 — Get recent heal events from persistent log."""
+    if not event_bus:
+        raise HTTPException(status_code=503, detail="EventBus not connected")
+    return await event_bus.get_event_history(agent_type="healer", limit=20)
 
 
 @app.get("/circuit-breaker/status")
