@@ -121,3 +121,6 @@ test-*.txt
 .coverage
 .env1
 .venv_broken/
+tcc-agent.exe
+tcc-agent.exe
+testcontainers-cloud-nodejs-example/
