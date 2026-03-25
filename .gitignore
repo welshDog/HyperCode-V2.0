@@ -124,3 +124,24 @@ test-*.txt
 tcc-agent.exe
 tcc-agent.exe
 testcontainers-cloud-nodejs-example/
+
+# ===== HyperCode V2.0 - Generated artifacts (do not commit) =====
+backend/outputs/
+backend/cov.json
+backend/coverage.xml
+coverage.xml
+*.coverage
+.coverage
+htmlcov/
+
+# Runtime logs
+*.log
+logs/
+
+# Agent runtime outputs
+agents/*/outputs/
+agents/*/logs/
+
+# OS artifacts
+Thumbs.db
+desktop.ini
