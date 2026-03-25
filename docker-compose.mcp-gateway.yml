@@ -19,6 +19,8 @@
 # - Replaced all fake modelcontextprotocol/* images with real equivalents
 # - Replaced docker/model-runner with ollama/ollama (actually exists)
 # - MCP tool servers run via npx on node:20-alpine (official MCP approach)
+# - [2026-03-25] Marked all shared volumes as external to prevent
+#   "volume exists but doesn't match" prompts on merged compose startup
 # ============================================================================
 
 services:
@@ -318,11 +320,37 @@ services:
         max-size: "10m"
         max-file: "3"
 
+# ============================================================================
+# VOLUMES — All shared volumes marked as external.
+# These are owned and created by docker-compose.yml (main stack).
+# Declaring them external here prevents Docker from prompting
+# "volume exists but doesn't match" when using merged -f compose startup.
+# ============================================================================
 volumes:
   ollama_models:
-    driver: local
+    external: true
+    name: hypercode-v20_ollama-data
   chroma_data:
-    driver: local
+    external: true
+    name: hypercode-v20_chroma_data
+  minio_data:
+    external: true
+    name: hypercode-v20_minio_data
+  redis-data:
+    external: true
+    name: hypercode-v20_redis-data
+  grafana-data:
+    external: true
+    name: hypercode-v20_grafana-data
+  postgres-data:
+    external: true
+    name: hypercode-v20_postgres-data
+  prometheus-data:
+    external: true
+    name: hypercode-v20_prometheus-data
+  agent_memory:
+    external: true
+    name: hypercode-v20_agent_memory
 
 networks:
   backend-net:
