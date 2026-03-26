@@ -496,7 +496,7 @@ async def alert_listener():
 @app.on_event("startup")
 async def startup():
     await start_mape_k(app)  # 🧠 MAPE-K ONLINE!
- }
+
 
 @app.get("/health")
 async def health():
