@@ -1,4 +1,5 @@
 # ✅ STDLIB — complete clean import block
+from mape_k_bootstrap import start_mape_k
 import asyncio
 import json
 import logging
@@ -492,6 +493,11 @@ async def alert_listener():
 
 
 # ── Routes ──────────────────────────────────────────────────────────────────────────────
+@app.on_event("startup")
+async def startup():
+    await start_mape_k(app)  # 🧠 MAPE-K ONLINE!
+ }
+
 @app.get("/health")
 async def health():
     docker_ok = False
