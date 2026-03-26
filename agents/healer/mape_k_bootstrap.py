@@ -8,7 +8,6 @@ Add this to agents/healer/main.py startup:
     async def startup():
         await start_mape_k(app)
 """
-
 import asyncio
 import logging
 from fastapi import FastAPI
@@ -42,3 +41,4 @@ async def start_mape_k(app: FastAPI, interval: int = 10):
     )
     logger.info(f"🧠 MAPE-K loop started — polling every {interval}s")
     return kb
+

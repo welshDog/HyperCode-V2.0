@@ -10,6 +10,7 @@ Phase 2: Predictive healing (Isolation Forest) — coming soon!
 Built by @welshDog 🏴󠁧󠁢󠁷󠁬󠁳󠁿♾ — HyperFocus Zone, Llanelli, Wales
 """
 
+import docker as docker_sdk
 import asyncio
 import time
 import statistics
@@ -250,17 +251,39 @@ async def execute(
         except Exception as e:
             logger.error(f"[EXECUTE] HTTP restart failed: {e}")
 
-    elif action == HealAction.DOCKER_RESTART and service.compose_name:
-        try:
-            result = subprocess.run(
-                ["docker", "compose", "restart", service.compose_name],
-                capture_output=True, text=True, timeout=30
-            )
-            success = result.returncode == 0
-            if not success:
-                logger.error(f"[EXECUTE] docker restart stderr: {result.stderr}")
-        except Exception as e:
-            logger.error(f"[EXECUTE] Docker restart failed: {e}")
+elif action == HealAction.DOCKER_RESTART and service.compose_name:
+    try:
+        client = docker_sdk.from_env()
+        container = client.containers.get(service.compose_name)
+        container.restart()
+        success = True
+        logger.info(f"[EXECUTE] ✅ Docker SDK restart sent to {service.compose_name}")
+    except docker_sdk.errors.NotFound:
+        logger.error(f"[EXECUTE] Container {service.compose_name} not found")
+    except Exception as e:
+        logger.error(f"[EXECUTE] Docker restart failed: {e}")
+🎯 Do It Now — 3 Steps
+Step 1 — Open the file locally:
+
+text
+H:\HyperStation zone\HyperCode\HyperCode-V2.0\agents\healer\mape_k_engine.py
+Step 2 — Find line import subprocess at the top and add below it:
+
+python
+import docker as docker_sdk
+Step 3 — Find the DOCKER_RESTART block (search for subprocess.run) and replace with the SDK version above.
+
+🔄 Then Rebuild
+powershell
+docker-compose --profile agents up -d --build healer-agent
+docker logs healer-agent -f
+The Docker restart failed: [Errno 2] No such file or directory: 'docker' errors will be gone — replaced with proper SDK restarts! ✅
+
+Also spotted a second issue — the MAPE-K service URLs use localhost but inside Docker they should use container names! We can fix that next if you want — but the subprocess bug is priority 1.
+
+🎯 Next Win: Make that 3-line swap in mape_k_engine.py, rebuild, and watch the healer actually restart containers successfully!
+
+
 
     elif action == HealAction.ALERT_ONLY:
         success = True  # alerting always "succeeds"
