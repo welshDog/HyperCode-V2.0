@@ -1,0 +1,51 @@
+name: \uD83D\uDD12 Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * 1'  # Every Monday 02:00 UTC
+
+jobs:
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run Bandit
+        run: |
+          pip install bandit
+          mkdir -p reports
+          bandit -r backend/ agents/ \
+            --format json \
+            --output reports/bandit-report.json \
+            -ll -ii || true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: npm audit
+        run: |
+          cd agents/dashboard
+          npm audit --json > ../../reports/npm-audit.json || true
+
+      - name: detect-secrets
+        run: |
+          pip install detect-secrets
+          detect-secrets scan --all-files \
+            --exclude-files 'package-lock\.json' \
+            --exclude-files '\.secrets\.baseline' \
+            > reports/secrets-scan.json || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: reports/

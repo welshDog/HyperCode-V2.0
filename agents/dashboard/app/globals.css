@@ -1,65 +1,178 @@
-@import "tailwindcss";
+/* ====================================================
+   HyperCode V2.0 — Global Styles
+   ND-First: WCAG 2.1 AA, Dyslexia fonts, Reduced Motion
+   ==================================================== */
 
-@theme {
-  --font-sans: var(--font-orbitron);
-  --font-mono: var(--font-mono);
-}
-
+/* ── ND Sensory Profiles ────────────────────────── */
 :root {
-  --background: var(--hc-color-bg, #050505);
-  --foreground: var(--hc-color-text-primary, #00f0ff);
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--hc-font-body, var(--font-mono));
-  letter-spacing: var(--hc-letter-spacing, 0.01em);
-  line-height: var(--hc-line-height, 1.6);
-  filter: var(--hc-saturation-filter, saturate(1));
-}
-
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #0a0a0a;
-}
-::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #00f0ff;
-}
-
-/* Animations */
-@keyframes scanline {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100%); }
-}
-
-.scanline::after {
-  content: " ";
-  display: block;
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-  z-index: 2;
-  background-size: 100% 2px, 3px 100%;
-  pointer-events: none;
+  --shell-bg:         #0a0e1a;
+  --pane-bg:          #0f1420;
+  --pane-border:      #1e2a3a;
+  --pane-header:      #111827;
+  --font-primary:     'Inter', 'OpenDyslexic', system-ui, sans-serif;
+  --font-mono:        'JetBrains Mono', 'Cascadia Code', monospace;
+  --font-size-base:   16px;
+  --line-height:      1.7;
+  --letter-spacing:   0.02em;
+  --text-primary:     #e8f0fe;
+  --text-secondary:   #8899aa;
+  --accent-cyan:      #00d4ff;
+  --accent-green:     #00ff88;
+  --accent-amber:     #ffaa00;
+  --accent-red:       #ff4466;
+  --accent-purple:    #a855f7;
+  --status-healthy:   #00ff88;
+  --status-warning:   #ffaa00;
+  --status-error:     #ff4466;
+  --status-idle:      #4a5568;
+  --transition-fast:  150ms ease;
+  --transition-med:   300ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
 }
+
+[data-nd-mode="high-contrast"] {
+  --shell-bg:     #000000;
+  --pane-bg:      #0a0a0a;
+  --text-primary: #ffffff;
+  --pane-border:  #ffffff;
+}
+
+[data-nd-mode="dyslexia"] {
+  --font-primary:   'OpenDyslexic', sans-serif;
+  --font-size-base: 18px;
+  --line-height:    2.0;
+  --letter-spacing: 0.05em;
+  --shell-bg:       #1a1500;
+}
+
+[data-nd-mode="focus"] {
+  --shell-bg:   #050810;
+  --pane-bg:    #080d18;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, .hyper-root {
+  width:          100vw;
+  height:         100vh;
+  overflow:       hidden;
+  font-family:    var(--font-primary);
+  font-size:      var(--font-size-base);
+  line-height:    var(--line-height);
+  letter-spacing: var(--letter-spacing);
+  background:     var(--shell-bg);
+  color:          var(--text-primary);
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--pane-bg); }
+::-webkit-scrollbar-thumb { background: var(--accent-cyan); border-radius: 2px; }
+
+:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.hyper-shell {
+  display: grid;
+  width:   100vw;
+  height:  100vh;
+  gap:     4px;
+}
+
+.pane {
+  background:  var(--pane-bg);
+  border:      1px solid var(--pane-border);
+  border-radius: 6px;
+  overflow:    hidden;
+  display:     flex;
+  flex-direction: column;
+  transition:  border-color var(--transition-fast);
+}
+
+.pane:hover    { border-color: var(--accent-cyan); }
+.pane.focused  { border-color: var(--accent-purple); box-shadow: 0 0 20px rgba(168,85,247,0.15); }
+
+.pane-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         6px 10px;
+  background:      var(--pane-header);
+  border-bottom:   1px solid var(--pane-border);
+  font-size:       12px;
+  font-weight:     600;
+  color:           var(--text-secondary);
+  flex-shrink:     0;
+}
+
+.pane-body {
+  flex: 1;
+  overflow: auto;
+  padding: 8px;
+}
+
+.status-dot {
+  width:         8px;
+  height:        8px;
+  border-radius: 50%;
+  display:       inline-block;
+  margin-right:  6px;
+}
+.status-dot.healthy  { background: var(--status-healthy); box-shadow: 0 0 6px var(--status-healthy); }
+.status-dot.warning  { background: var(--status-warning); }
+.status-dot.error    { background: var(--status-error); animation: pulse-error 1s infinite; }
+.status-dot.idle     { background: var(--status-idle); }
+
+@keyframes pulse-error {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+.xp-bar {
+  height:        6px;
+  background:    var(--pane-border);
+  border-radius: 3px;
+  overflow:      hidden;
+  margin-top:    4px;
+}
+.xp-bar-fill {
+  height:        100%;
+  background:    linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+  border-radius: 3px;
+  transition:    width var(--transition-med);
+}
+
+.btn {
+  padding:       4px 10px;
+  border:        1px solid var(--pane-border);
+  border-radius: 4px;
+  background:    transparent;
+  color:         var(--text-secondary);
+  font-size:     11px;
+  cursor:        pointer;
+  transition:    all var(--transition-fast);
+}
+.btn:hover  { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+.btn.active { border-color: var(--accent-purple); color: var(--accent-purple); background: rgba(168,85,247,0.1); }
+
+.tag {
+  display:       inline-block;
+  padding:       2px 6px;
+  border-radius: 3px;
+  font-size:     10px;
+  font-weight:   700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.tag.healthy  { background: rgba(0,255,136,0.15); color: var(--status-healthy); }
+.tag.warning  { background: rgba(255,170,0,0.15);  color: var(--status-warning); }
+.tag.error    { background: rgba(255,68,102,0.15); color: var(--status-error); }
+.tag.idle     { background: rgba(74,85,104,0.3);   color: var(--status-idle); }

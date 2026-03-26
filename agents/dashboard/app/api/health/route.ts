@@ -1,37 +1,18 @@
-import { NextResponse } from "next/server";
-import { existsSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { NextResponse } from 'next/server'
 
-function hasStaticChunks(): { ok: boolean; reason?: string } {
-  const staticDir = join(process.cwd(), ".next", "static");
-  if (!existsSync(staticDir)) return { ok: false, reason: "static assets missing" };
+const CORE_URL = process.env.HYPERCODE_CORE_URL ?? 'http://hypercode-core:8000'
 
-  const chunksDir = join(staticDir, "chunks");
-  if (!existsSync(chunksDir)) return { ok: false, reason: "static chunks missing" };
+export async function GET() {
+  const checks: Record<string, boolean> = {}
 
   try {
-    const files = readdirSync(chunksDir);
-    const hasJsChunk = files.some((f) => f.endsWith(".js"));
-    if (!hasJsChunk) return { ok: false, reason: "no chunk files found" };
-    return { ok: true };
-  } catch {
-    return { ok: false, reason: "failed to read chunks directory" };
-  }
+    const r = await fetch(`${CORE_URL}/health`, { cache: 'no-store', signal: AbortSignal.timeout(3000) })
+    checks.core = r.ok
+  } catch { checks.core = false }
+
+  const allHealthy = Object.values(checks).every(Boolean)
+  return NextResponse.json(
+    { healthy: allHealthy, checks, timestamp: new Date().toISOString() },
+    { status: allHealthy ? 200 : 503 }
+  )
 }
-
-export function GET() {
-  const staticCheck = hasStaticChunks();
-  if (!staticCheck.ok) {
-    return NextResponse.json(
-      { status: "degraded", reason: staticCheck.reason, timestamp: new Date().toISOString() },
-      { status: 503 }
-    );
-  }
-
-  return NextResponse.json({
-    status: "ok",
-    timestamp: new Date().toISOString(),
-    staticAssets: "present",
-  });
-}
-
