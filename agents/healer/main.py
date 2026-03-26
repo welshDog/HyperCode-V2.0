@@ -1,5 +1,5 @@
 # ✅ STDLIB — complete clean import block
-from mape_k_bootstrap import start_mape_k
+from .mape_k_bootstrap import start_mape_k
 import asyncio
 import json
 import logging
@@ -81,7 +81,7 @@ class ThrottleStateUpdate(BaseModel):
     reason: Optional[str] = None
 
 
-# ── Throttle helpers ──────────────────────────────────────────────────────────────
+# ── Throttle helpers ──────────────────────────────────────────────────────────
 def _throttle_pause_key(container: str) -> str:
     return f"throttle:paused:{container}"
 
