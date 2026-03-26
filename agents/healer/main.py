@@ -27,6 +27,11 @@ from .models import HealResult, HealerException, HealRequest
 from agents.shared.agent_message import HealEvent, AgentMessage
 from agents.shared.event_bus import AgentEventBus
 
+# ── MAPE-K router pre-registration (MUST happen before app starts) ─────────────────────
+from .mape_k_api import router as mape_k_router
+from .mape_k_engine import KnowledgeBase, mape_k_loop, DEFAULT_SERVICES
+from .mape_k_api import set_knowledge_base
+
 # ── Logging ──────────────────────────────────────────────────────────────────────────────
 class JSONFormatter(logging.Formatter):
     def format(self, record):
@@ -209,6 +214,18 @@ async def lifespan(app: FastAPI):
         logger.warning(f"⚠️  EventBus failed to connect (non-fatal): {e}")
         event_bus = None
 
+    # 🧠 Start MAPE-K background loop (router already registered at module load)
+    kb = KnowledgeBase()
+    set_knowledge_base(kb)
+    asyncio.create_task(
+        mape_k_loop(
+            services=DEFAULT_SERVICES,
+            kb=kb,
+            interval_seconds=10,
+        )
+    )
+    logger.info("🧠 MAPE-K loop started — polling every 10s")
+
     asyncio.create_task(alert_listener())
     if WATCHDOG_ENABLED:
         asyncio.create_task(watchdog_loop())
@@ -229,6 +246,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 init_metrics(app)
+
+# 🧠 MAPE-K routes registered HERE — before the app starts serving!
+app.include_router(mape_k_router)
+logger.info("✅ MAPE-K API routes registered at /mape-k/*")
 
 
 # ── Phase 3: Event bus publish helper ───────────────────────────────────────────────
@@ -410,7 +431,6 @@ async def attempt_heal_agent(
                 is_healthy = await asyncio.wait_for(ping_agent_health(agent_url, timeout), timeout=5.0)
                 if is_healthy:
                     logger.info(f"✅ Agent {agent_name} recovered after {wait_time}s")
-                    # │ Phase 3 — Publish success event │
                     asyncio.create_task(_publish_heal_event(
                         healed_agent=agent_name,
                         heal_pattern="docker_restart",
@@ -429,7 +449,6 @@ async def attempt_heal_agent(
         return await breaker.call(heal_task)
     except Exception as e:
         error_msg = str(e)
-        # │ Phase 3 — Publish failure event │
         asyncio.create_task(_publish_heal_event(
             healed_agent=agent_name,
             heal_pattern="docker_restart",
@@ -493,11 +512,6 @@ async def alert_listener():
 
 
 # ── Routes ──────────────────────────────────────────────────────────────────────────────
-@app.on_event("startup")
-async def startup():
-    await start_mape_k(app)  # 🧠 MAPE-K ONLINE!
-
-
 @app.get("/health")
 async def health():
     docker_ok = False
@@ -515,7 +529,7 @@ async def health():
         "healer": "online",
         "redis": redis_ok,
         "docker": docker_ok,
-        "event_bus": bus_ok,   # │ Phase 3 │
+        "event_bus": bus_ok,
         "circuit_breaker_active": len(circuit_breakers) > 0,
         "timestamp": datetime.now().isoformat(),
     }
@@ -533,7 +547,6 @@ async def health_sweep():
 
 @app.get("/xp/status")
 async def xp_status():
-    """Phase 3 — Get healer agent XP + level from Redis ledger."""
     if not event_bus:
         raise HTTPException(status_code=503, detail="EventBus not connected")
     return await event_bus.get_agent_xp(HEALER_AGENT_ID)
@@ -541,7 +554,6 @@ async def xp_status():
 
 @app.get("/xp/history")
 async def xp_history():
-    """Phase 3 — Get recent heal events from persistent log."""
     if not event_bus:
         raise HTTPException(status_code=503, detail="EventBus not connected")
     return await event_bus.get_event_history(agent_type="healer", limit=20)
