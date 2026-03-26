@@ -11,10 +11,10 @@ Built by @welshDog 🏴󠁧󠁢󠁷󠁬󠁳󠁿♾ — HyperFocus Zone, Llanelli
 """
 
 import docker as docker_sdk
+import docker as docker_sdk
 import asyncio
 import time
 import statistics
-import subprocess
 import httpx
 import logging
 from datetime import datetime, timezone
@@ -39,7 +39,7 @@ class ServiceStatus(str, Enum):
 
 class HealAction(str, Enum):
     HTTP_RESTART   = "http_restart"    # POST /restart to agent
-    DOCKER_RESTART = "docker_restart"  # docker-compose restart
+    DOCKER_RESTART = "docker_restart"  # docker SDK container restart
     SCALE_UP       = "scale_up"        # future: k8s/compose scale
     ALERT_ONLY     = "alert_only"      # log + notify, no action
     NO_ACTION      = "no_action"
@@ -49,8 +49,8 @@ class HealAction(str, Enum):
 class ServiceConfig:
     name: str
     port: int
-    check_url: str                      # e.g. http://localhost:8010/health
-    compose_name: Optional[str] = None  # docker-compose service name
+    check_url: str                      # e.g. http://hypercode-core:8000/health
+    compose_name: Optional[str] = None  # Docker container name
     restart_url: Optional[str] = None   # POST endpoint for soft restart
     critical: bool = True               # is this a critical service?
     history: deque = field(default_factory=lambda: deque(maxlen=60))
@@ -370,19 +370,22 @@ async def mape_k_loop(
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # ⚙️ DEFAULT SERVICE REGISTRY
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# NOTE: URLs use Docker internal container hostnames (backend-net),
+# NOT localhost — the healer runs inside a container and cannot
+# reach other services via localhost.
 
 DEFAULT_SERVICES = [
-    ServiceConfig("HyperCode Backend",  8000, "http://localhost:8000/health",  "hypercode-backend"),
-    ServiceConfig("Healer Agent",        8010, "http://localhost:8010/health",  "healer-agent",       critical=False),
-    ServiceConfig("Crew Orchestrator",   8081, "http://localhost:8081/health",  "crew-orchestrator"),
-    ServiceConfig("Super BROski Agent",  8015, "http://localhost:8015/health",  "super-hyper-broski"),
-    ServiceConfig("Throttle Agent",      8014, "http://localhost:8014/health",  "throttle-agent"),
-    ServiceConfig("Test Agent",          8013, "http://localhost:8013/health",  "test-agent"),
-    ServiceConfig("Tips Writer",         8011, "http://localhost:8011/health",  "tips-tricks-writer"),
-    ServiceConfig("Mission Control",     8088, "http://localhost:8088/health",  "hypercode-dashboard"),
-    ServiceConfig("MCP Gateway",         8820, "http://localhost:8820/health",  "mcp-gateway"),
-    ServiceConfig("MCP REST Adapter",    8821, "http://localhost:8821/health",  "mcp-rest-adapter"),
-    ServiceConfig("Ollama LLM",         11434, "http://localhost:11434/api/tags", "ollama"),
-    ServiceConfig("Prometheus",          9090, "http://localhost:9090/-/healthy", "prometheus",       critical=False),
-    ServiceConfig("Grafana",             3001, "http://localhost:3001/api/health", "grafana",         critical=False),
+    ServiceConfig("HyperCode Backend",  8000, "http://hypercode-core:8000/health",          "hypercode-core"),
+    ServiceConfig("Healer Agent",        8008, "http://healer-agent:8008/health",             "healer-agent",        critical=False),
+    ServiceConfig("Crew Orchestrator",   8080, "http://crew-orchestrator:8080/health",        "crew-orchestrator"),
+    ServiceConfig("Super BROski Agent",  8015, "http://super-hyper-broski:8015/health",       "super-hyper-broski"),
+    ServiceConfig("Throttle Agent",      8014, "http://throttle-agent:8014/health",           "throttle-agent"),
+    ServiceConfig("Test Agent",          8013, "http://test-agent:8013/health",               "test-agent"),
+    ServiceConfig("Tips Writer",         8011, "http://tips-tricks-writer:8011/health",       "tips-tricks-writer"),
+    ServiceConfig("Mission Control",     8088, "http://hypercode-dashboard:8088/health",      "hypercode-dashboard"),
+    ServiceConfig("MCP Gateway",         8820, "http://mcp-gateway:8820/health",              "mcp-gateway"),
+    ServiceConfig("MCP REST Adapter",    8821, "http://mcp-rest-adapter:8821/health",         "mcp-rest-adapter"),
+    ServiceConfig("Ollama LLM",         11434, "http://hypercode-ollama:11434/api/tags",      "hypercode-ollama"),
+    ServiceConfig("Prometheus",          9090, "http://prometheus:9090/-/healthy",            "prometheus",          critical=False),
+    ServiceConfig("Grafana",             3001, "http://grafana:3001/api/health",              "grafana",             critical=False),
 ]
