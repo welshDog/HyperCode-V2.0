@@ -1,0 +1,62 @@
+# HyperHealth Docker Compose Extension
+# Usage: docker compose -f docker-compose.yml -f docker-compose.hyperhealth.yml up -d
+# Adds hyperhealth-api + hyperhealth-worker to the existing HyperCode stack
+
+services:
+
+  # ── HyperHealth Orchestrator API ──────────────────────────────────────────
+  hyperhealth-api:
+    build:
+      context: ./services/hyperhealth
+      dockerfile: Dockerfile
+    container_name: hyperhealth-api
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://hypercode:hypercode@postgres:5432/hypercode}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - HEALER_URL=${HEALER_URL:-http://healer-agent:8008}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - WORKER_CONCURRENCY=200
+    networks:
+      - hypercode-network
+    depends_on:
+      - postgres
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    labels:
+      - "hypercode.service=hyperhealth-api"
+      - "hypercode.role=health-orchestrator"
+
+  # ── HyperHealth Async Worker Pool ─────────────────────────────────────────
+  hyperhealth-worker:
+    build:
+      context: ./services/hyperhealth
+      dockerfile: Dockerfile
+    container_name: hyperhealth-worker
+    restart: unless-stopped
+    command: ["python", "-m", "worker"]
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://hypercode:hypercode@postgres:5432/hypercode}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - HEALER_URL=${HEALER_URL:-http://healer-agent:8008}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - WORKER_CONCURRENCY=200
+    networks:
+      - hypercode-network
+    depends_on:
+      - postgres
+      - redis
+      - hyperhealth-api
+    labels:
+      - "hypercode.service=hyperhealth-worker"
+      - "hypercode.role=check-executor"
+
+networks:
+  hypercode-network:
+    external: true

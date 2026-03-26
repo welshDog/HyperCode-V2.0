@@ -13,13 +13,6 @@ rule_files:
   - "/etc/prometheus/monitoring/rules/*.yml"
 
 scrape_configs:
-  - job_name: "hyper_agents_backend"
-    static_configs:
-      - targets: ["backend:8000"]   # or localhost:8000 if not in Docker
-    metrics_path: /metrics
-    scrape_interval: 15s
-
-scrape_configs:
   - job_name: "prometheus"
     static_configs:
       - targets: ["localhost:9090"]
@@ -33,6 +26,17 @@ scrape_configs:
     metrics_path: "/metrics"
     static_configs:
       - targets: ["coder-agent:8000"]
+
+  # ── HyperHealth ───────────────────────────────────────────────────────────
+  - job_name: "hyperhealth"
+    metrics_path: "/metrics"
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["hyperhealth-api:8090"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: hyperhealth
 
   # Disabled: Not in docker-compose
   # - job_name: "node"
