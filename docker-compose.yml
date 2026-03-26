@@ -1221,6 +1221,7 @@ services:
       - HEALER_WATCHDOG_FORCE_RESTART=${HEALER_WATCHDOG_FORCE_RESTART:-false}
       - HEALER_WATCHED_SERVICES=${HEALER_WATCHED_SERVICES:-hypercode-core,redis,postgres,celery-worker,hypercode-ollama,healer-agent}
     volumes:
+    
       - ./agents/healer:/app/healer
       - ./Configuration_Kit:/app/hive_mind:ro
       - /var/run/docker.sock:/var/run/docker.sock
