@@ -245,7 +245,7 @@ python-memcached==1.62
 python-multipart==0.0.20
 python-socketio==5.13.0
 pytz==2025.2
-pywin32==311
+# pywin32==311 <- REMOVED: Windows-only, not available in Linux Docker containers
 PyYAML==6.0.2
 qiskit==2.3.1
 RapidFuzz==3.14.3
