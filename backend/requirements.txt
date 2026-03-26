@@ -260,7 +260,8 @@ rpds-py==0.26.0
 rsa==4.9.1
 ruamel.yaml==0.18.14
 ruamel.yaml.clib==0.2.12
-ruff==0.9.0
+# ruff bumped to 0.9.3 — gradio==5.41.0 requires ruff>=0.9.3
+ruff==0.9.3
 rustworkx==0.17.1
 s3transfer==0.16.0
 safehttpx==0.1.6
