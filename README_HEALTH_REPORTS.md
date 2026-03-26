@@ -1,224 +1,155 @@
-# 📋 Health Check Reports - Quick Navigation
+# 🩺 BROski♾ HyperCode V2.0 — Health Report Hub
 
-## Generated Reports
-
-All reports are located in `./HyperCode-V2.0/` directory.
-
-### 1. **HEALTH_CHECK_SUMMARY.txt** ⭐ START HERE
-**Best for:** Quick overview and action items  
-**Size:** 16 KB  
-**Time to read:** 5 minutes  
-**Contains:**
-- Executive summary
-- Critical issues with fixes
-- Warnings
-- Service access information
-- Next steps (priority order)
-
-### 2. **FULL_HEALTH_CHECK_REPORT.md** 📊 DETAILED ANALYSIS
-**Best for:** Deep dive technical analysis  
-**Size:** 21.8 KB  
-**Time to read:** 15-20 minutes  
-**Contains:**
-- Component-by-component status
-- Configuration details
-- Resource utilization
-- Security analysis
-- Data persistence status
-- Detailed issue breakdowns
-- Comprehensive recommendations
-
-### 3. **HEALTH_CHECK_DASHBOARD.md** 📈 VISUAL SUMMARY
-**Best for:** Monitoring and dashboards  
-**Size:** 9.9 KB  
-**Time to read:** 10 minutes  
-**Contains:**
-- Status tables
-- Action items by priority
-- System health score
-- Service access endpoints
-- Maintenance tasks
-- Available documentation
-
-### 4. **PROJECT_HEALTH_STATUS.md** 🎯 COMPREHENSIVE OVERVIEW
-**Best for:** Project management and stakeholder reporting  
-**Size:** 16.7 KB  
-**Time to read:** 15 minutes  
-**Contains:**
-- Overall project health
-- Detailed component status
-- Critical issues analysis
-- Warnings and gaps
-- Resource analysis
-- Access endpoints
-- Action checklist
-
-### 5. **quick-fix.sh** 🔧 AUTOMATED FIXES
-**Best for:** Resolving issues automatically  
-**Type:** Bash script  
-**Time to run:** 2-5 minutes  
-**Fixes:**
-- Dual Ollama instance issue
-- GitHub MCP investigation
-- Docker Janitor cleanup
-- System health checks
+> **Last Updated:** 2026-03-26 | **Status:** 🔥 LEGENDARY 95% | **Score: 21/22**
 
 ---
 
-## 📊 System Status Overview
+## ⚡ CURRENT SYSTEM STATUS
 
 | Category | Status | Details |
 |----------|--------|---------|
-| **Overall Health** | 85% ✅ | Operational & Production Ready |
-| **Containers** | 35/37 ✅ | 94.6% running |
-| **Services** | 25/35 ✅ | 71% healthy |
-| **Critical Issues** | 2 ⚠️ | Both fixable in <1 hour |
-| **Warnings** | 3 ⚠️ | Important but non-blocking |
+| **Overall Health** | 🔥 **95% LEGENDARY** | Fully Operational |
+| **Local Services** | 17/17 ✅ | ALL GREEN |
+| **Internal Docker** | 2/2 ✅ | Redis + Postgres ONLINE |
+| **Docker Engine** | ✅ | 38 containers running |
+| **GitHub CI** | ⚠️ | 1 stale run (non-blocking) |
+| **Containers** | 38 running ✅ | Full agent army LIVE |
 
 ---
 
-## 🚨 Critical Issues Found
+## 🚀 ALL SERVICES ONLINE
 
-### Issue #1: Dual Ollama Instances
-**Severity:** HIGH  
-**Fix Time:** 5 minutes  
-**Status:** Active  
-```bash
-docker rm $(docker ps -a --filter "name=hypercode-ollama" --filter "status=exited" -q)
-docker-compose up -d hypercode-ollama
-```
+### 🖥️ Local HTTP Services
+| Service | Port | Status |
+|---------|------|--------|
+| 🧠 HyperCode Backend | :8000 | ✅ ONLINE |
+| 🩺 Healer Agent | :8010 | ✅ ONLINE |
+| 🎛️ Crew Orchestrator | :8081 | ✅ ONLINE |
+| 🦅 Super BROski Agent | :8015 | ✅ ONLINE |
+| ⚡ Throttle Agent | :8014 | ✅ ONLINE |
+| 🧪 Test Agent | :8013 | ✅ ONLINE |
+| 📝 Tips & Tricks Writer | :8011 | ✅ ONLINE |
+| 📊 Mission Control | :8088 | ✅ ONLINE |
+| 🌍 Hyper Mission UI | :8099 | ✅ ONLINE |
+| 📈 Grafana | :3001 | ✅ ONLINE |
+| 🔍 cAdvisor | :8090 | ✅ ONLINE |
+| 📁 Prometheus | :9090 | ✅ ONLINE |
+| 🔗 MCP Gateway | :8820 | ✅ ONLINE |
+| 🔗 MCP REST Adapter | :8821 | ✅ ONLINE |
+| 🤖 Ollama LLM | :11434 | ✅ ONLINE |
+| 🧠 Chroma Vector DB | :8009 | ✅ ONLINE |
+| 🪣 MinIO Storage | :9000 | ✅ ONLINE (TCP) |
 
-### Issue #2: GitHub MCP Restart Loop
-**Severity:** HIGH  
-**Fix Time:** 15-30 minutes  
-**Status:** Active (restarting every 60s)  
-```bash
-docker logs mcp-github --tail 50
-# Check token validity and reconnect
-```
-
----
-
-## ✅ What's Working Great
-
-✓ Database & Cache Layer  
-✓ Core API Services  
-✓ Task Queue Processing  
-✓ Observability Stack (Prometheus, Grafana, Loki, Tempo)  
-✓ Container Metrics & Monitoring  
-✓ Log Aggregation  
-✓ Vector Database for RAG  
-✓ Object Storage (MinIO)  
-✓ Agent Framework & Orchestration  
-✓ Security Configuration  
-✓ Data Persistence  
-✓ Networking & Isolation  
+### 🔒 Internal Docker Services
+| Service | Status |
+|---------|--------|
+| 🗄️ Redis | ✅ Healthy inside Docker 🐳 |
+| 🐘 PostgreSQL | ✅ Healthy inside Docker 🐳 |
 
 ---
 
-## 📈 Resource Summary
+## 📈 Service Endpoints
 
-**Disk Usage:**
-- Active images: 34 (13GB used)
-- Unused images: 67.9GB (safe to prune)
-- Build cache: 41.19GB (18.65GB reclaimable)
-- Data volumes: 2.3GB (persisted)
-
-**Memory Usage:**
-- Top 3 consumers: Docker Labs AI (883MB), Grafana Alloy (361MB), cAdvisor (157MB)
-- Total system: ~1.1GB active
-
-**Networks:**
-- 3 managed networks (all healthy)
-- Proper isolation implemented
-- All services connected
-
----
-
-## 🎯 Recommended Next Steps
-
-### Today (Critical)
-1. [ ] Read HEALTH_CHECK_SUMMARY.txt
-2. [ ] Run `./quick-fix.sh`
-3. [ ] Verify Ollama startup: `docker logs -f hypercode-ollama`
-4. [ ] Check GitHub MCP: `docker logs mcp-github`
-
-### This Week (Important)
-1. [ ] Fix Windows paths in .env
-2. [ ] Migrate credentials to secrets manager
-3. [ ] Clean up unused Docker artifacts
-4. [ ] Commit health check documentation
-
-### This Month (Recommended)
-1. [ ] Set up backup automation
-2. [ ] Create operational runbooks
-3. [ ] Implement alerting system
-4. [ ] Perform capacity planning
-
----
-
-## 📞 Service Endpoints
-
-**Core Services:**
+**Core:**
 - API: http://127.0.0.1:8000
 - Dashboard: http://127.0.0.1:8088
 - Mission UI: http://127.0.0.1:8099
+- BROski Agent: http://127.0.0.1:8015
 
 **Observability:**
-- Grafana: http://localhost:3001 (LyndzWills / 71DaiRob09)
+- Grafana: http://localhost:3001
 - Prometheus: http://localhost:9090
-- Loki: http://localhost:3100
-- Tempo: http://localhost:3200
+- cAdvisor: http://localhost:8090
 
-**Storage:**
-- MinIO: http://127.0.0.1:9001 (BROski / 071DaiRob09)
+**AI / Storage:**
+- Ollama LLM: http://localhost:11434
+- Chroma DB: http://localhost:8009
+- MinIO: http://127.0.0.1:9000
 
----
-
-## 🔍 How to Use These Reports
-
-1. **Quick Assessment:** Read HEALTH_CHECK_SUMMARY.txt (5 min)
-2. **Detailed Analysis:** Review FULL_HEALTH_CHECK_REPORT.md (20 min)
-3. **Visual Reference:** Check HEALTH_CHECK_DASHBOARD.md (10 min)
-4. **Project Overview:** Review PROJECT_HEALTH_STATUS.md (15 min)
-5. **Automated Fixes:** Run quick-fix.sh (2-5 min)
+**MCP Stack:**
+- MCP Gateway: http://localhost:8820
+- MCP REST Adapter: http://localhost:8821
 
 ---
 
-## 📋 Report Metadata
+## 🩺 Running the Health Check
 
-**Generated:** March 16, 2026  
-**System Status:** ✅ OPERATIONAL (85% health)  
-**Uptime:** ~37 minutes (recent restart)  
-**Report Type:** Full System Health Check  
-**Next Review:** March 23, 2026 (Weekly)  
-**Generated By:** Gordon Health Check System
+```powershell
+python scripts/hypercode_health_check.py
+```
 
----
-
-## 💡 Key Findings
-
-**Strengths:**
-- Production-grade infrastructure in place
-- Comprehensive observability stack
-- Proper security configurations
-- Scalable architecture
-- Multiple deployment profiles
-
-**Issues:**
-- 2 critical issues (both addressable)
-- Credentials in .env file
-- Windows-specific path configuration
-- Unused Docker artifacts
-
-**Recommendations:**
-- Fix critical issues today
-- Implement secrets management
-- Migrate to relative paths
-- Schedule regular cleanup tasks
+Expect output:
+```
+🔥 HYPERSTATUS: FULLY OPERATIONAL — 95%
+🦅 BROski Power Level: LEGENDARY ♾
+Score: 21.0/22 services healthy
+```
 
 ---
 
-**Questions?** Refer to the detailed reports or contact the development team.
+## 📅 Health History
 
-**Ready to start?** Run `./quick-fix.sh` to address critical issues.
+| Date | Score | Status | Notes |
+|------|-------|--------|---------|
+| 2026-03-16 | 85% | ✅ Operational | Initial audit |
+| 2026-03-26 AM | 18% | ⚠️ Degraded | Docker network issue |
+| 2026-03-26 | 54% → 79% → 84% | 📈 Recovering | Redis/Postgres fixes |
+| **2026-03-26 12:32** | **95% 🔥** | **LEGENDARY** | **Full stack online** |
+
+---
+
+## 🔧 Known Issues & Fixes
+
+### ⚠️ Stale CI Run (Non-blocking)
+- **What:** Swarm Pipeline showing FAILURE from an old run
+- **Why:** Workflows were paused — run is cached from before
+- **Fix:** Will auto-clear on next successful CI trigger
+- **Impact:** ZERO — stack is fully operational locally
+
+### 💡 If Redis/Postgres Go Down
+```powershell
+docker-compose up -d redis postgres
+```
+
+### 💡 If Any Agent Goes Down
+```powershell
+docker-compose up -d <service-name>
+# Or restart all:
+docker-compose up -d
+```
+
+---
+
+## 🦅 Stack Architecture
+
+```
+HyperCode V2.0 — Full Stack
+├── 🧠 Core API (FastAPI :8000)
+├── 🤖 Agent Army
+│   ├── Healer Agent :8010
+│   ├── Super BROski :8015  
+│   ├── Crew Orchestrator :8081
+│   ├── Throttle Agent :8014
+│   ├── Test Agent :8013
+│   └── Tips Writer :8011
+├── 📊 Observability
+│   ├── Grafana :3001
+│   ├── Prometheus :9090
+│   └── cAdvisor :8090
+├── 🔗 MCP Stack
+│   ├── Gateway :8820
+│   └── REST Adapter :8821
+├── 🗄️ Data Layer
+│   ├── Redis (Docker internal)
+│   ├── PostgreSQL (Docker internal)
+│   ├── Chroma Vector DB :8009
+│   └── MinIO Storage :9000
+└── 🤖 AI Layer
+    └── Ollama LLM :11434
+```
+
+---
+
+## 🏴󠁧󠁢󠁷󠁬󠁳󠁿 Built in Llanelli, Wales by @welshDog
+
+> "38 containers. Full agent army. 95% legendary. On a Windows laptop. IYKYK." 🔥♾
