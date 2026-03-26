@@ -1,143 +1,75 @@
-# HyperCode V2.0 Kubernetes Deployment Guide
+# \uD83D\uDE80 HyperCode V2.0 — Deployment Guide
 
-This guide provides step-by-step instructions for deploying the HyperCode V2.0 platform to a Kubernetes cluster.
-
-## 📋 Prerequisites
-
-- A Kubernetes cluster (v1.24+)
-- `kubectl` configured to access your cluster
-- A container registry (Docker Hub, AWS ECR, etc.) to host your images
-- A domain name (for Ingress configuration)
-
-## 🚀 Deployment Steps
-
-### 1. Namespace & Configuration
-
-Create the isolated namespace and apply base configurations:
+## Quick Start (Local Dev)
 
 ```bash
-kubectl apply -f k8s/00-namespace.yaml
-kubectl apply -f k8s/01-configmaps.yaml
+# 1. Clone + env setup
+git clone https://github.com/welshDog/HyperCode-V2.0.git
+cd HyperCode-V2.0
+cp .env.example .env
+# Edit .env with your keys
+
+# 2. Start core stack
+docker compose up -d redis postgres hypercode-core
+
+# 3. Start dashboard
+docker compose up -d hypercode-dashboard
+
+# 4. Open Mission Control
+open http://localhost:8088
 ```
 
-### 2. Secrets Management
+## Service URLs
 
-**⚠️ CRITICAL:** Before applying secrets, edit `k8s/02-secrets.yaml` and replace placeholder values with your actual production credentials.
+| Service | URL | Purpose |
+|---------|-----|------|
+| Mission Control | http://localhost:8088 | Main Dashboard |
+| Core API | http://localhost:8000/docs | FastAPI Swagger |
+| Healer Agent | http://localhost:8008 | Self-Healing |
+| Grafana | http://localhost:3001 | Observability |
+| Redis | localhost:6379 | Event Bus |
+
+## Docker Compose Variants
+
+| File | Use For |
+|------|---------|
+| `docker-compose.yml` | Full production stack |
+| `docker-compose.nano.yml` | Low-resource dev (8GB RAM) |
+| `docker-compose.monitoring.yml` | Grafana + Prometheus only |
+| `docker-compose.dev.yml` | Hot-reload development |
+
+## Environment Variables
 
 ```bash
-# Edit secrets first!
-# notepad k8s/02-secrets.yaml
-kubectl apply -f k8s/02-secrets.yaml
+REDIS_URL=redis://redis:6379
+DATABASE_URL=postgresql+asyncpg://user:pass@postgres/hypercode
+HYPERCODE_JWT_SECRET=your-secret-here
+NEXT_PUBLIC_FF_HYPERFOCUS_MODE=false  # Feature flags
 ```
 
-### 3. Persistent Storage
-
-Provision storage for stateful services (PostgreSQL, Redis, MinIO, etc.):
+## Health Checks
 
 ```bash
-kubectl apply -f k8s/03-pvcs.yaml
+# Check all services
+curl http://localhost:8088/api/health | jq .
+
+# Check healer XP
+curl http://localhost:8008/xp/status | jq .
+
+# Check event bus
+docker exec $(docker compose ps -q redis) redis-cli LRANGE hypercode:events:all 0 4
 ```
 
-### 4. Infrastructure Services
-
-Deploy the core databases and message brokers:
+## Rollback
 
 ```bash
-kubectl apply -f k8s/04-postgres.yaml
-kubectl apply -f k8s/05-redis.yaml
+# Stop all services
+docker compose down --remove-orphans
 
-# Wait for databases to be ready
-kubectl wait --for=condition=ready pod -l app=postgres -n hypercode --timeout=300s
-kubectl wait --for=condition=ready pod -l app=redis -n hypercode --timeout=300s
+# Revert to last stable commit
+git log --oneline | grep -E '\u2705|STABLE'
+git checkout <commit-sha>
+
+# Restart
+docker compose up -d
 ```
-
-### 5. Core Application
-
-Deploy the main API and background workers:
-
-```bash
-kubectl apply -f k8s/06-hypercode-core.yaml
-```
-
-### 6. Observability Stack
-
-Deploy Prometheus, Grafana, Tempo, and Loki:
-
-```bash
-kubectl apply -f k8s/07-observability.yaml
-kubectl apply -f k8s/08-logging-tracing.yaml
-```
-
-### 7. Data Services
-
-Deploy MinIO, ChromaDB, and Ollama:
-
-```bash
-kubectl apply -f k8s/09-data-services.yaml
-```
-
-### 8. Frontend Dashboard
-
-Deploy the Next.js dashboard:
-
-```bash
-kubectl apply -f k8s/10-dashboard.yaml
-```
-
-### 9. Ingress & Networking
-
-Expose services to the outside world:
-
-**Note:** Update `k8s/11-ingress-network-policy.yaml` with your actual domain names before applying.
-
-```bash
-kubectl apply -f k8s/11-ingress-network-policy.yaml
-```
-
-### 10. BROski Bot
-
-Deploy the Discord bot:
-
-```bash
-kubectl apply -f k8s/12-broski-bot.yaml
-```
-
-## 🔍 Verification
-
-Check the status of all pods:
-
-```bash
-kubectl get pods -n hypercode
-```
-
-All pods should eventually show `Running` or `Completed`.
-
-## 🛠️ Troubleshooting
-
-**View logs for a specific service:**
-```bash
-kubectl logs -l app=hypercode-core -n hypercode
-```
-
-**Access a service locally (Port Forwarding):**
-```bash
-# Access Dashboard at http://localhost:3000
-kubectl port-forward svc/dashboard 3000:3000 -n hypercode
-
-# Access Grafana at http://localhost:3001
-kubectl port-forward svc/grafana 3001:3000 -n hypercode
-```
-
-**Restart a deployment:**
-```bash
-kubectl rollout restart deployment/hypercode-core -n hypercode
-```
-
-## 📈 Scaling
-
-Scale the core API manually:
-```bash
-kubectl scale deployment/hypercode-core --replicas=5 -n hypercode
-```
-
-Horizontal Pod Autoscaling (HPA) is already configured in `11-ingress-network-policy.yaml` to scale based on CPU usage.
