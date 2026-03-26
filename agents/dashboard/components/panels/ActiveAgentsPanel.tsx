@@ -5,6 +5,7 @@
 
 'use client';
 
+import ActiveAgentsPanel from '@/components/panels/ActiveAgentsPanel'
 import { useAgentStatus } from '../../hooks/useAgentStatus';
 import { useCircuitBreakers } from '../../hooks/useHealerTelemetry';
 
@@ -103,7 +104,7 @@ function AgentCard({
 
 // ── Main Panel ─────────────────────────────────────────────────────────────────
 
-export default function ActiveAgentsPanel() {
+export default function <ActiveAgentsPanel />() {
   const { agents, connected, error: wsError } = useAgentStatus();
   const { status: cbStatus, error: cbError }  = useCircuitBreakers();
 

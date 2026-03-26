@@ -5,6 +5,7 @@
 
 'use client';
 
+import HealerMissionLog from '@/components/panels/HealerMissionLog'
 import { useHealHistory, useHealerXP } from '../../hooks/useHealerTelemetry';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -66,7 +67,7 @@ function XPStatusBar() {
 
 // ── Main Panel ─────────────────────────────────────────────────────────────────
 
-export default function HealerMissionLog() {
+export default function <HealerMissionLog />() {
   const { events, loading, error } = useHealHistory();
 
   return (
