@@ -1,21 +1,20 @@
-// 🦅 HyperStation — Active Agents Panel
+// HyperStation - Active Agents Panel
 // Combines live WebSocket agent roster (useAgentStatus) with
 // circuit breaker health (useCircuitBreakers) from the Healer
 // Drops into the ACTIVE AGENTS section on the main dashboard
 
 'use client';
 
-import ActiveAgentsPanel from '@/components/panels/ActiveAgentsPanel'
 import { useAgentStatus } from '../../hooks/useAgentStatus';
 import { useCircuitBreakers } from '../../hooks/useHealerTelemetry';
 
-// ── Status helpers ─────────────────────────────────────────────────────────────
+// -- Status config ------------------------------------------------------------
 
 const STATUS_CONFIG = {
-  idle     : { dot: 'bg-gray-500',    label: 'Idle',     text: 'text-gray-400'  },
-  thinking : { dot: 'bg-yellow-400',  label: 'Thinking', text: 'text-yellow-400'},
+  idle     : { dot: 'bg-gray-500',    label: 'Idle',     text: 'text-gray-400'   },
+  thinking : { dot: 'bg-yellow-400',  label: 'Thinking', text: 'text-yellow-400' },
   working  : { dot: 'bg-emerald-400', label: 'Working',  text: 'text-emerald-400'},
-  error    : { dot: 'bg-red-500',     label: 'Error',    text: 'text-red-400'   },
+  error    : { dot: 'bg-red-500',     label: 'Error',    text: 'text-red-400'    },
 } as const;
 
 function circuitColour(state: string): string {
@@ -25,12 +24,12 @@ function circuitColour(state: string): string {
 }
 
 function circuitLabel(state: string): string {
-  if (state === 'open')      return '🔴 OPEN';
-  if (state === 'half_open') return '🟡 TESTING';
-  return '🟢 OK';
+  if (state === 'open')      return 'CB: OPEN';
+  if (state === 'half_open') return 'CB: TESTING';
+  return 'CB: OK';
 }
 
-// ── Single Agent Card ──────────────────────────────────────────────────────────
+// -- Single Agent Card --------------------------------------------------------
 
 interface AgentCardProps {
   id: string;
@@ -44,18 +43,16 @@ interface AgentCardProps {
 
 function AgentCard({
   id, name, status, lastActivity, skills, circuitState, circuitFailures
-}: AgentCardProps) {
+}: AgentCardProps): React.JSX.Element {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.idle;
   const cbState = circuitState ?? 'closed';
 
   return (
     <li
       className="rounded-lg border border-gray-800 bg-gray-900/60 p-3 text-xs"
-      aria-label={`Agent ${name} — ${cfg.label}`}
+      aria-label={`Agent ${name} - ${cfg.label}`}
     >
-      {/* Header row */}
       <div className="flex items-center gap-2 mb-2">
-        {/* Animated status dot */}
         <span
           className={`h-2 w-2 rounded-full shrink-0 ${
             status === 'working' ? 'animate-pulse' : ''
@@ -63,26 +60,23 @@ function AgentCard({
           aria-hidden
         />
         <span className="font-semibold text-white truncate">{name}</span>
-        <span className="ml-auto font-mono text-gray-600">{id}</span>
+        <span className="ml-auto font-mono text-gray-600 text-[10px]">{id}</span>
       </div>
 
-      {/* Status + circuit breaker */}
       <div className="flex items-center gap-3 mb-2">
         <span className={`font-medium ${cfg.text}`}>{cfg.label}</span>
         <span className={`font-medium ${circuitColour(cbState)}`}>
-          CB: {circuitLabel(cbState)}
+          {circuitLabel(cbState)}
           {(circuitFailures ?? 0) > 0 && (
             <span className="ml-1 text-gray-500">({circuitFailures} fails)</span>
           )}
         </span>
       </div>
 
-      {/* Last activity */}
       {lastActivity && (
-        <p className="text-gray-500 truncate mb-1">🕐 {lastActivity}</p>
+        <p className="text-gray-500 truncate mb-1">{lastActivity}</p>
       )}
 
-      {/* Skills chips */}
       {skills && skills.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-1">
           {skills.slice(0, 4).map((s) => (
@@ -102,9 +96,9 @@ function AgentCard({
   );
 }
 
-// ── Main Panel ─────────────────────────────────────────────────────────────────
+// -- Main Panel ---------------------------------------------------------------
 
-export default function <ActiveAgentsPanel />() {
+export default function ActiveAgentsPanel(): React.JSX.Element {
   const { agents, connected, error: wsError } = useAgentStatus();
   const { status: cbStatus, error: cbError }  = useCircuitBreakers();
 
@@ -117,9 +111,8 @@ export default function <ActiveAgentsPanel />() {
 
       <div className="flex items-center gap-2">
         <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400">
-          🤖 Active Agents
+          Active Agents
         </h2>
-        {/* Live connection badge */}
         <span
           className={`ml-auto rounded-full px-2 py-0.5 text-xs font-medium ${
             connected
@@ -127,27 +120,26 @@ export default function <ActiveAgentsPanel />() {
               : 'bg-gray-800 text-gray-500'
           }`}
         >
-          {connected ? '● LIVE' : '○ Connecting…'}
+          {connected ? 'LIVE' : 'Connecting...'}
         </span>
       </div>
 
-      {/* Circuit breaker alert banner */}
       {openBreakers.length > 0 && (
         <div
           role="alert"
           className="rounded border border-red-800 bg-red-950/40 px-3 py-2 text-xs text-red-400"
         >
-          ⚠️ {openBreakers.length} circuit breaker{openBreakers.length > 1 ? 's' : ''} tripped:{' '}
+          Warning: {openBreakers.length} circuit breaker{openBreakers.length > 1 ? 's' : ''} tripped:{' '}
           {openBreakers.map(([name]) => name).join(', ')}
         </div>
       )}
 
       {(wsError || cbError) && (
-        <p className="text-xs text-red-400">⚠️ {wsError ?? cbError}</p>
+        <p className="text-xs text-red-400">Error: {wsError ?? cbError}</p>
       )}
 
       {!connected && !wsError && (
-        <p className="text-xs text-gray-500 animate-pulse">Connecting to Neural Net…</p>
+        <p className="text-xs text-gray-500 animate-pulse">Connecting to Neural Net...</p>
       )}
 
       {connected && agents.length === 0 && (
