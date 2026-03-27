@@ -15,7 +15,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, generate_latest
 
-from .models import (
+from models import (
     CheckDefinitionCreate,
     CheckDefinitionOut,
     CheckResultOut,
@@ -139,7 +139,6 @@ async def list_checks(
     check_type: Optional[str] = Query(None),
     db=Depends(get_db),
 ):
-    """List all configured health checks, optionally filtered by env or type."""
     query = "SELECT * FROM check_definitions WHERE enabled = TRUE"
     params = []
     if env:
@@ -154,7 +153,6 @@ async def list_checks(
 
 @app.post("/checks", response_model=CheckDefinitionOut, status_code=201)
 async def create_check(payload: CheckDefinitionCreate, db=Depends(get_db)):
-    """Register a new health check definition."""
     row = await db.fetchrow(
         """
         INSERT INTO check_definitions
@@ -192,7 +190,6 @@ async def list_results(
     limit: int = Query(50, le=500),
     db=Depends(get_db),
 ):
-    """Retrieve recent check results."""
     query = "SELECT * FROM check_results"
     filters, params = [], []
     if check_id:
@@ -218,17 +215,12 @@ async def get_health_report(
     db=Depends(get_db),
     redis=Depends(get_redis),
 ):
-    """
-    Aggregate recent check results + open incidents into a HyperHealth report.
-    Results are served from Redis cache (30s TTL) for sub-100ms response.
-    """
+    import json
     cache_key = f"hyperhealth:report:{env}"
     cached = await redis.get(cache_key)
     if cached:
-        import json
         return json.loads(cached)
 
-    # Aggregate from DB
     total = await db.fetchval(
         "SELECT COUNT(*) FROM check_definitions WHERE environment=$1 AND enabled=TRUE", env
     )
@@ -271,7 +263,6 @@ async def get_health_report(
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
 
-    import json
     await redis.setex(cache_key, 30, json.dumps(report, default=str))
     return report
 
@@ -314,14 +305,10 @@ async def resolve_incident(incident_id: UUID, db=Depends(get_db)):
 
 
 # ---------------------------------------------------------------------------
-# Deployment gate (used by CI/CD blue-green)
+# Deployment gate
 # ---------------------------------------------------------------------------
 @app.get("/gate/{env}")
 async def deployment_gate(env: str, db=Depends(get_db)):
-    """
-    CI/CD calls this before flipping blue→green traffic.
-    Returns 200 OK only if no CRIT incidents exist for that env.
-    """
     crit_count = await db.fetchval(
         """
         SELECT COUNT(*) FROM incidents
@@ -342,5 +329,4 @@ async def deployment_gate(env: str, db=Depends(get_db)):
 # ---------------------------------------------------------------------------
 @app.get("/metrics", response_class=PlainTextResponse)
 async def metrics():
-    """Prometheus scrape endpoint — wired into Grafana via existing stack."""
     return generate_latest(registry)

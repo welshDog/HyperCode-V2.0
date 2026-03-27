@@ -1,47 +1,28 @@
 """
-HyperHealth Pydantic + SQLAlchemy models
+HyperHealth Pydantic models
 """
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, AnyHttpUrl, Field
+from pydantic import BaseModel, AnyHttpUrl
 
-# ---------------------------------------------------------------------------
-# Enums / types
-# ---------------------------------------------------------------------------
-CheckType = Literal[
-    "cpu", "memory", "disk", "network",
-    "http", "db", "queue", "cache",
-    "tls", "vuln_scan", "compliance",
-]
-
-CheckStatus = Literal["OK", "WARN", "CRIT", "UNKNOWN"]
-
-Severity = Literal["info", "warn", "crit"]
+CheckType = Literal["cpu", "memory", "disk", "network", "http", "db", "queue",
+                    "cache", "tls", "vuln_scan", "compliance"]
 
 
-# ---------------------------------------------------------------------------
-# Thresholds
-# ---------------------------------------------------------------------------
-class Thresholds(BaseModel):
+class ThresholdConfig(BaseModel):
     warn: float
     crit: float
-    window_seconds: int = 60
 
 
-# ---------------------------------------------------------------------------
-# CheckDefinition
-# ---------------------------------------------------------------------------
 class CheckDefinitionCreate(BaseModel):
-    name: str = Field(..., min_length=2, max_length=120)
+    name: str
     type: CheckType
-    target: str = Field(..., description="URL, DSN, host:port, queue name, etc.")
-    environment: str = Field(default="prod", description="blue, green, prod, staging")
-    interval_seconds: int = Field(default=30, ge=5, le=3600)
-    thresholds: Dict[str, Thresholds] = Field(
-        default_factory=lambda: {"latency_ms": Thresholds(warn=500, crit=2000)}
-    )
+    target: str
+    environment: str = "prod"
+    interval_seconds: int = 30
+    thresholds: ThresholdConfig = ThresholdConfig(warn=1000, crit=5000)
     alert_policy_id: Optional[int] = None
     self_heal_policy_id: Optional[int] = None
     tags: List[str] = []
@@ -55,79 +36,50 @@ class CheckDefinitionOut(BaseModel):
     environment: str
     interval_seconds: int
     enabled: bool
-    tags: List[str] = []
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
-# ---------------------------------------------------------------------------
-# CheckResult
-# ---------------------------------------------------------------------------
 class CheckResultOut(BaseModel):
     id: UUID
     check_id: UUID
-    status: CheckStatus
+    status: str
     latency_ms: Optional[float]
-    value: Optional[float]
+    value: Optional[str]
     message: Optional[str]
     environment: str
     started_at: datetime
-    finished_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
-# ---------------------------------------------------------------------------
-# Incident
-# ---------------------------------------------------------------------------
 class IncidentOut(BaseModel):
     id: UUID
     check_id: Optional[UUID]
     title: str
-    summary: str
-    severity: Severity
+    severity: str
     environment: str
-    service: Optional[str]
     created_at: datetime
     resolved_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
-# ---------------------------------------------------------------------------
-# Health Report
-# ---------------------------------------------------------------------------
 class HealthReport(BaseModel):
     environment: str
-    overall_status: CheckStatus
+    overall_status: str
     total_checks: int
     critical_count: int
     warning_count: int
     ok_count: int
-    open_incidents: List[Any] = []
+    open_incidents: List[Dict[str, Any]]
     generated_at: str
 
 
-# ---------------------------------------------------------------------------
-# Self-Heal Policy
-# ---------------------------------------------------------------------------
 class SelfHealPolicyCreate(BaseModel):
     name: str
+    action: str
     enabled: bool = True
-    trigger_status: CheckStatus = "CRIT"
-    trigger_count: int = Field(default=3, description="Failures before triggering")
-    trigger_window_seconds: int = 120
-    action: Literal[
-        "restart_container",
-        "call_healer",
-        "rollback_deployment",
-        "purge_cache",
-        "resync_queue",
-    ]
-    action_params: Dict[str, Any] = {}
-    max_retries_per_hour: int = 3
-    require_human_approval: bool = False
+    trigger_threshold: int = 3
+    cooldown_minutes: int = 5
