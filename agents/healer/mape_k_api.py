@@ -1,30 +1,38 @@
 """
-📡 MAPE-K API — Expose healing status + stats over HTTP
+MAPE-K API -- Expose healing status + stats over HTTP.
 Mounts onto the existing Healer Agent FastAPI app.
 """
 
-from fastapi import APIRouter
+from __future__ import annotations
+
+import os
+import sys
 from datetime import datetime, timezone
-from .mape_k_engine import KnowledgeBase, HealAction
+
+from fastapi import APIRouter
+
+# Absolute import -- mape_k_engine lives in the same directory
+sys.path.insert(0, os.path.dirname(__file__))
+from mape_k_engine import KnowledgeBase  # noqa: E402
 
 router = APIRouter(prefix="/mape-k", tags=["MAPE-K Self-Healing"])
 
-# Injected at startup — set this in main.py
 _kb: KnowledgeBase | None = None
 
 
-def set_knowledge_base(kb: KnowledgeBase):
-    global _kb
+def set_knowledge_base(kb: KnowledgeBase) -> None:
+    """Inject the shared KnowledgeBase instance at startup."""
+    global _kb  # noqa: PLW0603
     _kb = kb
 
 
 @router.get("/status")
-async def get_mape_k_status():
-    """🧠 Current MAPE-K engine health + anomaly scores."""
+async def get_mape_k_status() -> dict:
+    """Return current MAPE-K engine health and anomaly scores."""
     if not _kb:
         return {"error": "MAPE-K engine not initialised"}
     return {
-        "engine": "MAPE-K v1.0 — HyperCode Self-Healing Brain",
+        "engine": "MAPE-K v1.0 -- HyperCode Self-Healing Brain",
         "timestamp": datetime.now(tz=timezone.utc).isoformat(),
         "stats": _kb.stats(),
         "anomaly_scores": _kb.anomaly_scores,
@@ -37,8 +45,8 @@ async def get_mape_k_status():
 
 
 @router.get("/history")
-async def get_heal_history(limit: int = 20):
-    """📋 Recent healing events — what broke + what was done."""
+async def get_heal_history(limit: int = 20) -> dict:
+    """Return recent healing events -- what broke and what was done."""
     if not _kb:
         return {"error": "MAPE-K engine not initialised"}
     events = _kb.heal_history[-limit:]
@@ -61,8 +69,8 @@ async def get_heal_history(limit: int = 20):
 
 
 @router.get("/metrics")
-async def get_metrics():
-    """📊 Key MAPE-K performance metrics for Grafana/dashboards."""
+async def get_metrics() -> dict:
+    """Return key MAPE-K performance metrics for Grafana dashboards."""
     if not _kb:
         return {"error": "MAPE-K engine not initialised"}
     stats = _kb.stats()
