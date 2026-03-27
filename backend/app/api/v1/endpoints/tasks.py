@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Optional
 
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,6 +10,7 @@ from app.schemas import schemas
 from app.api import deps
 
 router = APIRouter()
+
 
 @router.get("/", response_model=List[schemas.Task])
 def read_tasks(
@@ -27,8 +28,9 @@ def read_tasks(
     tasks = query.offset(skip).limit(limit).all()
     return tasks
 
+
 @router.post("/", response_model=schemas.Task)
-def create_task(
+async def create_task(
     *,
     db: Session = Depends(get_db),
     task_in: schemas.TaskCreate,
@@ -36,10 +38,15 @@ def create_task(
 ) -> Any:
     """
     Create new task.
+
+    If generate_plan=True is set on the TaskCreate payload, DocumentParser +
+    PlanGenerator run before Celery dispatch and the resulting plan is stored
+    in Task.output.  A plan_reference is also injected into the Celery payload
+    so executing agents have full plan context during execution.
     """
     task_data = task_in.dict()
-    # Remove 'type' from task_data before creating DB model if it exists
     task_type = task_data.pop("type", "general")
+    generate_plan_flag: bool = task_data.pop("generate_plan", False)
 
     project = db.query(models.Project).filter(models.Project.id == task_in.project_id).first()
     if not project:
@@ -47,9 +54,7 @@ def create_task(
     if not current_user.is_superuser and project.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough privileges")
 
-    task = models.Task(
-        **task_data,
-    )
+    task = models.Task(**task_data)
     db.add(task)
     db.commit()
     db.refresh(task)
@@ -57,23 +62,60 @@ def create_task(
     from app.services import broski_service
     broski_service.award_coins(current_user.id, 2, "Task created", db)
 
-    # Push to Celery Task Queue
+    plan_reference: Optional[str] = None
+
+    # ---- Optional: run planning pipeline before dispatch ----
+    if generate_plan_flag:
+        try:
+            from app.schemas.planning import DocumentInput, DocumentType
+            from app.services.document_parser import document_parser
+            from app.services.plan_generator import plan_generator
+            from app.services.plan_formatter import format_plan_json
+            import json
+
+            content = task.description or task.title
+            doc_input = DocumentInput(
+                content=content,
+                document_type=DocumentType.GENERIC,
+                metadata={"task_id": task.id, "project_id": task.project_id},
+            )
+            parsed_doc = await document_parser.parse(doc_input)
+            plan = await plan_generator.generate_plan(
+                parsed_doc,
+                context={"task_id": task.id, "user_id": current_user.id},
+            )
+            plan_json_str = json.dumps(format_plan_json(plan))
+            task.output = plan_json_str
+            db.add(task)
+            db.commit()
+            db.refresh(task)
+            plan_reference = plan_json_str
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                f"[TASKS] generate_plan failed for task {task.id}: {exc}. "
+                "Continuing without plan."
+            )
+
+    # ---- Push to Celery Task Queue ----
     queue_payload = {
         "id": task.id,
         "title": task.title,
-        "type": task_type, # Use the type from input
+        "type": task_type,
         "description": task.description or task.title,
         "priority": task.priority,
         "status": "pending",
-        "project_id": task.project_id
+        "project_id": task.project_id,
     }
-    
-    # Fire and forget (or handle error)
-    # Import inside function to avoid circular imports if any
+
+    if plan_reference is not None:
+        queue_payload["plan_reference"] = plan_reference
+
     from app.core.celery_app import celery_app
     celery_app.send_task("hypercode.tasks.process_agent_job", args=[queue_payload])
 
     return task
+
 
 @router.get("/{id}", response_model=schemas.Task)
 def read_task(
