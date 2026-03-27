@@ -1,24 +1,11 @@
 """
 HyperHealth Orchestrator API
 FastAPI service — health checks, reports, Prometheus metrics.
-
-Endpoints:
-  GET  /health              — liveness (no auth)
-  GET  /checks              — list check definitions
-  POST /checks              — create check definition
-  GET  /checks/{id}         — get single check
-  DELETE /checks/{id}       — delete check
-  GET  /checks/{id}/results — recent results for a check
-  GET  /health/report       — aggregated health report
-  GET  /metrics             — Prometheus text format
-  POST /selfheal/trigger    — manually trigger self-heal
 """
 from __future__ import annotations
 
 import os
-import time
 import uuid
-import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import List, Optional
@@ -34,28 +21,36 @@ from sqlalchemy import select, func
 
 from models import (
     Base,
-    CheckDefinitionORM, CheckResultORM, AlertPolicyORM, SelfHealPolicyORM,
+    CheckDefinitionORM, CheckResultORM,
     CheckDefinitionCreate, CheckDefinitionOut, CheckResultOut, HealthReportOut
 )
 
-# ── Structured logging ───────────────────────────────────────────────────────
+# ── Structured logging — FIXED: no add_logger_name (incompatible with PrintLogger) ─────
 structlog.configure(
     processors=[
-        structlog.stdlib.add_log_level,
-        structlog.stdlib.add_logger_name,
+        structlog.contextvars.merge_contextvars,
+        structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.JSONRenderer(),
-    ]
+    ],
+    wrapper_class=structlog.make_filtering_bound_logger(0),
+    context_class=dict,
+    logger_factory=structlog.PrintLoggerFactory(),
+    cache_logger_on_first_use=True,
 )
-log = structlog.get_logger("hyperhealth.api")
+log = structlog.get_logger()
 
-# ── Config ───────────────────────────────────────────────────────────────────
+# ── Config ─────────────────────────────────────────────────────────────────
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL environment variable must be set")
 
-# asyncpg dialect
-ASYNC_DB_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+# Safe dialect swap — only replace if not already asyncpg
+ASYNC_DB_URL = (
+    DATABASE_URL
+    if "asyncpg" in DATABASE_URL
+    else DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+)
 
 API_KEY = os.environ.get("API_KEY", "")
 if not API_KEY:
@@ -66,7 +61,7 @@ HEALER_URL = os.environ.get("HEALER_URL", "http://healer-agent:8008")
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
 
 # ── Prometheus metrics ───────────────────────────────────────────────────────
-REGISTRY = CollectorRegistry(auto_describe=True)
+REGISTRY = CollectorRegistry(auto_describe=False)
 
 CHECK_STATUS = Gauge(
     "hyperhealth_check_status",
@@ -117,6 +112,7 @@ async def lifespan(app: FastAPI):
     log.info("hyperhealth.startup", environment=ENVIRONMENT, healer_url=HEALER_URL)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    log.info("hyperhealth.db_tables_ready")
     await _validate_healer_connection()
     yield
     await engine.dispose()
@@ -133,7 +129,7 @@ async def _validate_healer_connection():
             else:
                 log.warning("healer.unhealthy", status=resp.status_code)
     except Exception as exc:
-        log.warning("healer.unreachable", error=str(exc), msg="Self-heal disabled until Healer is reachable")
+        log.warning("healer.unreachable", error=str(exc))
 
 
 # ── App ───────────────────────────────────────────────────────────────────────
@@ -145,29 +141,26 @@ app = FastAPI(
 )
 
 
-# ── Auth dependency ───────────────────────────────────────────────────────────
+# ── Auth ──────────────────────────────────────────────────────────────────────
 async def verify_api_key(x_api_key: str = Header(..., alias="X-API-Key")):
     if x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API key")
     return x_api_key
 
 
-# ── DB dependency ────────────────────────────────────────────────────────────
 async def get_db() -> AsyncSession:
     async with AsyncSessionLocal() as session:
         yield session
 
 
-# ── Status helpers ───────────────────────────────────────────────────────────
 def status_to_int(status: str) -> int:
     return {"OK": 0, "WARN": 1, "CRIT": 2}.get(status, 3)
 
 
-# ── Routes ────────────────────────────────────────────────────────────────────
+# ── Routes ───────────────────────────────────────────────────────────────────
 
 @app.get("/health", tags=["System"])
 async def health_check():
-    """Liveness endpoint — no auth required."""
     return {
         "status": "ok",
         "service": "hyperhealth",
@@ -184,7 +177,6 @@ async def list_checks(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(verify_api_key),
 ):
-    """List all check definitions, optionally filtered by environment."""
     stmt = select(CheckDefinitionORM)
     if environment:
         stmt = stmt.where(CheckDefinitionORM.environment == environment)
@@ -200,7 +192,6 @@ async def create_check(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(verify_api_key),
 ):
-    """Create a new health check definition."""
     check = CheckDefinitionORM(
         id=uuid.uuid4(),
         name=payload.name,
@@ -217,7 +208,7 @@ async def create_check(
     db.add(check)
     await db.commit()
     await db.refresh(check)
-    log.info("check.created", check_id=str(check.id), name=check.name, type=check.type)
+    log.info("check.created", check_id=str(check.id), name=check.name)
     return check
 
 
@@ -227,7 +218,6 @@ async def get_check(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(verify_api_key),
 ):
-    """Get a single check definition by ID."""
     result = await db.execute(select(CheckDefinitionORM).where(CheckDefinitionORM.id == check_id))
     check = result.scalar_one_or_none()
     if not check:
@@ -241,7 +231,6 @@ async def delete_check(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(verify_api_key),
 ):
-    """Disable (soft-delete) a check definition."""
     result = await db.execute(select(CheckDefinitionORM).where(CheckDefinitionORM.id == check_id))
     check = result.scalar_one_or_none()
     if not check:
@@ -258,7 +247,6 @@ async def get_check_results(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(verify_api_key),
 ):
-    """Get recent results for a specific check."""
     stmt = (
         select(CheckResultORM)
         .where(CheckResultORM.check_id == check_id)
@@ -275,36 +263,26 @@ async def get_health_report(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(verify_api_key),
 ):
-    """Aggregate recent check results into a full health report for an environment."""
     since = datetime.utcnow() - timedelta(minutes=10)
-
-    # Count results by status in last 10 minutes
     stmt = (
         select(CheckResultORM.status, func.count(CheckResultORM.id))
-        .where(
-            CheckResultORM.environment == env,
-            CheckResultORM.started_at >= since,
-        )
+        .where(CheckResultORM.environment == env, CheckResultORM.started_at >= since)
         .group_by(CheckResultORM.status)
     )
     rows = (await db.execute(stmt)).all()
     status_counts = {row[0]: row[1] for row in rows}
-
     total = sum(status_counts.values())
+
     overall = "OK"
     if status_counts.get("CRIT", 0) > 0:
         overall = "CRIT"
     elif status_counts.get("WARN", 0) > 0:
         overall = "WARN"
 
-    # Top incidents = most recent CRIT results
     crit_stmt = (
         select(CheckResultORM)
-        .where(
-            CheckResultORM.environment == env,
-            CheckResultORM.status == "CRIT",
-            CheckResultORM.started_at >= since,
-        )
+        .where(CheckResultORM.environment == env, CheckResultORM.status == "CRIT",
+               CheckResultORM.started_at >= since)
         .order_by(CheckResultORM.started_at.desc())
         .limit(5)
     )
@@ -316,11 +294,11 @@ async def get_health_report(
 
     recommendations = []
     if status_counts.get("CRIT", 0) > 0:
-        recommendations.append("Investigate CRIT checks immediately — self-heal may be triggered")
+        recommendations.append("Investigate CRIT checks — self-heal may be triggered")
     if status_counts.get("WARN", 0) > 2:
-        recommendations.append("Multiple WARN conditions — review thresholds or capacity")
+        recommendations.append("Multiple WARNs — review thresholds or capacity")
     if total == 0:
-        recommendations.append("No check results in last 10 minutes — verify workers are running")
+        recommendations.append("No results in last 10 min — are workers running?")
 
     return HealthReportOut(
         environment=env,
@@ -329,7 +307,7 @@ async def get_health_report(
         status_counts=status_counts,
         overall_status=overall,
         top_incidents=top_incidents,
-        self_heals_last_hour=0,  # TODO: wire to SelfHeal audit table
+        self_heals_last_hour=0,
         mttr_seconds=None,
         recommendations=recommendations,
     )
@@ -337,7 +315,6 @@ async def get_health_report(
 
 @app.get("/metrics", tags=["Observability"])
 async def metrics():
-    """Expose Prometheus metrics for scraping by Grafana/Prometheus."""
     data = generate_latest(REGISTRY)
     return PlainTextResponse(data.decode("utf-8"), media_type=CONTENT_TYPE_LATEST)
 
@@ -349,20 +326,14 @@ async def trigger_selfheal(
     env: str = Query(default="prod"),
     _: str = Depends(verify_api_key),
 ):
-    """Manually trigger a self-heal action via Healer Agent."""
     import httpx
-    payload = {
-        "agent_name": service,
-        "action": action,
-        "environment": env,
-        "source": "hyperhealth-manual",
-    }
+    payload = {"agent_name": service, "action": action, "environment": env, "source": "hyperhealth-manual"}
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(f"{HEALER_URL}/heal", json=payload)
             resp.raise_for_status()
             SELFHEALS_TOTAL.labels(action=action, service=service).inc()
-            log.info("selfheal.triggered", service=service, action=action, env=env)
+            log.info("selfheal.triggered", service=service, action=action)
             return {"status": "triggered", "service": service, "action": action, "healer_response": resp.json()}
     except Exception as exc:
         SELFHEALS_FAILED.labels(action=action, service=service).inc()
