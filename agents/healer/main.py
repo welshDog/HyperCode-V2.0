@@ -1,9 +1,9 @@
 # ✅ STDLIB — complete clean import block
-from .mape_k_bootstrap import start_mape_k
 import asyncio
 import json
 import logging
 import os
+import sys
 import time
 from collections import defaultdict
 from contextlib import asynccontextmanager
@@ -12,13 +12,16 @@ from enum import Enum
 from typing import Any, Callable, Coroutine, Dict, List, Optional
 from urllib.parse import urlparse
 
+# 📍 Ensure /app/healer is on sys.path for absolute imports of mape_k_* modules
+sys.path.insert(0, os.path.dirname(__file__))
+
 # Third party
 import httpx
 import redis.asyncio as redis
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-# Local
+# Local (relative imports for files in the same package)
 from .adapters.docker_adapter import DockerAdapter
 from .metrics import init_metrics
 from .models import HealResult, HealerException, HealRequest
@@ -27,12 +30,12 @@ from .models import HealResult, HealerException, HealRequest
 from agents.shared.agent_message import HealEvent, AgentMessage
 from agents.shared.event_bus import AgentEventBus
 
-# ── MAPE-K router pre-registration (MUST happen before app starts) ─────────────────────
-from .mape_k_api import router as mape_k_router
-from .mape_k_engine import KnowledgeBase, mape_k_loop, DEFAULT_SERVICES
-from .mape_k_api import set_knowledge_base
+# ── MAPE-K imports (absolute — resolved via sys.path above) ────────────────────────────────────
+from mape_k_api import router as mape_k_router
+from mape_k_engine import KnowledgeBase, mape_k_loop, DEFAULT_SERVICES
+from mape_k_api import set_knowledge_base
 
-# ── Logging ──────────────────────────────────────────────────────────────────────────────
+# ── Logging ────────────────────────────────────────────────────────────────────────────────────
 class JSONFormatter(logging.Formatter):
     def format(self, record):
         log_data = {
@@ -55,7 +58,7 @@ logger = logging.getLogger("healer.main")
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
-# ── Config ──────────────────────────────────────────────────────────────────────────────
+# ── Config ────────────────────────────────────────────────────────────────────────────────────
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")
 ORCHESTRATOR_URL = os.getenv("ORCHESTRATOR_URL", "http://crew-orchestrator:8080")
 WATCHDOG_ENABLED = os.getenv("HEALER_WATCHDOG_ENABLED", "false").strip().lower() == "true"
@@ -66,14 +69,14 @@ WATCHDOG_AGENT = os.getenv("HEALER_WATCHDOG_AGENT", "").strip()
 WATCHDOG_FORCE_RESTART = os.getenv("HEALER_WATCHDOG_FORCE_RESTART", "false").strip().lower() == "true"
 HEALER_AGENT_ID = os.getenv("HEALER_AGENT_ID", "healer-01")
 
-# ── Global state ───────────────────────────────────────────────────────────────────────
+# ── Global state ───────────────────────────────────────────────────────────────────────────
 redis_client: Optional[redis.Redis] = None
 docker_adapter: Optional[DockerAdapter] = None
 _throttle_paused_local: Dict[str, float] = {}
 event_bus: Optional[AgentEventBus] = None  # │ Phase 3 │
 
 
-# ── Models ──────────────────────────────────────────────────────────────────────────────
+# ── Models ────────────────────────────────────────────────────────────────────────────────────
 class ThrottleStateUpdate(BaseModel):
     containers: List[str]
     paused: bool = True
@@ -81,7 +84,7 @@ class ThrottleStateUpdate(BaseModel):
     reason: Optional[str] = None
 
 
-# ── Throttle helpers ──────────────────────────────────────────────────────────
+# ── Throttle helpers ──────────────────────────────────────────────────────────────────────────────
 def _throttle_pause_key(container: str) -> str:
     return f"throttle:paused:{container}"
 
@@ -147,7 +150,7 @@ async def get_throttle_state() -> Dict[str, Any]:
     return {"containers": sorted(set(containers)), "backend": "memory"}
 
 
-# ── Circuit Breaker ───────────────────────────────────────────────────────────────────────
+# ── Circuit Breaker ───────────────────────────────────────────────────────────────────────────────────
 class CircuitState(Enum):
     CLOSED = "closed"
     OPEN = "open"
@@ -198,7 +201,7 @@ class CircuitBreaker:
 circuit_breakers: Dict[str, CircuitBreaker] = defaultdict(CircuitBreaker)
 
 
-# ── Lifespan ──────────────────────────────────────────────────────────────────────────────
+# ── Lifespan ────────────────────────────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global redis_client, docker_adapter, event_bus
@@ -214,7 +217,7 @@ async def lifespan(app: FastAPI):
         logger.warning(f"⚠️  EventBus failed to connect (non-fatal): {e}")
         event_bus = None
 
-    # 🧠 Start MAPE-K background loop (router already registered at module load)
+    # 🧠 Start MAPE-K background loop
     kb = KnowledgeBase()
     set_knowledge_base(kb)
     asyncio.create_task(
@@ -238,7 +241,7 @@ async def lifespan(app: FastAPI):
     logger.info("Healer Agent shutting down")
 
 
-# ── App ─────────────────────────────────────────────────────────────────────────────────
+# ── App ──────────────────────────────────────────────────────────────────────────────────────
 app = FastAPI(
     title="Healer Agent",
     version="0.3.0",
@@ -247,12 +250,12 @@ app = FastAPI(
 )
 init_metrics(app)
 
-# 🧠 MAPE-K routes registered HERE — before the app starts serving!
+# 🧠 MAPE-K routes registered before app starts serving
 app.include_router(mape_k_router)
 logger.info("✅ MAPE-K API routes registered at /mape-k/*")
 
 
-# ── Phase 3: Event bus publish helper ───────────────────────────────────────────────
+# ── Phase 3: Event bus publish helper ───────────────────────────────────────────────────────────
 async def _publish_heal_event(
     healed_agent: str,
     heal_pattern: str,
@@ -263,7 +266,7 @@ async def _publish_heal_event(
     if not event_bus:
         return
     try:
-        xp   = 50  if status == "recovered" else 5
+        xp    = 50  if status == "recovered" else 5
         coins = 10.0 if status == "recovered" else 1.0
         event = HealEvent(
             agent_id=HEALER_AGENT_ID,
@@ -282,7 +285,7 @@ async def _publish_heal_event(
         logger.warning(f"EventBus publish failed (non-fatal): {e}")
 
 
-# ── System helpers ──────────────────────────────────────────────────────────────────────
+# ── System helpers ────────────────────────────────────────────────────────────────────────────────
 async def fetch_system_health() -> Dict[str, Dict[Any, Any]]:
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -324,7 +327,7 @@ async def fetch_agent_roster() -> Dict[str, str]:
         return {}
 
 
-# ── Watchdog ──────────────────────────────────────────────────────────────────────────────
+# ── Watchdog ──────────────────────────────────────────────────────────────────────────────────────
 async def watchdog_cycle() -> None:
     if not WATCHDOG_SMOKE_API_KEY:
         return
@@ -384,7 +387,7 @@ async def watchdog_loop() -> None:
         await asyncio.sleep(max(WATCHDOG_INTERVAL_SECONDS, 5.0))
 
 
-# ── Healing logic ──────────────────────────────────────────────────────────────────────
+# ── Healing logic ──────────────────────────────────────────────────────────────────────────────────
 async def ping_agent_health(agent_url: str, timeout: float) -> bool:
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -511,7 +514,7 @@ async def alert_listener():
         logger.warning("Alert listener stopped")
 
 
-# ── Routes ──────────────────────────────────────────────────────────────────────────────
+# ── Routes ──────────────────────────────────────────────────────────────────────────────────────
 @app.get("/health")
 async def health():
     docker_ok = False

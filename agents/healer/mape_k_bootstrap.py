@@ -1,20 +1,21 @@
 """
 🚀 MAPE-K Bootstrap — Wire the engine into the Healer Agent on startup.
 
-Add this to agents/healer/main.py startup:
+Usage in agents/healer/main.py lifespan:
 
     from mape_k_bootstrap import start_mape_k
-
-    @app.on_event("startup")
-    async def startup():
-        await start_mape_k(app)
+    kb = await start_mape_k(app)
 """
 import asyncio
 import logging
-from fastapi import FastAPI
+import sys
+import os
 
-# BUG FIX: switched from relative imports (.mape_k_engine) to absolute imports
-# Relative imports crash when the file is run directly or as __main__
+# 📍 Add /app/healer to sys.path so absolute imports work inside Docker
+# The Dockerfile COPYs healer/ to /app/healer and sets WORKDIR /app
+sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+
+from fastapi import FastAPI
 from mape_k_engine import KnowledgeBase, mape_k_loop, DEFAULT_SERVICES
 from mape_k_api import router as mape_k_router, set_knowledge_base
 
