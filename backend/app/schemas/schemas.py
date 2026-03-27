@@ -80,6 +80,7 @@ class TaskCreate(TaskBase):
     project_id: int
     assignee_id: Optional[int] = None
     type: Optional[Annotated[str, Field(max_length=32)]] = "general"
+    generate_plan: Optional[bool] = False  # 🗺️ When True, run planning pipeline before dispatch
 
 class TaskUpdate(BaseModel):
     title: Optional[Annotated[str, Field(min_length=1, max_length=200)]] = None
