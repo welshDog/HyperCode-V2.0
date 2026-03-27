@@ -6,7 +6,7 @@
 
 services:
 
-  # ── HyperHealth Orchestrator API ─────────────────────────────────────────
+  # ── HyperHealth Orchestrator API ──────────────────────────────────────────
   hyperhealth-api:
     build:
       context: ./agents/hyperhealth
@@ -64,7 +64,7 @@ services:
       - "hypercode.service=hyperhealth-api"
       - "hypercode.role=health-orchestrator"
 
-  # ── HyperHealth Async Worker Pool ────────────────────────────────────────
+  # ── HyperHealth Async Worker Pool ─────────────────────────────────────────
   hyperhealth-worker:
     build:
       context: ./agents/hyperhealth
