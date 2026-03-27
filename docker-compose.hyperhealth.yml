@@ -20,7 +20,7 @@ services:
       - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
       - WORKER_CONCURRENCY=200
     networks:
-      - hypercode-network
+      - hypercode-v20_default
     depends_on:
       - postgres
       - redis
@@ -48,7 +48,7 @@ services:
       - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
       - WORKER_CONCURRENCY=200
     networks:
-      - hypercode-network
+      - hypercode-v20_default
     depends_on:
       - postgres
       - redis
@@ -58,5 +58,5 @@ services:
       - "hypercode.role=check-executor"
 
 networks:
-  hypercode-network:
+  hypercode-v20_default:
     external: true
