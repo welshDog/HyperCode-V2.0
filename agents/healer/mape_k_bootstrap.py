@@ -4,6 +4,7 @@
 Add this to agents/healer/main.py startup:
 
     from mape_k_bootstrap import start_mape_k
+
     @app.on_event("startup")
     async def startup():
         await start_mape_k(app)
@@ -11,8 +12,11 @@ Add this to agents/healer/main.py startup:
 import asyncio
 import logging
 from fastapi import FastAPI
-from .mape_k_engine import KnowledgeBase, mape_k_loop, DEFAULT_SERVICES
-from .mape_k_api import router as mape_k_router, set_knowledge_base
+
+# BUG FIX: switched from relative imports (.mape_k_engine) to absolute imports
+# Relative imports crash when the file is run directly or as __main__
+from mape_k_engine import KnowledgeBase, mape_k_loop, DEFAULT_SERVICES
+from mape_k_api import router as mape_k_router, set_knowledge_base
 
 logger = logging.getLogger("mape_k_bootstrap")
 
@@ -41,4 +45,3 @@ async def start_mape_k(app: FastAPI, interval: int = 10):
     )
     logger.info(f"🧠 MAPE-K loop started — polling every {interval}s")
     return kb
-

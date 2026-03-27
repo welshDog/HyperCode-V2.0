@@ -10,13 +10,12 @@ Phase 2: Predictive healing (Isolation Forest) — coming soon!
 Built by @welshDog 🏴󠁧󠁢󠁷󠁬󠁳󠁿♾ — HyperFocus Zone, Llanelli, Wales
 """
 
-import docker as docker_sdk
-import docker as docker_sdk
 import asyncio
 import time
 import statistics
 import httpx
 import logging
+import docker as docker_sdk  # BUG FIX: removed duplicate import
 from datetime import datetime, timezone
 from collections import deque, defaultdict
 from dataclasses import dataclass, field
@@ -25,34 +24,33 @@ from typing import Optional
 
 logger = logging.getLogger("mape_k")
 
-
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # 🗺️ KNOWLEDGE BASE — Shared state
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-class ServiceStatus(str, Enum):
+class ServiceStatus(str, Enum):  # BUG FIX: restored proper indentation
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     CRITICAL = "critical"
     UNKNOWN = "unknown"
 
 
-class HealAction(str, Enum):
-    HTTP_RESTART   = "http_restart"    # POST /restart to agent
+class HealAction(str, Enum):  # BUG FIX: restored proper indentation
+    HTTP_RESTART = "http_restart"   # POST /restart to agent
     DOCKER_RESTART = "docker_restart"  # docker SDK container restart
-    SCALE_UP       = "scale_up"        # future: k8s/compose scale
-    ALERT_ONLY     = "alert_only"      # log + notify, no action
-    NO_ACTION      = "no_action"
+    SCALE_UP = "scale_up"           # future: k8s/compose scale
+    ALERT_ONLY = "alert_only"       # log + notify, no action
+    NO_ACTION = "no_action"
 
 
 @dataclass
-class ServiceConfig:
+class ServiceConfig:  # BUG FIX: restored proper indentation
     name: str
     port: int
-    check_url: str                      # e.g. http://hypercode-core:8000/health
-    compose_name: Optional[str] = None  # Docker container name
-    restart_url: Optional[str] = None   # POST endpoint for soft restart
-    critical: bool = True               # is this a critical service?
+    check_url: str
+    compose_name: Optional[str] = None
+    restart_url: Optional[str] = None
+    critical: bool = True
     history: deque = field(default_factory=lambda: deque(maxlen=60))
     last_status: ServiceStatus = ServiceStatus.UNKNOWN
     consecutive_failures: int = 0
@@ -61,7 +59,7 @@ class ServiceConfig:
 
 
 @dataclass
-class HealEvent:
+class HealEvent:  # BUG FIX: restored proper indentation
     timestamp: str
     service: str
     status_before: ServiceStatus
@@ -251,42 +249,24 @@ async def execute(
         except Exception as e:
             logger.error(f"[EXECUTE] HTTP restart failed: {e}")
 
-elif action == HealAction.DOCKER_RESTART and service.compose_name:
-    try:
-        client = docker_sdk.from_env()
-        container = client.containers.get(service.compose_name)
-        container.restart()
-        success = True
-        logger.info(f"[EXECUTE] ✅ Docker SDK restart sent to {service.compose_name}")
-    except docker_sdk.errors.NotFound:
-        logger.error(f"[EXECUTE] Container {service.compose_name} not found")
-    except Exception as e:
-        logger.error(f"[EXECUTE] Docker restart failed: {e}")
-🎯 Do It Now — 3 Steps
-Step 1 — Open the file locally:
+    elif action == HealAction.DOCKER_RESTART and service.compose_name:
+        try:
+            # BUG FIX: docker SDK is sync — must run in thread to avoid blocking async event loop
+            def _docker_restart():
+                client = docker_sdk.from_env()
+                container = client.containers.get(service.compose_name)
+                container.restart()
 
-text
-H:\HyperStation zone\HyperCode\HyperCode-V2.0\agents\healer\mape_k_engine.py
-Step 2 — Find line import subprocess at the top and add below it:
-
-python
-import docker as docker_sdk
-Step 3 — Find the DOCKER_RESTART block (search for subprocess.run) and replace with the SDK version above.
-
-🔄 Then Rebuild
-powershell
-docker-compose --profile agents up -d --build healer-agent
-docker logs healer-agent -f
-The Docker restart failed: [Errno 2] No such file or directory: 'docker' errors will be gone — replaced with proper SDK restarts! ✅
-
-Also spotted a second issue — the MAPE-K service URLs use localhost but inside Docker they should use container names! We can fix that next if you want — but the subprocess bug is priority 1.
-
-🎯 Next Win: Make that 3-line swap in mape_k_engine.py, rebuild, and watch the healer actually restart containers successfully!
-
-
+            await asyncio.to_thread(_docker_restart)
+            success = True
+            logger.info(f"[EXECUTE] ✅ Docker SDK restart sent to {service.compose_name}")
+        except docker_sdk.errors.NotFound:
+            logger.error(f"[EXECUTE] Container {service.compose_name} not found")
+        except Exception as e:
+            logger.error(f"[EXECUTE] Docker restart failed: {e}")
 
     elif action == HealAction.ALERT_ONLY:
-        success = True  # alerting always "succeeds"
+        success = True
         logger.warning(f"[ALERT] {service.name} degraded — {reason}")
 
     elif action == HealAction.NO_ACTION:
@@ -295,7 +275,6 @@ Also spotted a second issue — the MAPE-K service URLs use localhost but inside
     # Calculate MTTR if heal was attempted
     mttr = None
     if success and action not in (HealAction.NO_ACTION, HealAction.ALERT_ONLY):
-        # Wait up to 30s and re-check
         await asyncio.sleep(5)
         post_status, _ = await monitor(service)
         if post_status == ServiceStatus.HEALTHY:
@@ -371,21 +350,21 @@ async def mape_k_loop(
 # ⚙️ DEFAULT SERVICE REGISTRY
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # NOTE: URLs use Docker internal container hostnames (backend-net),
-# NOT localhost — the healer runs inside a container and cannot
-# reach other services via localhost.
+# NOT localhost — the healer runs inside a container.
 
 DEFAULT_SERVICES = [
-    ServiceConfig("HyperCode Backend",  8000, "http://hypercode-core:8000/health",          "hypercode-core"),
-    ServiceConfig("Healer Agent",        8008, "http://healer-agent:8008/health",             "healer-agent",        critical=False),
-    ServiceConfig("Crew Orchestrator",   8080, "http://crew-orchestrator:8080/health",        "crew-orchestrator"),
-    ServiceConfig("Super BROski Agent",  8015, "http://super-hyper-broski:8015/health",       "super-hyper-broski"),
-    ServiceConfig("Throttle Agent",      8014, "http://throttle-agent:8014/health",           "throttle-agent"),
-    ServiceConfig("Test Agent",          8013, "http://test-agent:8013/health",               "test-agent"),
-    ServiceConfig("Tips Writer",         8011, "http://tips-tricks-writer:8011/health",       "tips-tricks-writer"),
-    ServiceConfig("Mission Control",     8088, "http://hypercode-dashboard:8088/health",      "hypercode-dashboard"),
-    ServiceConfig("MCP Gateway",         8820, "http://mcp-gateway:8820/health",              "mcp-gateway"),
-    ServiceConfig("MCP REST Adapter",    8821, "http://mcp-rest-adapter:8821/health",         "mcp-rest-adapter"),
-    ServiceConfig("Ollama LLM",         11434, "http://hypercode-ollama:11434/api/tags",      "hypercode-ollama"),
-    ServiceConfig("Prometheus",          9090, "http://prometheus:9090/-/healthy",            "prometheus",          critical=False),
-    ServiceConfig("Grafana",             3001, "http://grafana:3001/api/health",              "grafana",             critical=False),
+    ServiceConfig("HyperCode Backend",    8000,  "http://hypercode-core:8000/health",         "hypercode-core"),
+    ServiceConfig("Healer Agent",         8008,  "http://healer-agent:8008/health",           "healer-agent",         critical=False),
+    ServiceConfig("Crew Orchestrator",    8080,  "http://crew-orchestrator:8080/health",      "crew-orchestrator"),
+    ServiceConfig("Super BROski Agent",   8015,  "http://super-hyper-broski:8015/health",     "super-hyper-broski"),
+    ServiceConfig("Throttle Agent",       8014,  "http://throttle-agent:8014/health",         "throttle-agent"),
+    ServiceConfig("Test Agent",           8013,  "http://test-agent:8013/health",             "test-agent"),
+    ServiceConfig("Tips Writer",          8011,  "http://tips-tricks-writer:8011/health",     "tips-tricks-writer"),
+    ServiceConfig("Mission Control",      8088,  "http://hypercode-dashboard:8088/health",    "hypercode-dashboard"),
+    ServiceConfig("MCP Gateway",          8820,  "http://mcp-gateway:8820/health",            "mcp-gateway"),
+    ServiceConfig("MCP REST Adapter",     8821,  "http://mcp-rest-adapter:8821/health",       "mcp-rest-adapter"),
+    ServiceConfig("Ollama LLM",           11434, "http://hypercode-ollama:11434/api/tags",    "hypercode-ollama"),
+    ServiceConfig("Prometheus",           9090,  "http://prometheus:9090/-/healthy",          "prometheus",           critical=False),
+    ServiceConfig("Grafana",              3001,  "http://grafana:3001/api/health",            "grafana",              critical=False),
+    ServiceConfig("HyperHealth API",      8090,  "http://hyperhealth-api:8090/health",        "hyperhealth-api",      critical=False),
 ]
