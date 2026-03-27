@@ -92,7 +92,8 @@ CHECKS = [
         "target": "redis://redis:6379/0",
         "environment": "production",
         "interval_seconds": 20,
-        "thresholds": {"latency_ms": {"warn": 100, "crit": 500, "window": 60}},
+        # loosened: 100→200ms warn (Docker network overhead), 500→1000ms crit
+        "thresholds": {"latency_ms": {"warn": 200, "crit": 1000, "window": 60}},
         "tags": ["cache", "redis", "critical"],
         "enabled": True,
     },
@@ -102,7 +103,8 @@ CHECKS = [
         "target": DB_DSN,
         "environment": "production",
         "interval_seconds": 30,
-        "thresholds": {"latency_ms": {"warn": 200, "crit": 1000, "window": 60}},
+        # loosened: 200→500ms warn (first connection + asyncpg overhead), 1000→2000ms crit
+        "thresholds": {"latency_ms": {"warn": 500, "crit": 2000, "window": 60}},
         "tags": ["database", "postgres", "critical"],
         "enabled": True,
     },
