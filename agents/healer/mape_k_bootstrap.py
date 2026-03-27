@@ -16,8 +16,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI
-from mape_k_engine import KnowledgeBase, mape_k_loop, DEFAULT_SERVICES  # noqa: E402
-from mape_k_api import router as mape_k_router, set_knowledge_base  # noqa: E402
+from .mape_k_engine import KnowledgeBase, mape_k_loop, DEFAULT_SERVICES  # noqa: E402
+from .mape_k_api import router as mape_k_router, set_knowledge_base  # noqa: E402
 
 logger = logging.getLogger("mape_k_bootstrap")
 

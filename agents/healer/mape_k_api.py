@@ -13,7 +13,7 @@ from fastapi import APIRouter
 
 # Absolute import -- mape_k_engine lives in the same directory
 sys.path.insert(0, os.path.dirname(__file__))
-from mape_k_engine import KnowledgeBase  # noqa: E402
+from .mape_k_engine import KnowledgeBase  # noqa: E402
 
 router = APIRouter(prefix="/mape-k", tags=["MAPE-K Self-Healing"])
 

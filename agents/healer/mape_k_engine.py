@@ -23,7 +23,7 @@ from typing import Optional
 import httpx
 
 try:
-    import docker as docker_sdk  # type: ignore[import]
+   import docker as docker_sdk  # type: ignore[import]
     _DOCKER_AVAILABLE = True
 except ImportError:
     docker_sdk = None  # type: ignore[assignment]
