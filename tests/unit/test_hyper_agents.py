@@ -2,8 +2,8 @@
 
 Tests cover:
 - HyperAgent base class (AgentStatus, AgentArchetype, NDErrorResponse)
-- ArchitectAgent (goal creation, step management, status updates)
-- ObserverAgent (metric recording, alert thresholds)
+- TestArchitect (goal creation, step management, status updates)
+- _TestWorker (metric recording, alert thresholds)
 - WorkerAgent (task execution, status lifecycle)
 - __init__.py public API surface
 """
@@ -11,18 +11,28 @@ import asyncio
 import pytest
 
 from src.agents.hyper_agents import (
-    AgentArchetype,
-    AgentStatus,
-    ArchitectAgent,
     Goal,
     GoalStatus,
     HyperAgent,
     NDErrorResponse,
-    ObserverAgent,
+    _TestWorker,
     PlanStep,
     WorkerAgent,
 )
 
+# --- Concrete test doubles (abstract execute() implemented) ---
+
+class _TestArchitect(TestArchitect):
+    async def execute(self, task):
+        return {"status": "done", "message": "test"}
+
+class _TestWorker(_TestWorker):
+    async def execute(self, task):
+        return {"status": "done", "message": "test"}
+
+class _TestWorker(WorkerAgent):
+    async def execute(self, task):
+        return {"status": "done", "message": "test"}
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -43,8 +53,8 @@ class TestPublicAPI:
     def test_all_symbols_importable(self):
         symbols = [
             HyperAgent, AgentStatus, AgentArchetype, NDErrorResponse,
-            ArchitectAgent, Goal, PlanStep, GoalStatus,
-            ObserverAgent, WorkerAgent,
+            TestArchitect, Goal, PlanStep, GoalStatus,
+            _TestWorker, WorkerAgent,
         ]
         for sym in symbols:
             assert sym is not None, f"{sym} should be importable"
@@ -65,13 +75,13 @@ class TestPublicAPI:
 
 
 # ---------------------------------------------------------------------------
-# ArchitectAgent tests
+# TestArchitect tests
 # ---------------------------------------------------------------------------
 
-class TestArchitectAgent:
+class TestTestArchitect:
 
     def setup_method(self):
-        self.agent = ArchitectAgent(agent_id="test-architect-01")
+        self.agent = TestArchitect(agent_id="test-architect-01")
         run(self.agent.initialize())
 
     def test_initialize_sets_idle_status(self):
@@ -154,13 +164,13 @@ class TestArchitectAgent:
 
 
 # ---------------------------------------------------------------------------
-# ObserverAgent tests
+# _TestWorker tests
 # ---------------------------------------------------------------------------
 
-class TestObserverAgent:
+class Test_TestWorker:
 
     def setup_method(self):
-        self.agent = ObserverAgent(agent_id="test-observer-01")
+        self.agent = _TestWorker(agent_id="test-observer-01")
         run(self.agent.initialize())
 
     def test_initialize_sets_idle(self):
