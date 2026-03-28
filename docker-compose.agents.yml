@@ -1,8 +1,6 @@
 # docker-compose.agents.yml — HyperCode V2.0 Full Agent Stack
 # Run: docker compose -f docker-compose.agents.yml up -d
 
-version: "3.9"
-
 networks:
   hypercode-net:
     driver: bridge
@@ -151,19 +149,3 @@ services:
     networks: [hypercode-net]
     environment:
       DISCORD_TOKEN: ${DISCORD_TOKEN}
-
-  dashboard:
-    build: ./agents/dashboard
-    restart: unless-stopped
-    ports: ["8088:8088"]
-    networks: [hypercode-net]
-    depends_on: [crew-orchestrator, memory]
-
-  # ── OBSERVABILITY ─────────────────────────────────────────
-  grafana:
-    image: grafana/grafana:latest
-    restart: unless-stopped
-    ports: ["3001:3000"]
-    networks: [hypercode-net]
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}

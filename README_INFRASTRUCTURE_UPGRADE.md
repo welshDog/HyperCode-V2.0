@@ -531,4 +531,4 @@ Before starting implementation:
 
 *This infrastructure upgrade transforms Hypercode from manual deployments to enterprise-grade zero-downtime deployments with 99.99% SLA, 9x faster MTTR, and comprehensive observability—all within 12 weeks.*
 
-**Let's get started! 🚀**
+*Let's get started! 🚀*
