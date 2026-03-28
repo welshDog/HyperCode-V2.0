@@ -3,7 +3,7 @@
 Tests cover:
 - HyperAgent base class (AgentStatus, AgentArchetype, NDErrorResponse)
 - TestArchitect (goal creation, step management, status updates)
-- _TestWorker (metric recording, alert thresholds)
+- TestWorker (metric recording, alert thresholds)
 - WorkerAgent (task execution, status lifecycle)
 - __init__.py public API surface
 """
@@ -15,22 +15,21 @@ from src.agents.hyper_agents import (
     GoalStatus,
     HyperAgent,
     NDErrorResponse,
-    _TestWorker,
     PlanStep,
     WorkerAgent,
 )
 
 # --- Concrete test doubles (abstract execute() implemented) ---
 
-class _TestArchitect(TestArchitect):
+class TestArchitect(TestArchitect):
     async def execute(self, task):
         return {"status": "done", "message": "test"}
 
-class _TestWorker(_TestWorker):
+class TestWorker(_TestWorker):
     async def execute(self, task):
         return {"status": "done", "message": "test"}
 
-class _TestWorker(WorkerAgent):
+class TestWorker(WorkerAgent):
     async def execute(self, task):
         return {"status": "done", "message": "test"}
 
@@ -54,7 +53,7 @@ class TestPublicAPI:
         symbols = [
             HyperAgent, AgentStatus, AgentArchetype, NDErrorResponse,
             TestArchitect, Goal, PlanStep, GoalStatus,
-            _TestWorker, WorkerAgent,
+            TestWorker, WorkerAgent,
         ]
         for sym in symbols:
             assert sym is not None, f"{sym} should be importable"
@@ -164,13 +163,13 @@ class TestTestArchitect:
 
 
 # ---------------------------------------------------------------------------
-# _TestWorker tests
+# TestWorker tests
 # ---------------------------------------------------------------------------
 
 class Test_TestWorker:
 
     def setup_method(self):
-        self.agent = _TestWorker(agent_id="test-observer-01")
+        self.agent = TestWorker(agent_id="test-observer-01")
         run(self.agent.initialize())
 
     def test_initialize_sets_idle(self):
