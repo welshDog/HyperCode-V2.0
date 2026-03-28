@@ -16,9 +16,6 @@
 # ⚠️  IMPORTANT: healer-agent will ONLY monitor core services by default:
 #   hypercode-core, redis, postgres, celery-worker, hypercode-ollama
 #   Override with: HEALER_WATCHED_SERVICES=service1,service2,service3
-
-version: "3.9"
-
 services:
   # ====================
   # ESSENTIAL AGENTS
