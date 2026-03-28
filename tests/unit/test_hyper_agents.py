@@ -1,35 +1,31 @@
-"""Unit tests for the hyper_agents package.
-
-Tests cover:
-- HyperAgent base class (AgentStatus, AgentArchetype, NDErrorResponse)
-- TestArchitect (goal creation, step management, status updates)
-- TestWorker (metric recording, alert thresholds)
-- WorkerAgent (task execution, status lifecycle)
-- __init__.py public API surface
-"""
-import asyncio
+"""Unit tests for the HyperCode hyper_agents package."""
 import pytest
+from __future__ import annotations
+
 
 from src.agents.hyper_agents import (
-    Goal,
-    GoalStatus,
     HyperAgent,
+    AgentStatus,
+    AgentArchetype,
     NDErrorResponse,
-    PlanStep,
+    ArchitectAgent,
+    ObserverAgent,
     WorkerAgent,
 )
+from src.agents.hyper_agents.architect import GoalStatus, Goal, PlanStep
 
-# --- Concrete test doubles (abstract execute() implemented) ---
 
-class TestArchitect(TestArchitect):
+class AgentStatus.STARTING(ArchitectAgent):
     async def execute(self, task):
         return {"status": "done", "message": "test"}
 
-class TestWorker(_TestWorker):
+
+class _ConcreteObserver(ObserverAgent):
     async def execute(self, task):
         return {"status": "done", "message": "test"}
 
-class TestWorker(WorkerAgent):
+
+class _ConcreteWorker(WorkerAgent):
     async def execute(self, task):
         return {"status": "done", "message": "test"}
 
@@ -52,7 +48,7 @@ class TestPublicAPI:
     def test_all_symbols_importable(self):
         symbols = [
             HyperAgent, AgentStatus, AgentArchetype, NDErrorResponse,
-            TestArchitect, Goal, PlanStep, GoalStatus,
+            AgentStatus.STARTING, Goal, PlanStep, GoalStatus,
             TestWorker, WorkerAgent,
         ]
         for sym in symbols:
@@ -74,13 +70,13 @@ class TestPublicAPI:
 
 
 # ---------------------------------------------------------------------------
-# TestArchitect tests
+# AgentStatus.STARTING tests
 # ---------------------------------------------------------------------------
 
-class TestTestArchitect:
+class TestAgentStatus.STARTING:
 
     def setup_method(self):
-        self.agent = TestArchitect(agent_id="test-architect-01")
+        self.agent = AgentStatus.STARTING(agent_id="test-architect-01")
         run(self.agent.initialize())
 
     def test_initialize_sets_idle_status(self):
@@ -212,14 +208,12 @@ class TestWorkerAgent:
 # NDErrorResponse tests
 # ---------------------------------------------------------------------------
 
-class TestNDErrorResponse:
-
-    def test_nd_error_response_has_required_fields(self):
-        err = NDErrorResponse(
-            error_code="TEST_001",
-            message="Something went wrong",
-            context={"step": "init"},
-        )
-        assert err.error_code == "TEST_001"
-        assert "wrong" in err.message
-        assert err.context["step"] == "init"
+err = NDErrorResponse(
+    title="Test Error",
+    what_happened="Something went wrong.",
+    why_it_matters="Agent cannot start.",
+    options=["Restart", "Check logs"],
+    error_code="TEST_001",
+)
+assert err.title == "Test Error"
+assert err.error_code == "TEST_001"
