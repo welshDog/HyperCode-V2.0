@@ -229,7 +229,8 @@ class HyperAgent(ABC):
                 )
                 resp.raise_for_status()
             logger.info("[%s] Registered with Crew Orchestrator at %s", self.name, crew_url)
-            return resp.json()
+            data: Any = resp.json()
+            return data  # type: ignore[no-any-return]
         except Exception as exc:  # noqa: BLE001 - broad to preserve original behaviour
             logger.warning("[%s] Crew registration failed: %s", self.name, exc)
             return {"status": "registration_pending", "error": str(exc)}
