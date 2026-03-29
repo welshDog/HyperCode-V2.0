@@ -702,6 +702,8 @@ services:
     container_name: hypercode-dashboard
     environment:
       - NEXT_PUBLIC_CORE_URL=http://hypercode-core:8000
+      - NEXT_PUBLIC_ORCHESTRATOR_WS_HOST=localhost
+      - NEXT_PUBLIC_ORCHESTRATOR_WS_PORT=8081
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
       - PORT=3000
@@ -1349,6 +1351,45 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  hypercode-mcp-server:
+    build:
+      context: ./services/hypercode-mcp-server
+      dockerfile: Dockerfile
+    container_name: hypercode-mcp-server
+    environment:
+      - HYPERCODE_CORE_URL=http://hypercode-core:8000
+      - HYPERCODE_ORCH_URL=http://crew-orchestrator:8080
+    networks:
+      - backend-net
+      - frontend-net
+    ports:
+      - "127.0.0.1:8823:8823"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8823/sse')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
     security_opt:
       - no-new-privileges:true
 

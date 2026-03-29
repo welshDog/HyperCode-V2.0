@@ -30,7 +30,7 @@ vi.mock('../hooks/useTasks', () => ({
 }))
 
 vi.mock('../hooks/useLogs', () => ({
-  useLogs: () => ({ logs: [], loading: false }),
+  useLogs: () => ({ logs: [], loading: false, liveWs: false }),
   levelColour: () => 'var(--accent-cyan)',
 }))
 
