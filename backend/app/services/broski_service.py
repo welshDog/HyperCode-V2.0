@@ -259,7 +259,11 @@ def handle_daily_login(user_id: int, db: Session) -> tuple[BROskiWallet, bool]:
     """Award 5 coins for daily login (once per 24h). Returns (wallet, awarded_bool)."""
     wallet = _get_or_create_wallet(user_id, db)
     now = datetime.now(timezone.utc)
-    if wallet.last_daily_login and (now - wallet.last_daily_login) < timedelta(hours=24):
+    last = wallet.last_daily_login
+    # Normalise to aware datetime regardless of DB backend (SQLite stores naive)
+    if last is not None and last.tzinfo is None:
+        last = last.replace(tzinfo=timezone.utc)
+    if last and (now - last) < timedelta(hours=24):
         return wallet, False
     wallet.last_daily_login = now
     wallet.coins += 5
