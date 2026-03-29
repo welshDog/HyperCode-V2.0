@@ -47,7 +47,14 @@
       "Bash(pytest tests/framework/test_llm_eval_stub.py -q --timeout=20)",
       "Bash(pytest k8s/tests/test_helm_chart.py -q)",
       "Bash(pytest k8s/tests/test_helm_chart.py)",
-      "Bash(pytest tests/integration/test_redis_pubsub.py tests/unit/test_docker_secrets.py agents/coderabbit-webhook/tests/test_webhook_e2e.py tests/framework/test_llm_eval_stub.py k8s/tests/test_helm_chart.py -v --tb=short)"
+      "Bash(pytest tests/integration/test_redis_pubsub.py tests/unit/test_docker_secrets.py agents/coderabbit-webhook/tests/test_webhook_e2e.py tests/framework/test_llm_eval_stub.py k8s/tests/test_helm_chart.py -v --tb=short)",
+      "Bash(find 'H:/HyperStation zone/HyperCode/HyperCode-V2.0/agents/dashboard/app' -name *.ts -o -name *.tsx)",
+      "Bash(pytest tests/integration/test_planning_e2e.py --collect-only)",
+      "Bash(pytest tests/integration/test_planning_e2e.py -q)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(node_modules/.bin/vitest run:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npm install:*)"
     ]
   }
 }
