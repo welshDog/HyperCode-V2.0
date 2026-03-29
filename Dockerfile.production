@@ -46,7 +46,8 @@ COPY --chown=hypercode:hypercode . .
 # Security: Set read-only filesystem where possible
 USER hypercode
 
-HEALTHCHECK NONE  # Override with service-specific healthchecks in docker-compose
+HEALTHCHECK NONE 
+ # Override with service-specific healthchecks in docker-compose
 
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 
