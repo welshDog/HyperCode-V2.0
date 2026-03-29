@@ -433,19 +433,45 @@ async def execute_task(
 
         await log_event("orchestrator", "info", f"Received task: {task.id}")
 
-    # 2. RAG Query (Simulated for Test 1)
+    # 2. RAG Query — retrieve relevant context from shared agent memory
+    rag_context: str = ""
+    try:
+        import sys
+        import os
+        _shared_path = os.path.join(os.path.dirname(__file__), "..", "shared")
+        if _shared_path not in sys.path:
+            sys.path.insert(0, _shared_path)
+        from rag_memory import AgentMemory  # type: ignore[import]
+        _agent_memory = AgentMemory(agent_name="crew-orchestrator")
+        rag_context = _agent_memory.query_relevant_context(task.description, top_k=3)
+        logger.info(
+            json.dumps(
+                {
+                    "event": "rag_query",
+                    "query": task.description[:50],
+                    "chunks_retrieved": len(rag_context.split("---")) if rag_context else 0,
+                }
+            )
+        )
+    except Exception as rag_exc:
+        # ChromaDB may not be available in all environments; degrade gracefully
+        logger.warning(
+            json.dumps({"event": "rag_query_failed", "reason": str(rag_exc)})
+        )
+
+    # 3. Plan Generation — build execution plan enriched by RAG context
+    plan_description = task.description
+    if rag_context:
+        plan_description = f"{task.description}\n\n[Context]\n{rag_context[:500]}"
     logger.info(
         json.dumps(
             {
-                "event": "rag_query",
-                "query": task.description[:50],
-                "chunks_retrieved": 3,
+                "event": "plan_generated",
+                "task_id": task.id,
+                "has_rag_context": bool(rag_context),
             }
         )
     )
-
-    # 3. Plan Generation (Simulated for Test 1)
-    logger.info(json.dumps({"event": "plan_generated", "task_id": task.id}))
 
     # 4. Approval Flow
     if task.requires_approval:
