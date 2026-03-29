@@ -4,7 +4,7 @@ import React, { useRef, useEffect } from 'react'
 import { useLogs, levelColour } from '@/hooks/useLogs'
 
 export function LogsView(): React.JSX.Element {
-  const { logs, loading } = useLogs(80)
+  const { logs, loading, liveWs } = useLogs(80)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -30,6 +30,9 @@ export function LogsView(): React.JSX.Element {
       }}
       data-testid="logs-view"
     >
+      <div style={{ padding: '2px 0 4px', fontSize: 9, color: liveWs ? 'var(--status-healthy)' : 'var(--accent-amber)', flexShrink: 0 }}>
+        {liveWs ? '⚡ Live' : '⏱ Polling'}
+      </div>
       {logs.length === 0 && (
         <div style={{ color: 'var(--text-secondary)', padding: 12 }}>
           No log entries yet — system warming up…

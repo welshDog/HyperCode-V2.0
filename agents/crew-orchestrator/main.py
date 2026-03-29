@@ -949,3 +949,88 @@ async def get_logs(api_key: str = Depends(require_api_key)):
     # Get last 50 logs
     logs = await redis_client.lrange("logs:global", 0, 49)
     return [json.loads(log) for log in logs]
+
+
+# ── WebSocket event stream ────────────────────────────────────────────────────
+# Subscribes to Redis pub/sub channels and broadcasts all agent activity to
+# connected dashboard clients in real time.
+
+_ws_clients: set[WebSocket] = set()
+
+
+async def _broadcast(message: str) -> None:
+    """Send a message to all connected WebSocket clients, dropping dead ones."""
+    dead: set[WebSocket] = set()
+    for ws in _ws_clients:
+        try:
+            await ws.send_text(message)
+        except Exception:
+            dead.add(ws)
+    _ws_clients.difference_update(dead)
+
+
+async def _redis_event_fan_out() -> None:
+    """Background task: subscribe to Redis channels and fan out to WS clients."""
+    if not redis_client:
+        return
+    pubsub = redis_client.pubsub()
+    await pubsub.subscribe("ws_tasks", "broski_events", "approval_requests")
+    try:
+        async for raw in pubsub.listen():
+            if raw["type"] != "message":
+                continue
+            channel = raw["channel"]
+            if isinstance(channel, bytes):
+                channel = channel.decode()
+            try:
+                data = json.loads(raw["data"])
+            except Exception:
+                continue
+            envelope = json.dumps({"channel": channel, "data": data})
+            await _broadcast(envelope)
+    except asyncio.CancelledError:
+        pass
+    finally:
+        await pubsub.unsubscribe()
+        await pubsub.aclose()
+
+
+@app.websocket("/ws/events")
+async def ws_events(websocket: WebSocket):
+    """
+    Real-time event stream for Mission Control Dashboard.
+    Pushes agent tasks, BROski rewards, and approval requests as they happen.
+
+    Message format: { "channel": "ws_tasks"|"broski_events"|..., "data": {...} }
+    """
+    await websocket.accept()
+    _ws_clients.add(websocket)
+
+    # Send the last 20 log entries as initial state
+    if redis_client:
+        try:
+            recent = await redis_client.lrange("logs:global", 0, 19)
+            for raw in reversed(recent):
+                try:
+                    entry = json.loads(raw)
+                    await websocket.send_text(
+                        json.dumps({"channel": "logs:history", "data": entry})
+                    )
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    try:
+        # Keep the connection open; client pings keep it alive
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        _ws_clients.discard(websocket)
+
+
+@app.on_event("startup")
+async def _start_event_fan_out():
+    asyncio.create_task(_redis_event_fan_out())
