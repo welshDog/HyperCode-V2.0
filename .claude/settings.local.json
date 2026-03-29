@@ -58,7 +58,11 @@
       "Bash(curl:*)",
       "Bash(docker ps:*)",
       "Bash(echo \"EXIT:$?\")",
-      "Bash(docker restart:*)"
+      "Bash(docker restart:*)",
+      "Bash(docker exec:*)",
+      "Bash(findstr /I \"hypercode-core prometheus\")",
+      "Bash(docker run:*)",
+      "Bash(findstr /I \"prom\")"
     ]
   }
 }
