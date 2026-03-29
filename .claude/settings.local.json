@@ -6,7 +6,13 @@
       "Bash(python -c \"import sys; print\\(sys.version\\)\")",
       "Bash(pip show:*)",
       "Bash(grep -r \"^from\\\\|^import\" src/agents/hyper_agents/*.py)",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "Bash(for agent:*)",
+      "Bash(do echo:*)",
+      "Read(//h/HyperStation zone/HyperCode/HyperCode-V2.0/**)",
+      "Bash(done)",
+      "Bash(sed -n '200,230p' docker-compose.yml)",
+      "Bash(sed -n '1200,1250p' docker-compose.yml)"
     ]
   }
 }
