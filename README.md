@@ -1,12 +1,12 @@
-# HyperCode V2.0 - The Cognitive Architecture
+[![Version](https://img.shields.io/badge/version-2.4.0-blue)](backend/app/core/config.py)
 
-**Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-16
+**Doc Tag:** v2.4.0 | **Last Updated:** 2026-03-30
 
 [![GitHub Sponsors](https://img.shields.io/github/sponsors/welshDog?style=social&logo=github)](https://github.com/sponsors/welshDog)
 [![CI](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/ci.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/ci.yml)
 [![Docker Build](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/docker.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/docker.yml)
 [![Docs Lint](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/docs-lint.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/docs-lint.yml)
-[![Version](https://img.shields.io/badge/version-2.0.0-blue)](backend/app/core/config.py)
+[![Version](https://img.shields.io/badge/version-2.4.0-blue)](backend/app/core/config.py)
 [![System Health](https://img.shields.io/badge/health-GREEN-brightgreen)](docs/notes/HyperCode_Health_Check_Report_2026-02-28.md)
 [![Contributing](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-contributor%20covenant-ff69b4.svg)](CODE_OF_CONDUCT.md)
