@@ -62,7 +62,16 @@
       "Bash(docker exec:*)",
       "Bash(findstr /I \"hypercode-core prometheus\")",
       "Bash(docker run:*)",
-      "Bash(findstr /I \"prom\")"
+      "Bash(findstr /I \"prom\")",
+      "Bash(grep -r \"class.*Tool\\\\|def.*tool\\\\|/tools\\\\|/mcp\" 'H:\\\\HyperStation zone\\\\HyperCode\\\\HyperCode-V2.0\\\\backend' --include=*.py)",
+      "Bash(grep -r \"from.*mcp\\\\|import.*mcp\\\\|MCPClient\\\\|MCPServerMixin\" 'H:\\\\HyperStation zone\\\\HyperCode\\\\HyperCode-V2.0\\\\agents' --include=*.py)",
+      "Bash(xargs grep:*)",
+      "Bash(grep:*)",
+      "Bash(python -c \"import mcp; print\\(mcp.__version__\\)\")",
+      "Bash(docker start:*)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\)[0]; s=d[''''State'''']; print\\(s[''''Status''''], s[''''ExitCode''''], s.get\\(''''Error'''',''''''''\\)\\)\")",
+      "Bash(find 'H:\\\\HyperStation zone\\\\HyperCode\\\\HyperCode-V2.0\\\\agents\\\\dashboard\\\\app\\\\api' -name *.ts)",
+      "Bash(python:*)"
     ]
   }
 }
