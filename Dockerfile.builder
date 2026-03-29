@@ -1,7 +1,7 @@
 # Multi-purpose builder image for HyperCode project
 # This image can be used for builds, tests, and CI/CD pipelines
 
-FROM python:3.11-slim as base
+FROM python:3.14-slim as base
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
