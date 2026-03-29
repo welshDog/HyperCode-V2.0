@@ -1,4 +1,5 @@
 # docker-compose.agents.yml — HyperCode V2.0 Full Agent Stack
+# Self-contained: brings up infra + all agents. No external networks required.
 # Run: docker compose -f docker-compose.agents.yml up -d
 
 networks:
@@ -23,7 +24,7 @@ services:
       retries: 3
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:15-alpine          # I2 fix: aligned with main docker-compose.yml
     restart: unless-stopped
     networks: [hypercode-net]
     volumes: [postgres-data:/var/lib/postgresql/data]
@@ -37,10 +38,10 @@ services:
       retries: 5
 
   # ── CORE AGENTS ───────────────────────────────────────────
-  healer:
+  healer-agent:                        # H4 fix: renamed from 'healer' to match main compose + lite file
     build: ./agents/healer
-    restart: always          # 🩺 ALWAYS — cannot die
-    ports: ["8008:8008"]
+    restart: always                    # 🩺 ALWAYS — cannot die
+    ports: ["127.0.0.1:8008:8008"]    # I3 fix: localhost-only
     networks: [hypercode-net]
     depends_on:
       redis: {condition: service_healthy}
@@ -55,20 +56,26 @@ services:
   architect:
     build: ./agents/architect
     restart: unless-stopped
-    ports: ["8080:8080"]
+    ports: ["127.0.0.1:8080:8080"]    # I3 fix: localhost-only
     networks: [hypercode-net]
     depends_on:
-      healer: {condition: service_healthy}
+      healer-agent: {condition: service_healthy}   # H4 fix: updated reference
+    healthcheck:                       # M2 fix: added health check so system-architect can depend on it
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     environment:
       REDIS_URL: redis://redis:6379
       DOCKER_HOST: unix:///var/run/docker.sock
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock  # Agent X needs Docker access
+      - /var/run/docker.sock:/var/run/docker.sock
 
   crew-orchestrator:
     build: ./agents/crew-orchestrator
     restart: unless-stopped
-    ports: ["8081:8081"]
+    ports: ["127.0.0.1:8081:8081"]    # I3 fix: localhost-only
     networks: [hypercode-net]
     depends_on:
       redis: {condition: service_healthy}
@@ -80,24 +87,40 @@ services:
   memory:
     build: ./agents/memory
     restart: unless-stopped
-    ports: ["8082:8082"]
+    ports: ["127.0.0.1:8082:8082"]    # I3 fix: localhost-only
     networks: [hypercode-net]
     depends_on:
       redis: {condition: service_healthy}
       postgres: {condition: service_healthy}
+    environment:
+      REDIS_URL: redis://redis:6379
+      POSTGRES_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/hypercode
 
   # ── SPECIALIST AGENTS ─────────────────────────────────────
+  coder-agent:                         # H3 fix: added missing service (referenced in agents-lite.yml)
+    build: ./agents/coder
+    restart: unless-stopped
+    ports: ["127.0.0.1:8002:8002"]    # I3 fix: localhost-only
+    networks: [hypercode-net]
+    depends_on:
+      crew-orchestrator: {condition: service_started}
+    environment:
+      CORE_URL: http://crew-orchestrator:8081
+      AGENT_PORT: "8002"
+
   frontend-specialist:
     build: ./agents/01-frontend-specialist
     restart: unless-stopped
     networks: [hypercode-net]
-    depends_on: [crew-orchestrator]
+    depends_on:
+      crew-orchestrator: {condition: service_started}
 
   backend-specialist:
     build: ./agents/02-backend-specialist
     restart: unless-stopped
     networks: [hypercode-net]
-    depends_on: [crew-orchestrator]
+    depends_on:
+      crew-orchestrator: {condition: service_started}
 
   database-architect:
     build: ./agents/03-database-architect
@@ -110,7 +133,8 @@ services:
     build: ./agents/04-qa-engineer
     restart: unless-stopped
     networks: [hypercode-net]
-    depends_on: [crew-orchestrator]
+    depends_on:
+      crew-orchestrator: {condition: service_started}
 
   devops-engineer:
     build: ./agents/05-devops-engineer
@@ -128,15 +152,18 @@ services:
     build: ./agents/07-system-architect
     restart: unless-stopped
     networks: [hypercode-net]
-    depends_on: [architect]
+    depends_on:                        # M1 fix: modern map syntax (was deprecated list syntax)
+      architect:
+        condition: service_started
 
   project-strategist:
     build: ./agents/08-project-strategist
     restart: unless-stopped
     networks: [hypercode-net]
-    depends_on: [crew-orchestrator]
+    depends_on:
+      crew-orchestrator: {condition: service_started}
 
-  tips-writer:
+  tips-tricks-writer:                  # H4 fix: renamed from 'tips-writer' to match lite file
     build: ./agents/09-tips-tricks-writer
     restart: unless-stopped
     networks: [hypercode-net]
@@ -145,7 +172,7 @@ services:
   broski-terminal:
     build: ./agents/broski-bot
     restart: unless-stopped
-    ports: ["3000:3000"]
+    ports: ["127.0.0.1:3000:3000"]    # I3 fix: localhost-only
     networks: [hypercode-net]
     environment:
       DISCORD_TOKEN: ${DISCORD_TOKEN}
