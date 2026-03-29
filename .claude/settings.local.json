@@ -25,7 +25,29 @@
       "Bash(python -c \"import pydantic; print\\(pydantic.__version__\\)\")",
       "Bash(python -m pytest tests/ -q --tb=short)",
       "Bash(python -m pytest tests/unit/test_broski_service.py -q --tb=no)",
-      "Bash(python -m pytest tests/ -q --tb=no)"
+      "Bash(python -m pytest tests/ -q --tb=no)",
+      "Bash(python -m pytest tests/integration/test_redis_pubsub.py tests/unit/test_docker_secrets.py agents/coderabbit-webhook/tests/test_webhook_e2e.py -x --tb=short -q)",
+      "Bash(python -c \"import fakeredis; print\\(fakeredis.__version__\\)\")",
+      "Bash(python -c \"import fakeredis.aioredis as f; help\\(f.FakeRedis\\)\")",
+      "Bash(python -m pytest tests/integration/test_redis_pubsub.py -x --tb=short -q)",
+      "Bash(python -m pytest tests/integration/test_redis_pubsub.py --tb=short -q)",
+      "Bash(python -m pytest tests/unit/test_docker_secrets.py --tb=short -q)",
+      "Bash(python -m pytest agents/coderabbit-webhook/tests/test_webhook_e2e.py --tb=short -q)",
+      "Bash(python -m pytest \"H:/HyperStation zone/HyperCode/HyperCode-V2.0/tests/framework/\" --tb=short -q)",
+      "Bash(python -m pytest tests/framework/test_llm_eval_stub.py --tb=short -q)",
+      "Bash(python -m pytest tests/framework/test_llm_eval_stub.py --tb=short -q --no-header)",
+      "Bash(\".venv/Scripts/python.exe\" -m pytest tests/framework/test_llm_eval_stub.py -q)",
+      "Bash(python -m pytest tests/framework/test_llm_eval_stub.py -q)",
+      "Bash(C:/Python313/python.exe -m pytest tests/framework/test_llm_eval_stub.py -q)",
+      "Bash(py -m pytest tests/framework/test_llm_eval_stub.py -q)",
+      "Bash(pytest tests/framework/test_llm_eval_stub.py -q)",
+      "Bash(cmd /c \"pytest tests/framework/test_llm_eval_stub.py -q\")",
+      "Bash(powershell.exe -NoProfile -Command \"pytest tests/framework/test_llm_eval_stub.py -q\")",
+      "Bash(echo \"exit: $?\")",
+      "Bash(pytest tests/framework/test_llm_eval_stub.py -q --timeout=20)",
+      "Bash(pytest k8s/tests/test_helm_chart.py -q)",
+      "Bash(pytest k8s/tests/test_helm_chart.py)",
+      "Bash(pytest tests/integration/test_redis_pubsub.py tests/unit/test_docker_secrets.py agents/coderabbit-webhook/tests/test_webhook_e2e.py tests/framework/test_llm_eval_stub.py k8s/tests/test_helm_chart.py -v --tb=short)"
     ]
   }
 }
