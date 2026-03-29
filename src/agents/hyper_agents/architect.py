@@ -41,14 +41,14 @@ class PlanStep:
     step_id: str
     description: str
     assigned_to: Optional[str] = None  # agent_id
-    dependencies: Set[str] = field(default_factory=set)  # step_ids
+    depends_on: Set[str] = field(default_factory=set)  # step_ids
     status: GoalStatus = GoalStatus.DEFINED
     result: Any = None
     error: Optional[str] = None
 
     def is_ready(self, completed_steps: Set[str]) -> bool:
         """Check if all dependencies are met."""
-        return self.dependencies.issubset(completed_steps)
+        return self.depends_on.issubset(completed_steps)
 
 
 @dataclass
@@ -92,98 +92,115 @@ class ArchitectAgent(HyperAgent):
 
     Example usage::
 
-        architect = ArchitectAgent(agent_id="lead-architect-01")
-        await architect.initialize()
-
-        # Define a high-level goal
-        goal_id = await architect.create_goal(
-            title="Deploy Microservice",
-            description="Set up CI/CD and deploy to staging"
-        )
-
-        # The architect generates steps (can be manual or via LLM)
-        architect.add_step(goal_id, "build_image", "Build Docker image")
-        architect.add_step(goal_id, "test_image", "Run unit tests", deps={"build_image"})
-
-        # Monitor progress
-        print(f"Goal progress: {architect.get_goal(goal_id).progress:.1%}")
+        architect = ArchitectAgent(name="lead-architect-01")
+        goal_id = architect.create_goal("Deploy Microservice")
+        step_a = architect.add_step(goal_id, "Build Docker image")
+        step_b = architect.add_step(goal_id, "Run unit tests", depends_on=[step_a])
+        print(f"Goal progress: {architect.goal_progress(goal_id):.1%}")
     """
 
     ARCHETYPE = AgentArchetype.ARCHITECT
 
     def __init__(
         self,
-        agent_id: str,
+        name: str,
+        archetype: AgentArchetype = AgentArchetype.ARCHITECT,
         planning_timeout: float = 60.0,
+        **kwargs: Any,
     ) -> None:
-        super().__init__(agent_id=agent_id)
+        super().__init__(name=name, archetype=archetype, **kwargs)
         self.planning_timeout = planning_timeout
         self._goals: Dict[str, Goal] = {}
-        self._agent_registry: Dict[str, AgentArchetype] = {}
+        self._agent_registry: Dict[str, str] = {}  # name -> role/archetype
         self._active_goal_id: Optional[str] = None
         self._total_goals_completed: int = 0
 
     async def initialize(self) -> None:
         """Prepare the architect for planning."""
         self._log("ArchitectAgent initializing...")
-        self._status = AgentStatus.INITIALIZING
+        self.status = AgentStatus.STARTING
         await asyncio.sleep(0)
-        self._status = AgentStatus.IDLE
-        self._log(f"ArchitectAgent '{self.agent_id}' ready for planning.")
+        self.status = AgentStatus.READY
+        self._log(f"ArchitectAgent '{self.name}' ready for planning.")
 
-    async def create_goal(self, title: str, description: str) -> str:
+    def create_goal(self, description: str) -> str:
         """Create a new top-level goal.
 
         Args:
-            title: Short name for the goal.
-            description: Full context/requirements.
+            description: Full context/requirements (also used as title).
 
         Returns:
             goal_id for tracking.
         """
         goal_id = str(uuid.uuid4())[:8]
-        goal = Goal(goal_id=goal_id, title=title, description=description)
+        goal = Goal(goal_id=goal_id, title=description, description=description)
         self._goals[goal_id] = goal
-        self._log(f"New goal created [{goal_id}]: {title}")
+        self._log(f"New goal created [{goal_id}]: {description}")
         return goal_id
 
     def add_step(
         self,
         goal_id: str,
-        step_id: str,
         description: str,
+        depends_on: Optional[List[str]] = None,
         assigned_to: Optional[str] = None,
-        deps: Optional[Set[str]] = None,
-    ) -> None:
+    ) -> str:
         """Add an execution step to a goal.
 
         Args:
             goal_id: Parent goal.
-            step_id: Unique identifier for this step within the goal.
             description: What needs to be done.
+            depends_on: List of step_ids that must complete first.
             assigned_to: ID of the agent to perform the step.
-            deps: Set of step_ids that must complete first.
+
+        Returns:
+            step_id for tracking.
         """
         if goal_id not in self._goals:
             raise ValueError(f"Goal {goal_id} not found")
 
+        step_id = str(uuid.uuid4())[:8]
         step = PlanStep(
             step_id=step_id,
             description=description,
             assigned_to=assigned_to,
-            dependencies=deps or set(),
+            depends_on=set(depends_on or []),
         )
         self._goals[goal_id].steps.append(step)
         self._log(f"Step added to [{goal_id}]: {step_id} - {description}")
+        return step_id
+
+    def complete_step(self, goal_id: str, step_id: str) -> None:
+        """Mark a step as completed."""
+        self.update_step_status(goal_id, step_id, GoalStatus.COMPLETED)
+
+    def fail_step(self, goal_id: str, step_id: str, error: Optional[str] = None) -> None:
+        """Mark a step as failed."""
+        self.update_step_status(goal_id, step_id, GoalStatus.FAILED, error=error)
+
+    def register_sub_agent(self, name: str, role: str) -> None:
+        """Register a sub-agent by name and role string."""
+        self._agent_registry[name] = role
+        self._log(f"Sub-agent registered: {name} ({role})")
 
     def register_agent(self, agent_id: str, archetype: AgentArchetype) -> None:
-        """Keep track of agents available for assignment."""
-        self._agent_registry[agent_id] = archetype
+        """Register an agent by id and archetype enum."""
+        self._agent_registry[agent_id] = archetype.value
         self._log(f"Agent registered: {agent_id} ({archetype.value})")
+
+    @property
+    def registered_agents(self) -> Dict[str, str]:
+        """Public view of the agent registry."""
+        return self._agent_registry
 
     def get_goal(self, goal_id: str) -> Optional[Goal]:
         """Retrieve full goal details."""
         return self._goals.get(goal_id)
+
+    def goal_progress(self, goal_id: str) -> float:
+        """Return completion fraction (0.0–1.0) for a goal."""
+        goal = self._goals.get(goal_id)
+        return goal.progress if goal else 0.0
 
     def get_ready_steps(self, goal_id: str) -> List[PlanStep]:
         """Find steps that are ready for execution (deps met, not started)."""
@@ -218,7 +235,7 @@ class ArchitectAgent(HyperAgent):
                 self._log(f"Step [{goal_id}:{step_id}] status -> {status.value}")
                 break
 
-        # Check if goal is now complete
+        # Check if goal is now complete or failed
         if all(s.status == GoalStatus.COMPLETED for s in goal.steps):
             goal.status = GoalStatus.COMPLETED
             self._total_goals_completed += 1
@@ -231,8 +248,8 @@ class ArchitectAgent(HyperAgent):
     def stats(self) -> Dict[str, Any]:
         """Current architect statistics."""
         return {
-            "agent_id": self.agent_id,
-            "status": self._status.value,
+            "name": self.name,
+            "status": self.status.value,
             "total_goals": len(self._goals),
             "completed_goals": self._total_goals_completed,
             "registered_agents": len(self._agent_registry),
@@ -240,10 +257,10 @@ class ArchitectAgent(HyperAgent):
         }
 
     def _log(self, message: str) -> None:
-        print(f"[ArchitectAgent:{self.agent_id}] {message}")
+        print(f"[ArchitectAgent:{self.name}] {message}")
 
-    async def shutdown(self) -> None:
+    def shutdown(self) -> None:
         """Graceful shutdown - archive goals, notify agents."""
         self._log("Initiating graceful shutdown...")
-        self._status = AgentStatus.TERMINATED
+        super().shutdown()
         self._log(f"Shutdown complete. Final stats: {self.stats}")
