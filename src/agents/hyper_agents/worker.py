@@ -117,11 +117,13 @@ class WorkerAgent(HyperAgent):
 
     def __init__(
         self,
-        agent_id: str,
+        name: str,
+        archetype: AgentArchetype = AgentArchetype.WORKER,
         max_concurrent_tasks: int = 1,
         hyperfocus_mode: bool = False,
+        **kwargs: Any,
     ) -> None:
-        super().__init__(agent_id=agent_id)
+        super().__init__(name=name, archetype=archetype, **kwargs)
         self.max_concurrent_tasks = max_concurrent_tasks
         self.hyperfocus_mode = hyperfocus_mode
         self._task_queue: asyncio.PriorityQueue = asyncio.PriorityQueue()
@@ -134,11 +136,11 @@ class WorkerAgent(HyperAgent):
     async def initialize(self) -> None:
         """Spin up the worker - clear signals at each stage."""
         self._log("WorkerAgent initializing...")
-        self._status = AgentStatus.INITIALIZING
+        self.status = AgentStatus.STARTING
         await asyncio.sleep(0)  # yield to event loop
-        self._status = AgentStatus.IDLE
+        self.status = AgentStatus.READY
         self._log(
-            f"WorkerAgent '{self.agent_id}' ready. "
+            f"WorkerAgent '{self.name}' ready. "
             f"Hyperfocus mode: {'ON' if self.hyperfocus_mode else 'OFF'}"
         )
 
@@ -162,7 +164,7 @@ class WorkerAgent(HyperAgent):
                 ),
             )
 
-        self._status = AgentStatus.RUNNING
+        self.status = AgentStatus.BUSY
         self._active_tasks[task.task_id] = task
         self._log(f"Starting task [{task.task_id}]: {task.description}")
 
@@ -178,7 +180,7 @@ class WorkerAgent(HyperAgent):
         if result.success:
             self._successful_tasks += 1
 
-        self._status = AgentStatus.IDLE
+        self.status = AgentStatus.READY
         self._log(result.summary)
         return result
 
@@ -223,16 +225,17 @@ class WorkerAgent(HyperAgent):
                 self._log(f"Timeout on attempt {attempt + 1}: {task.task_id}")
 
             except Exception as exc:  # noqa: BLE001
-                last_error = NDErrorResponse(
-                    error_code="TASK_EXECUTION_ERROR",
+                nd_err = self.format_nd_error(
+                    title="Task Execution Error",
                     what_happened=str(exc),
                     why_it_matters="The task could not complete successfully.",
-                    what_to_do=(
-                        "Check the task handler for issues. "
-                        "If this persists, reduce task complexity."
-                    ),
-                    is_recoverable=attempt < task.max_retries,
-                ).format_message()
+                    options=[
+                        "Check the task handler for issues.",
+                        "If this persists, reduce task complexity.",
+                    ],
+                    error_code="TASK_EXECUTION_ERROR",
+                )
+                last_error = f"[{nd_err.error_code}] {nd_err.what_happened}"
                 self._log(f"Error on attempt {attempt + 1}: {exc}")
 
         return TaskResult(
@@ -283,8 +286,8 @@ class WorkerAgent(HyperAgent):
             else 0.0
         )
         return {
-            "agent_id": self.agent_id,
-            "status": self._status.value,
+            "name": self.name,
+            "status": self.status.value,
             "hyperfocus_mode": self.hyperfocus_mode,
             "total_executed": self._total_tasks_executed,
             "successful": self._successful_tasks,
@@ -295,14 +298,14 @@ class WorkerAgent(HyperAgent):
 
     def _log(self, message: str) -> None:
         """Structured logging - every action is visible."""
-        print(f"[WorkerAgent:{self.agent_id}] {message}")
+        print(f"[WorkerAgent:{self.name}] {message}")
 
-    async def shutdown(self) -> None:
+    def shutdown(self) -> None:
         """Graceful shutdown with clear status reporting."""
         self._log("Initiating graceful shutdown...")
         if self._active_tasks:
             self._log(
-                f"Waiting for {len(self._active_tasks)} active task(s) to complete..."
+                f"Warning: {len(self._active_tasks)} active task(s) will be abandoned."
             )
-        self._status = AgentStatus.TERMINATED
+        super().shutdown()
         self._log(f"Shutdown complete. Final stats: {self.stats}")

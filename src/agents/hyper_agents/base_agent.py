@@ -223,3 +223,8 @@ class HyperAgent(ABC):
         """Mark agent as in error state."""
         self.status = AgentStatus.ERROR
         logger.error(f"[{self.name}] Status: ERROR")
+
+    def shutdown(self) -> None:
+        """Graceful shutdown. Sets status to STOPPING. Override for cleanup logic."""
+        self.status = AgentStatus.STOPPING
+        logger.info(f"[{self.name}] Status: STOPPING")

@@ -158,11 +158,13 @@ class ObserverAgent(HyperAgent):
 
     def __init__(
         self,
-        agent_id: str,
+        name: str,
+        archetype: AgentArchetype = AgentArchetype.OBSERVER,
         window_size: int = 100,
         alert_callback: Optional[Callable[[Alert], None]] = None,
+        **kwargs: Any,
     ) -> None:
-        super().__init__(agent_id=agent_id)
+        super().__init__(name=name, archetype=archetype, **kwargs)
         self.window_size = window_size
         self.alert_callback = alert_callback
 
@@ -181,11 +183,11 @@ class ObserverAgent(HyperAgent):
     async def initialize(self) -> None:
         """Start the observer - begins watching immediately."""
         self._log("ObserverAgent initializing...")
-        self._status = AgentStatus.INITIALIZING
+        self.status = AgentStatus.STARTING
         await asyncio.sleep(0)
-        self._status = AgentStatus.IDLE
+        self.status = AgentStatus.READY
         self._log(
-            f"ObserverAgent '{self.agent_id}' watching. "
+            f"ObserverAgent '{self.name}' watching. "
             f"Window: {self.window_size} samples. "
             f"Rules loaded: {len(self._alert_rules)}"
         )
@@ -320,8 +322,8 @@ class ObserverAgent(HyperAgent):
     def stats(self) -> Dict[str, Any]:
         """Current observer statistics."""
         return {
-            "agent_id": self.agent_id,
-            "status": self._status.value,
+            "name": self.name,
+            "status": self.status.value,
             "metrics_tracked": len(self._metrics),
             "total_recorded": self._total_metrics_recorded,
             "alert_rules": len(self._alert_rules),
@@ -331,10 +333,10 @@ class ObserverAgent(HyperAgent):
         }
 
     def _log(self, message: str) -> None:
-        print(f"[ObserverAgent:{self.agent_id}] {message}")
+        print(f"[ObserverAgent:{self.name}] {message}")
 
-    async def shutdown(self) -> None:
+    def shutdown(self) -> None:
         """Graceful shutdown - flush logs, clear watchers."""
         self._log("Initiating graceful shutdown...")
-        self._status = AgentStatus.TERMINATED
+        super().shutdown()
         self._log(f"Shutdown complete. Final stats: {self.stats}")
