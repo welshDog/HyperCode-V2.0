@@ -54,7 +54,11 @@
       "Bash(node_modules/.bin/tsc --noEmit)",
       "Bash(node_modules/.bin/vitest run:*)",
       "Bash(npx vitest:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(curl:*)",
+      "Bash(docker ps:*)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(docker restart:*)"
     ]
   }
 }
