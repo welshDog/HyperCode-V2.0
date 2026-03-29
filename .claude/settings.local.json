@@ -12,7 +12,20 @@
       "Read(//h/HyperStation zone/HyperCode/HyperCode-V2.0/**)",
       "Bash(done)",
       "Bash(sed -n '200,230p' docker-compose.yml)",
-      "Bash(sed -n '1200,1250p' docker-compose.yml)"
+      "Bash(sed -n '1200,1250p' docker-compose.yml)",
+      "Bash(python -m pytest tests/unit/test_hyper_agents.py --co -q)",
+      "Bash(python -m pytest tests/unit/ -q --tb=no)",
+      "Bash(python -m pytest backend/tests/unit/ -q --tb=no)",
+      "Bash(python -m pytest tests/unit/test_broski_service.py -v --tb=short)",
+      "Bash(python -m pytest tests/unit/test_broski_service.py -q --tb=short)",
+      "Bash(python -m pytest tests/unit/test_hyper_agents.py -q --tb=short)",
+      "Bash(python -m pytest tests/ -q --tb=line)",
+      "Bash(python -m pytest tests/ -q --tb=short -k \"list_agents or health_check_monitor or health_check_alert\")",
+      "Bash(python -c \"from config import Settings; s = Settings\\(\\); print\\(dir\\(s\\)\\)\")",
+      "Bash(python -c \"import pydantic; print\\(pydantic.__version__\\)\")",
+      "Bash(python -m pytest tests/ -q --tb=short)",
+      "Bash(python -m pytest tests/unit/test_broski_service.py -q --tb=no)",
+      "Bash(python -m pytest tests/ -q --tb=no)"
     ]
   }
 }

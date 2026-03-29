@@ -546,6 +546,19 @@ async def execute_task(
         await redis_client.set(f"task:{task.id}:details", json.dumps(task_data))
         await log_event("orchestrator", "success", "Workflow completed")
 
+        # Publish BROski$ reward event — backend Celery / Discord bot listens
+        broski_event = {
+            "event": "task_completed",
+            "task_id": task.id,
+            "task_type": task.type,
+            "agents": list(results.keys()),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        await redis_client.publish("broski_events", json.dumps(broski_event))
+        logger.info(
+            json.dumps({"event": "broski_event_published", "task_id": task.id})
+        )
+
     return {"status": "completed", "message": "Workflow finished", "results": results}
 
 
@@ -671,25 +684,75 @@ manager = ConnectionManager()
 
 @app.websocket("/ws/uplink")
 async def websocket_endpoint(websocket: WebSocket):
+    """Real-time task dispatch over WebSocket.
+
+    Message types accepted:
+      - ``execute``  — dispatch a task; responds with ``ack`` then publishes
+                       progress updates via the ``ws_tasks`` Redis channel.
+      - ``ping``     — liveness check; responds with ``pong``.
+    """
     if not await manager.connect(websocket):
         return
     try:
         while True:
             data = await websocket.receive_text()
-            # Echo for now, or process command
             try:
                 message = json.loads(data)
-                response = {
-                    "id": message.get("id"),
-                    "type": "response",
-                    "source": "orchestrator",
-                    "payload": {"status": "received", "echo": message.get("payload")},
-                }
-                await websocket.send_text(json.dumps(response))
             except json.JSONDecodeError:
                 await websocket.send_text(
                     json.dumps({"type": "error", "payload": "Invalid JSON"})
                 )
+                continue
+
+            msg_type = message.get("type")
+
+            if msg_type == "ping":
+                await websocket.send_text(
+                    json.dumps({"type": "pong", "source": "orchestrator"})
+                )
+
+            elif msg_type == "execute":
+                payload = message.get("payload") or {}
+                task_id = payload.get("id") or f"ws-{int(datetime.now().timestamp() * 1000)}"
+                # Acknowledge immediately so the client knows it was received
+                await websocket.send_text(
+                    json.dumps(
+                        {
+                            "id": message.get("id"),
+                            "type": "ack",
+                            "source": "orchestrator",
+                            "payload": {"task_id": task_id, "status": "queued"},
+                        }
+                    )
+                )
+                # Publish into Redis task channel so the background worker picks it up
+                if redis_client:
+                    task_payload = {
+                        "id": task_id,
+                        "type": payload.get("type", "ws_command"),
+                        "description": payload.get("description", ""),
+                        "agent": payload.get("agent"),
+                        "agents": payload.get("agents"),
+                        "requires_approval": payload.get("requires_approval", False),
+                        "source": "websocket",
+                    }
+                    await redis_client.publish("ws_tasks", json.dumps(task_payload))
+                    logger.info(
+                        json.dumps({"event": "ws_task_queued", "task_id": task_id})
+                    )
+
+            else:
+                await websocket.send_text(
+                    json.dumps(
+                        {
+                            "id": message.get("id"),
+                            "type": "error",
+                            "source": "orchestrator",
+                            "payload": f"Unknown message type: {msg_type!r}",
+                        }
+                    )
+                )
+
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         logger.info("Client disconnected from uplink")

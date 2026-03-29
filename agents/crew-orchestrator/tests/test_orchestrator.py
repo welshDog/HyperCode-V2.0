@@ -158,9 +158,11 @@ async def test_health_check_monitor(mock_redis):
     # Patch settings to test with 1 agent
     test_agents = {"test_agent": "http://localhost:8000"}
     
-    with patch("main.settings.agents", test_agents):
-        with patch("main.settings.enabled_agent_keys", return_value=["test_agent"]):
-            with patch("httpx.AsyncClient", return_value=mock_client):
+    mock_settings = MagicMock()
+    mock_settings.agents = test_agents
+    mock_settings.enabled_agent_keys.return_value = ["test_agent"]
+    with patch("main.settings", mock_settings):
+        with patch("httpx.AsyncClient", return_value=mock_client):
                 with patch("main.redis_client", mock_redis):
                     with patch("asyncio.sleep", side_effect=asyncio.CancelledError):
                         try:
@@ -194,9 +196,11 @@ async def test_health_check_alert(mock_redis):
     
     agents = {f"agent_{i}": f"http://host{i}" for i in range(5)}
     
-    with patch("main.settings.agents", agents):
-        with patch("main.settings.enabled_agent_keys", return_value=list(agents.keys())):
-            with patch("httpx.AsyncClient", return_value=mock_client):
+    mock_settings = MagicMock()
+    mock_settings.agents = agents
+    mock_settings.enabled_agent_keys.return_value = list(agents.keys())
+    with patch("main.settings", mock_settings):
+        with patch("httpx.AsyncClient", return_value=mock_client):
                 with patch("main.redis_client", mock_redis):
                     with patch("asyncio.sleep", side_effect=asyncio.CancelledError):
                         try:
