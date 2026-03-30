@@ -308,7 +308,7 @@ types-requests==2.32.4.20260107
 typing==3.7.4.3
 typing-inspect==0.9.0
 typing-inspection==0.4.2
-typing_extensions==4.14.1
+typing_extensions==4.15.0
 tzdata==2025.2
 tzlocal==5.3.1
 urllib3==2.5.0
