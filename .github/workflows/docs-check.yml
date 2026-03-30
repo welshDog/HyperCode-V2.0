@@ -20,7 +20,7 @@ jobs:
           fetch-depth: 0
 
       - name: Check canonical markdown links
-        uses: lycheeverse/lychee-action@v1.11.0
+        uses: lycheeverse/lychee-action@v2.8.0
         with:
           args: >-
             --verbose
