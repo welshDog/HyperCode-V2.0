@@ -24,6 +24,10 @@ We believe in:
 - Push to your branch: `git push origin feature/amazing-feature`
 - Open a Pull Request.
 
+## 🧭 High-Impact Contribution Areas
+
+If you want to jump in quickly, review our [Developer Call to Action](../docs/DEVELOPER_CALL_TO_ACTION.md) for architecture, AI integration, accessibility, language design, and DevOps priorities.
+
 ## 🛠️ Development Setup
 
 1. **Fork & Clone**
