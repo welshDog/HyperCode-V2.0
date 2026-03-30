@@ -223,7 +223,7 @@ pydeck==0.9.1
 pydub==0.25.1
 pyflakes==3.4.0
 pygame==2.6.1
-PyGithub==2.8.1
+PyGithub==2.9.0
 Pygments==2.19.2
 PyJWT==2.11.0
 pylint==4.0.5
