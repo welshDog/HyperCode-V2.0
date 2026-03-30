@@ -27,10 +27,11 @@ scrape_configs:
     static_configs:
       - targets: ["test-agent:8080"]
 
-  - job_name: "throttle-agent"
-    metrics_path: /metrics
-    static_configs:
-      - targets: ["throttle-agent:8014"]
+  # throttle-agent is profile-gated (--profile agents) — uncomment when deployed
+  # - job_name: "throttle-agent"
+  #   metrics_path: /metrics
+  #   static_configs:
+  #     - targets: ["throttle-agent:8014"]
 
   - job_name: "cadvisor"
     static_configs:

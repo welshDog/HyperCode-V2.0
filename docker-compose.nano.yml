@@ -15,9 +15,6 @@
 #   - Total idle RAM target: < 1.6GB
 #
 # Re-enable services one at a time as you confirm free headroom.
-
-version: "3.9"
-
 services:
   # ── CORE ───────────────────────────────────────────────────── #
   redis:

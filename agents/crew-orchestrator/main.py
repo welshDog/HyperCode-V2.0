@@ -433,19 +433,45 @@ async def execute_task(
 
         await log_event("orchestrator", "info", f"Received task: {task.id}")
 
-    # 2. RAG Query (Simulated for Test 1)
+    # 2. RAG Query — retrieve relevant context from shared agent memory
+    rag_context: str = ""
+    try:
+        import sys
+        import os
+        _shared_path = os.path.join(os.path.dirname(__file__), "..", "shared")
+        if _shared_path not in sys.path:
+            sys.path.insert(0, _shared_path)
+        from rag_memory import AgentMemory  # type: ignore[import]
+        _agent_memory = AgentMemory(agent_name="crew-orchestrator")
+        rag_context = _agent_memory.query_relevant_context(task.description, top_k=3)
+        logger.info(
+            json.dumps(
+                {
+                    "event": "rag_query",
+                    "query": task.description[:50],
+                    "chunks_retrieved": len(rag_context.split("---")) if rag_context else 0,
+                }
+            )
+        )
+    except Exception as rag_exc:
+        # ChromaDB may not be available in all environments; degrade gracefully
+        logger.warning(
+            json.dumps({"event": "rag_query_failed", "reason": str(rag_exc)})
+        )
+
+    # 3. Plan Generation — build execution plan enriched by RAG context
+    plan_description = task.description
+    if rag_context:
+        plan_description = f"{task.description}\n\n[Context]\n{rag_context[:500]}"
     logger.info(
         json.dumps(
             {
-                "event": "rag_query",
-                "query": task.description[:50],
-                "chunks_retrieved": 3,
+                "event": "plan_generated",
+                "task_id": task.id,
+                "has_rag_context": bool(rag_context),
             }
         )
     )
-
-    # 3. Plan Generation (Simulated for Test 1)
-    logger.info(json.dumps({"event": "plan_generated", "task_id": task.id}))
 
     # 4. Approval Flow
     if task.requires_approval:
@@ -545,6 +571,19 @@ async def execute_task(
         task_data["status"] = "completed"
         await redis_client.set(f"task:{task.id}:details", json.dumps(task_data))
         await log_event("orchestrator", "success", "Workflow completed")
+
+        # Publish BROski$ reward event — backend Celery / Discord bot listens
+        broski_event = {
+            "event": "task_completed",
+            "task_id": task.id,
+            "task_type": task.type,
+            "agents": list(results.keys()),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        await redis_client.publish("broski_events", json.dumps(broski_event))
+        logger.info(
+            json.dumps({"event": "broski_event_published", "task_id": task.id})
+        )
 
     return {"status": "completed", "message": "Workflow finished", "results": results}
 
@@ -671,25 +710,75 @@ manager = ConnectionManager()
 
 @app.websocket("/ws/uplink")
 async def websocket_endpoint(websocket: WebSocket):
+    """Real-time task dispatch over WebSocket.
+
+    Message types accepted:
+      - ``execute``  — dispatch a task; responds with ``ack`` then publishes
+                       progress updates via the ``ws_tasks`` Redis channel.
+      - ``ping``     — liveness check; responds with ``pong``.
+    """
     if not await manager.connect(websocket):
         return
     try:
         while True:
             data = await websocket.receive_text()
-            # Echo for now, or process command
             try:
                 message = json.loads(data)
-                response = {
-                    "id": message.get("id"),
-                    "type": "response",
-                    "source": "orchestrator",
-                    "payload": {"status": "received", "echo": message.get("payload")},
-                }
-                await websocket.send_text(json.dumps(response))
             except json.JSONDecodeError:
                 await websocket.send_text(
                     json.dumps({"type": "error", "payload": "Invalid JSON"})
                 )
+                continue
+
+            msg_type = message.get("type")
+
+            if msg_type == "ping":
+                await websocket.send_text(
+                    json.dumps({"type": "pong", "source": "orchestrator"})
+                )
+
+            elif msg_type == "execute":
+                payload = message.get("payload") or {}
+                task_id = payload.get("id") or f"ws-{int(datetime.now().timestamp() * 1000)}"
+                # Acknowledge immediately so the client knows it was received
+                await websocket.send_text(
+                    json.dumps(
+                        {
+                            "id": message.get("id"),
+                            "type": "ack",
+                            "source": "orchestrator",
+                            "payload": {"task_id": task_id, "status": "queued"},
+                        }
+                    )
+                )
+                # Publish into Redis task channel so the background worker picks it up
+                if redis_client:
+                    task_payload = {
+                        "id": task_id,
+                        "type": payload.get("type", "ws_command"),
+                        "description": payload.get("description", ""),
+                        "agent": payload.get("agent"),
+                        "agents": payload.get("agents"),
+                        "requires_approval": payload.get("requires_approval", False),
+                        "source": "websocket",
+                    }
+                    await redis_client.publish("ws_tasks", json.dumps(task_payload))
+                    logger.info(
+                        json.dumps({"event": "ws_task_queued", "task_id": task_id})
+                    )
+
+            else:
+                await websocket.send_text(
+                    json.dumps(
+                        {
+                            "id": message.get("id"),
+                            "type": "error",
+                            "source": "orchestrator",
+                            "payload": f"Unknown message type: {msg_type!r}",
+                        }
+                    )
+                )
+
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         logger.info("Client disconnected from uplink")
@@ -860,3 +949,88 @@ async def get_logs(api_key: str = Depends(require_api_key)):
     # Get last 50 logs
     logs = await redis_client.lrange("logs:global", 0, 49)
     return [json.loads(log) for log in logs]
+
+
+# ── WebSocket event stream ────────────────────────────────────────────────────
+# Subscribes to Redis pub/sub channels and broadcasts all agent activity to
+# connected dashboard clients in real time.
+
+_ws_clients: set[WebSocket] = set()
+
+
+async def _broadcast(message: str) -> None:
+    """Send a message to all connected WebSocket clients, dropping dead ones."""
+    dead: set[WebSocket] = set()
+    for ws in _ws_clients:
+        try:
+            await ws.send_text(message)
+        except Exception:
+            dead.add(ws)
+    _ws_clients.difference_update(dead)
+
+
+async def _redis_event_fan_out() -> None:
+    """Background task: subscribe to Redis channels and fan out to WS clients."""
+    if not redis_client:
+        return
+    pubsub = redis_client.pubsub()
+    await pubsub.subscribe("ws_tasks", "broski_events", "approval_requests")
+    try:
+        async for raw in pubsub.listen():
+            if raw["type"] != "message":
+                continue
+            channel = raw["channel"]
+            if isinstance(channel, bytes):
+                channel = channel.decode()
+            try:
+                data = json.loads(raw["data"])
+            except Exception:
+                continue
+            envelope = json.dumps({"channel": channel, "data": data})
+            await _broadcast(envelope)
+    except asyncio.CancelledError:
+        pass
+    finally:
+        await pubsub.unsubscribe()
+        await pubsub.aclose()
+
+
+@app.websocket("/ws/events")
+async def ws_events(websocket: WebSocket):
+    """
+    Real-time event stream for Mission Control Dashboard.
+    Pushes agent tasks, BROski rewards, and approval requests as they happen.
+
+    Message format: { "channel": "ws_tasks"|"broski_events"|..., "data": {...} }
+    """
+    await websocket.accept()
+    _ws_clients.add(websocket)
+
+    # Send the last 20 log entries as initial state
+    if redis_client:
+        try:
+            recent = await redis_client.lrange("logs:global", 0, 19)
+            for raw in reversed(recent):
+                try:
+                    entry = json.loads(raw)
+                    await websocket.send_text(
+                        json.dumps({"channel": "logs:history", "data": entry})
+                    )
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    try:
+        # Keep the connection open; client pings keep it alive
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        _ws_clients.discard(websocket)
+
+
+@app.on_event("startup")
+async def _start_event_fan_out():
+    asyncio.create_task(_redis_event_fan_out())

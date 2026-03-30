@@ -32,10 +32,15 @@ def test_health_check(mock_redis):
     assert response.json() == {"status": "ok", "service": "crew-orchestrator"}
 
 def test_list_agents():
-    with patch("main.settings.enabled_agent_keys", return_value=["backend_specialist"]):
-        with patch("main.settings.agents", {"backend_specialist": "http://backend-specialist:8003"}):
-            with patch("main.redis_client", None):
-                response = client.get("/agents")
+    # Pydantic v2 BaseSettings blocks setattr on non-field names,
+    # so mock the entire settings object instead of individual methods.
+    mock_settings = MagicMock()
+    mock_settings.api_key = None  # disable auth check (dev mode)
+    mock_settings.enabled_agent_keys.return_value = ["backend_specialist"]
+    mock_settings.agents = {"backend_specialist": "http://backend-specialist:8003"}
+    with patch("main.settings", mock_settings):
+        with patch("main.redis_client", None):
+            response = client.get("/agents")
     assert response.status_code == 200
     agents = response.json()
     assert isinstance(agents, list)

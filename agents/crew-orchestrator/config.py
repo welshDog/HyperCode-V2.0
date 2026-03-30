@@ -1,14 +1,18 @@
-from pydantic_settings import BaseSettings
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Dict, List, Optional
 
+
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="ORCHESTRATOR_")
+
     redis_url: str = "redis://redis:6379"
     log_level: str = "INFO"
     api_key: Optional[str] = None
     cors_allow_origins: str = "http://localhost:8088,http://localhost:3000"
     enabled_agents: Optional[str] = None
-    
-    # Agent Service URLs (Defaults based on docker-compose service names)
+
+    # Agent Service URLs (defaults based on docker-compose service names)
     agents: Dict[str, str] = {
         "project_strategist": "http://project-strategist:8001",
         "frontend_specialist": "http://frontend-specialist:8012",
@@ -20,9 +24,6 @@ class Settings(BaseSettings):
         "system_architect": "http://system-architect:8008",
         "coder_agent": "http://coder-agent:8002",
     }
-
-    class Config:
-        env_prefix = "ORCHESTRATOR_"
 
     def parsed_cors_allow_origins(self) -> List[str]:
         return [o.strip() for o in self.cors_allow_origins.split(",") if o.strip()]
@@ -38,5 +39,6 @@ class Settings(BaseSettings):
             if key in self.agents:
                 enabled.append(key)
         return enabled
+
 
 settings = Settings()
