@@ -6,7 +6,7 @@ on:
       - 'feature/hyper-agents-core'
       - 'feature/hyper-agents-**'
       - develop
-          - main
+      - main
   pull_request:
     branches:
       - develop
