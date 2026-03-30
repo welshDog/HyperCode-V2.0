@@ -635,6 +635,21 @@ We welcome contributions from everyone, especially neurodivergent developers!
 - Start here: [Contributing Guide](.github/CONTRIBUTING.md)
 - Looking for high-impact areas: [Developer Call to Action](docs/DEVELOPER_CALL_TO_ACTION.md)
 
+## 💬 Community Feedback (5–10 Minute Review)
+
+Want to help shape HyperCode quickly? Start here:
+
+1. Read this README and the [Getting Started Guide](docs/getting_started.md).
+2. Share first impressions:
+   - What feels clear vs confusing?
+   - What excites you most (or least)?
+   - Which part should we simplify first?
+3. Post feedback where maintainers can action it fastest:
+   - [GitHub Issues](https://github.com/welshDog/HyperCode-V2.0/issues) for bugs, feature requests, or clarity gaps.
+   - [GitHub Discussions](https://github.com/welshDog/HyperCode-V2.0/discussions) for open-ended ideas and design debate.
+
+If you have time for a deeper review, see [docs/architecture.md](docs/architecture.md), [docs/security_threat_model.md](docs/security_threat_model.md), and [docs/traceability_matrix.md](docs/traceability_matrix.md), then open a PR or issue with your recommendations.
+
 ---
 
 ## 📄 License
