@@ -4,7 +4,7 @@
 #   docker compose -f docker-compose.agents-test.yml run agents
 #   docker compose -f docker-compose.agents-test.yml run agents pytest tests/unit/ -v
 
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 # Keep Python output unbuffered so pytest output streams in real-time
 ENV PYTHONUNBUFFERED=1 \
