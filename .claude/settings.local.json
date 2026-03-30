@@ -80,7 +80,10 @@
       "Bash(cd:*)",
       "Bash(java -jar ~/bfg.jar --version)",
       "Read(//c/Users/Lyndz/Downloads/**)",
-      "Bash(git-filter-repo --version)"
+      "Bash(git-filter-repo --version)",
+      "Read(//h/HyperStation zone/HyperCode/**)",
+      "Read(//h/HyperStation zone/**)",
+      "Bash(ls *.md)"
     ]
   },
   "enableAllProjectMcpServers": true,
