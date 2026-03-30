@@ -46,6 +46,24 @@ async def get_system_health(current_user: Any = Depends(deps.get_current_active_
         return {}
 
 
+@router.post("/execute")
+async def execute_task(payload: dict, current_user: Any = Depends(deps.get_current_active_user)) -> Any:
+    """Proxy task execution through Core API → crew-orchestrator.
+    Adds the authenticated user_id so downstream services can award BROski$.
+    """
+    payload.setdefault("user_id", current_user.id)
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.post(
+                f"{settings.ORCHESTRATOR_URL}/execute",
+                headers={**_orchestrator_headers(), "Content-Type": "application/json"},
+                json=payload,
+            )
+        return resp.json()
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
+
+
 @router.post("/approvals/respond")
 async def approvals_respond(payload: dict, current_user: Any = Depends(deps.get_current_active_user)) -> Any:
     try:

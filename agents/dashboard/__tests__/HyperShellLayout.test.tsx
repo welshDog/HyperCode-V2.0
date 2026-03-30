@@ -25,18 +25,30 @@ vi.mock('../hooks/useMetrics', () => ({
   useMetrics: () => ({ metrics: null, loading: false })
 }))
 
+vi.mock('../hooks/useTasks', () => ({
+  useTasks: () => ({ tasks: [], loading: false, error: null, refetch: vi.fn() })
+}))
+
+vi.mock('../hooks/useLogs', () => ({
+  useLogs: () => ({ logs: [], loading: false, liveWs: false }),
+  levelColour: () => 'var(--accent-cyan)',
+}))
+
 describe('HyperShellLayout', () => {
   it('renders without crashing', () => {
     render(<HyperShellLayout />)
     expect(screen.getByTestId('hyper-shell')).toBeInTheDocument()
   })
 
-  it('renders all 4 panes', () => {
+  it('renders all 7 panes', () => {
     render(<HyperShellLayout />)
     expect(screen.getByTestId('pane-agents')).toBeInTheDocument()
     expect(screen.getByTestId('pane-timeline')).toBeInTheDocument()
     expect(screen.getByTestId('pane-metrics')).toBeInTheDocument()
     expect(screen.getByTestId('pane-pulse')).toBeInTheDocument()
+    expect(screen.getByTestId('pane-tasks')).toBeInTheDocument()
+    expect(screen.getByTestId('pane-logs')).toBeInTheDocument()
+    expect(screen.getByTestId('pane-planning')).toBeInTheDocument()
   })
 
   it('shows Mission Control header', () => {
@@ -46,16 +58,16 @@ describe('HyperShellLayout', () => {
 
   it('focuses a pane on click', () => {
     render(<HyperShellLayout />)
-    const focusBtn = screen.getAllByText(/Focus/i)[0]
+    const focusBtn = screen.getAllByRole('button', { name: /Focus this pane/i })[0]
     fireEvent.click(focusBtn)
-    expect(screen.getByText(/Exit Focus/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Exit Focus/i).length).toBeGreaterThan(0)
   })
 
   it('renders view mode toggles', () => {
     render(<HyperShellLayout />)
-    expect(screen.getByText(/Grid/i)).toBeInTheDocument()
-    expect(screen.getByText(/Focus/i)).toBeInTheDocument()
-    expect(screen.getByText(/Present/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Grid/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Focus/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Present/i).length).toBeGreaterThan(0)
   })
 
   it('renders ND mode toggles', () => {

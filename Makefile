@@ -1,7 +1,7 @@
 # Makefile for HyperCode Agent Crew
 # Simplifies common Docker operations
 
-.PHONY: help build up down logs status clean test restart network-init init setup dev prod
+.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod
 
 # Default target
 help:
@@ -122,22 +122,24 @@ test:
 	@echo "Testing agent status endpoint..."
 	@curl -s http://localhost:8080/agents/status | python3 -m json.tool
 
-# Initialize environment
-init:
-	@if [ ! -f .env.agents ]; then \
-		echo "Creating .env.agents from example..."; \
-		cp .env.agents.example .env.agents; \
-		echo "⚠️  Please edit .env.agents and add your PERPLEXITY_API_KEY"; \
-	else \
-		echo ".env.agents already exists"; \
-	fi
-	@if [ ! -f .env ]; then \
-		echo "Creating .env from .env.example..."; \
-		cp .env.example .env; \
-		echo "⚠️  Please edit .env and set HC_DATA_ROOT, database credentials, and API keys"; \
-	else \
-		echo ".env already exists"; \
-	fi
+# Initialize environment — create networks, data dirs, validate .env
+init: ## First-time setup: create networks, data dirs, validate .env
+	@echo "HyperCode V2.0 — Init"
+	@powershell -File scripts/init.ps1 2>/dev/null || bash scripts/init.sh
+	@echo "Init complete. Run 'make start' to launch."
+
+# Start the full production stack
+start: init ## Start the full production stack
+	docker compose up -d
+
+# Start only the agents stack
+agents: init ## Start only the agents stack (standalone)
+	docker compose -f docker-compose.agents.yml up -d --build
+
+# Stop everything
+stop: ## Stop all running stacks
+	docker compose down
+	docker compose -f docker-compose.agents.yml down
 
 # Full setup (init + build + up)
 setup: init build up

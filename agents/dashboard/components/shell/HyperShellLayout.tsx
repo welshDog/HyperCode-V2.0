@@ -8,6 +8,9 @@ import { AgentSwarmView } from '../views/AgentSwarmView'
 import { TimelineView } from '../views/TimelineView'
 import { MetricsView } from '../views/MetricsView'
 import { BROskiPulseView } from '../views/BROskiPulseView'
+import { TasksView } from '../views/TasksView'
+import { LogsView } from '../views/LogsView'
+import { PlanningView } from '../views/PlanningView'
 import { useViewMode } from '@/hooks/useViewMode'
 
 // ── View Registry — register new views here, zero core changes needed
@@ -16,6 +19,9 @@ export const VIEW_REGISTRY: Record<string, React.ComponentType> = {
   'timeline':     TimelineView,
   'metrics':      MetricsView,
   'broski-pulse': BROskiPulseView,
+  'tasks':        TasksView,
+  'logs':         LogsView,
+  'planning':     PlanningView,
 }
 
 export interface PaneConfig {
@@ -26,10 +32,16 @@ export interface PaneConfig {
 }
 
 const DEFAULT_PANES: PaneConfig[] = [
-  { id: 'agents',  title: '\uD83E\uDD16 Agent Swarm',    viewId: 'agent-swarm',  gridArea: 'agents'  },
-  { id: 'timeline',title: '\uD83D\uDCE1 Event Timeline', viewId: 'timeline',     gridArea: 'timeline' },
-  { id: 'metrics', title: '\uD83D\uDCCA Metrics',        viewId: 'metrics',      gridArea: 'metrics'  },
-  { id: 'pulse',   title: '\uD83E\uDD85 BROski Pulse',   viewId: 'broski-pulse', gridArea: 'pulse'    },
+  // Row 1: agent status, event stream, metrics
+  { id: 'agents',   title: '🤖 Agent Swarm',    viewId: 'agent-swarm',  gridArea: 'agents'   },
+  { id: 'timeline', title: '📡 Event Timeline',  viewId: 'timeline',     gridArea: 'timeline' },
+  { id: 'metrics',  title: '📊 Metrics',         viewId: 'metrics',      gridArea: 'metrics'  },
+  // Row 2: tasks, logs, broski pulse
+  { id: 'tasks',    title: '✅ Tasks',            viewId: 'tasks',        gridArea: 'tasks'    },
+  { id: 'logs',     title: '📋 System Logs',      viewId: 'logs',         gridArea: 'logs'     },
+  { id: 'pulse',    title: '🦅 BROski Pulse',     viewId: 'broski-pulse', gridArea: 'pulse'    },
+  // Row 3: full-width planning
+  { id: 'planning', title: '🧠 Plan Generator',   viewId: 'planning',     gridArea: 'planning' },
 ]
 
 export function HyperShellLayout(): React.JSX.Element {
@@ -43,11 +55,12 @@ export function HyperShellLayout(): React.JSX.Element {
   }, [])
 
   const gridTemplate = viewMode === 'focus' && focusedPaneId
-    ? `"${focusedPaneId} ${focusedPaneId}" 1fr / 1fr 1fr`
+    ? `"${focusedPaneId} ${focusedPaneId} ${focusedPaneId}" 1fr / 1fr 1fr 1fr`
     : `
-        "topbar   topbar   topbar"  44px
-        "agents   timeline metrics" 1fr
-        "agents   timeline pulse"   200px
+        "topbar   topbar   topbar"   44px
+        "agents   timeline metrics"  minmax(180px,1fr)
+        "tasks    logs     pulse"    minmax(160px,1fr)
+        "planning planning planning" minmax(200px,1fr)
         / 1fr     1fr      1fr
       `
 
@@ -70,7 +83,7 @@ export function HyperShellLayout(): React.JSX.Element {
         }}
       >
         <span style={{ color: 'var(--accent-cyan)', fontWeight: 700, fontSize: 14 }}>
-          \uD83E\uDD85 HyperCode Mission Control
+          🦅 HyperCode Mission Control
         </span>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <NDToggle value={ndMode} onChange={handleNdChange} />

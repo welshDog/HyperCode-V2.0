@@ -250,16 +250,20 @@ async def parse_review_and_generate_tasks(
     # Analyze critical issues
     for issue in critical_issues:
         issue_type = issue.get("type", "").lower()
-        description = issue.get("description", "")
-        
-        if "database" in issue_type or "schema" in description.lower():
+        # CodeRabbit may send either "description" or "message" — normalise both
+        description = (issue.get("description") or issue.get("message") or "").lower()
+
+        if "database" in issue_type or "schema" in description:
             database_issues.append(issue)
-        elif "security" in issue_type or "vulnerability" in description.lower():
+        elif "security" in issue_type or "vulnerability" in description or "injection" in description:
             security_issues.append(issue)
-        elif "api" in issue_type or "backend" in description.lower():
+        elif "api" in issue_type or "backend" in description:
             backend_issues.append(issue)
-        elif "ui" in issue_type or "frontend" in description.lower():
+        elif "ui" in issue_type or "frontend" in description:
             frontend_issues.append(issue)
+        else:
+            # Default unclassified critical issues to backend
+            backend_issues.append(issue)
     
     # Analyze suggestions
     for suggestion in suggestions:
