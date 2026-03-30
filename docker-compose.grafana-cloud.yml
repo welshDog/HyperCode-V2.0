@@ -5,9 +5,6 @@
 #         Tempo (traces) → Grafana Cloud
 #         All 14+ agents scraped + PYTHONPATH fixed for metrics.py
 # ═══════════════════════════════════════════════════════════════════
-
-version: "3.9"
-
 networks:
   backend-net:
     name: hypercode_public_net
