@@ -1,8 +1,5 @@
 
 import pytest
-import websockets
-import json
-import uuid
 import asyncio
 from app.core.config import get_settings
 

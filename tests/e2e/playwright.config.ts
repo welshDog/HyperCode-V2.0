@@ -1,0 +1,23 @@
+import { defineConfig, devices } from '@playwright/test'
+
+export default defineConfig({
+  testDir:   './tests/e2e',
+  timeout:   30_000,
+  retries:   process.env.CI ? 2 : 0,
+  workers:   process.env.CI ? 1 : undefined,
+  reporter:  [
+    ['list'],
+    ['html', { outputFolder: 'reports/e2e-html', open: 'never' }],
+    ['junit', { outputFile: 'reports/e2e-junit.xml' }],
+  ],
+  use: {
+    baseURL:         process.env.DASHBOARD_URL ?? 'http://localhost:8088',
+    screenshot:      'only-on-failure',
+    video:           'retain-on-failure',
+    trace:           'retain-on-failure',
+  },
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox',  use: { ...devices['Desktop Firefox'] } },
+  ],
+})

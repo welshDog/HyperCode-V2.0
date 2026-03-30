@@ -1,142 +1,397 @@
-# 🤖 HyperCode Agent Crew - Docker Setup
+# 🤖 HyperCode V2.0 Agent Crew - Docker Setup
 
-Complete Docker configuration for running your 8-agent AI development team.
+Complete Docker configuration for running your specialist AI agent team.
 
-## 📋 Quick Start
+---
 
-### 1. Prerequisites
-- Docker & Docker Compose installed
-- Anthropic API key
-- 4GB+ RAM available
+## 🚀 Quick Start (Choose Your Path)
 
-### 2. Setup
+### 🌟 Path 1: Lean Stack (4GB RAM Systems)
+Perfect for development & testing on limited hardware:
+
 ```bash
-# Copy environment file
-cp .env.agents.example .env.agents
-
-# Edit and add your Anthropic API key
-nano .env.agents
-
-# Build and start all agents
-docker-compose -f docker-compose.agents.yml --env-file .env.agents up -d
+cd HyperCode-V2.0
+docker compose -f docker-compose.yml -f docker-compose.agents-lite.yml up -d
 ```
 
-### 3. Verify Setup
+**What you get:**
+- ✅ crew-orchestrator (task routing)
+- ✅ coder-agent (development)
+- ✅ tips-tricks-writer (content)
+- ✅ healer-agent (health monitoring)
+- **Total footprint:** ~2GB RAM, 2 CPU
+
+**Spawn more agents as needed:**
 ```bash
-# Check all services are running
-docker-compose -f docker-compose.agents.yml ps
-
-# Test orchestrator health
-curl http://localhost:8080/health
-
-# Check agent status
-curl http://localhost:8080/agents/status
+cd agents/agent-factory
+./spawn_agent.sh frontend-specialist
+./spawn_agent.sh backend-specialist
 ```
+
+### 🔥 Path 2: Full Stack (8GB+ RAM Systems)
+All agents running for maximum capability:
+
+```bash
+cd HyperCode-V2.0
+docker compose --profile agents up -d
+```
+
+**What you get:** All 13 specialist agents running concurrently
+
+### 🎯 Path 3: On-Demand Spawning
+Start agents as you need them (recommended):
+
+```bash
+cd HyperCode-V2.0/agents/agent-factory
+
+# Spawn specific agents
+./spawn_agent.sh crew-orchestrator
+./spawn_agent.sh coder-agent
+./spawn_agent.sh healer-agent
+
+# Or batch spawn development crew
+for agent in coder-agent frontend-specialist backend-specialist; do
+  ./spawn_agent.sh "$agent"
+done
+```
+
+---
+
+## 📚 Agent Factory Commands
+
+See `agents/agent-factory/README.md` for complete documentation.
+
+### Spawn an Agent
+```bash
+cd agents/agent-factory
+./spawn_agent.sh <agent-name>
+```
+
+**Available agents:**
+```
+Core Crew:
+  • crew-orchestrator      — Central orchestration & task routing
+  • healer-agent           — System health monitoring & auto-healing
+  • coder-agent            — Code generation & development
+  • tips-tricks-writer     — Content & documentation
+
+Specialists:
+  • frontend-specialist    — UI/UX development
+  • backend-specialist     — API & server development
+  • database-architect     — Database design & queries
+  • qa-engineer           — Testing & validation
+  • devops-engineer       — Infrastructure & CI/CD
+  • security-engineer     — Security audits & hardening
+  • system-architect      — System design & architecture
+  • project-strategist    — Project planning & delegation
+  • test-agent           — Testing automation
+```
+
+### Check Agent Status
+```bash
+docker ps | grep agent
+docker logs <agent-name> -f
+docker inspect <agent-name>
+```
+
+### Stop/Restart Agents
+```bash
+docker stop <agent-name>
+docker restart <agent-name>
+docker rm <agent-name>
+```
+
+---
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────┐
-│     Crew Orchestrator (Port 8080)      │
-│         FastAPI Coordination            │
-└──────────────┬──────────────────────────┘
-               │
-       ┌───────┴──────────┐
-       │                  │
-┌──────▼──────┐    ┌─────▼──────┐
-│  Strategist │    │  Architect │
-│  (Tier 1)   │    │  (Tier 1)  │
-│ Port 8001   │    │ Port 8008  │
-└──────┬──────┘    └─────┬──────┘
-       │                  │
-       └────────┬─────────┘
-                │
-    ┌───────────┼───────────┐
-    │           │           │
-┌───▼───┐  ┌───▼───┐  ┌───▼────┐
-│Frontend│  │Backend│  │Database│
-│  8002  │  │  8003 │  │  8004  │
-└────────┘  └───────┘  └────────┘
-    │           │           │
-    └───────────┼───────────┘
-                │
-    ┌───────────┼──────────┐
-    │           │          │
-┌───▼──┐  ┌────▼───┐  ┌──▼─────┐
-│  QA  │  │ DevOps │  │Security│
-│ 8005 │  │  8006  │  │  8007  │
-└──────┘  └────────┘  └────────┘
+┌─────────────────────────────────────────────────┐
+│  Crew Orchestrator (Port 8081)                  │
+│  ├─ Task routing & delegation                   │
+│  ├─ Agent coordination                          │
+│  └─ Redis-backed state                          │
+└──────────────────┬──────────────────────────────┘
+                   │
+        ┌──────────┼──────────┐
+        │          │          │
+   ┌────▼───┐ ┌────▼───┐ ┌──▼──────┐
+   │ Coder  │ │Frontend│ │Backend  │
+   │ 8002   │ │8012    │ │8003     │
+   └────────┘ └────────┘ └─────────┘
+        │          │          │
+        └──────────┼──────────┘
+                   │
+        ┌──────────┼──────────┐
+        │          │          │
+   ┌────▼───┐ ┌────▼───┐ ┌──▼──────┐
+   │Database│ │   QA   │ │DevOps   │
+   │8004    │ │8005    │ │8006     │
+   └────────┘ └────────┘ └─────────┘
 ```
+
+---
+
+## 📋 Agent Services
+
+| Agent | Port | Purpose | RAM | Profile |
+|-------|------|---------|-----|---------|
+| **crew-orchestrator** | 8081 | Task routing & coordination | 512M | agents |
+| **coder-agent** | 8002 | Code generation & development | 512M | agents |
+| **tips-tricks-writer** | 8011 | Content generation | 512M | agents |
+| **healer-agent** | 8010 | System monitoring & healing | 512M | agents |
+| frontend-specialist | 8012 | UI/UX development | 1G | agents |
+| backend-specialist | 8003 | API & server development | 1G | agents |
+| database-architect | 8004 | Database design & optimization | 1G | agents |
+| qa-engineer | 8005 | Testing & validation | 1G | agents |
+| devops-engineer | 8006 | Infrastructure & CI/CD | 1G | agents |
+| security-engineer | 8007 | Security audits & hardening | 1G | agents |
+| system-architect | 8008 | System design & architecture | 1G | agents |
+| project-strategist | 8001 | Planning & delegation | 1G | agents |
+| test-agent | (varies) | Test automation | 512M | agents |
+
+---
+
+## 🔧 Docker Compose Files
+
+### Main Compose File
+```bash
+docker-compose.yml
+```
+Contains:
+- Core infrastructure (Redis, Postgres, Ollama)
+- Dashboard & monitoring
+- All agent service definitions
+
+### Lean Profile (Low-RAM)
+```bash
+docker-compose.agents-lite.yml
+```
+Override file for 4GB systems. Use with:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.agents-lite.yml up -d
+```
+
+Resources per agent:
+- Limits: 512M RAM, 0.5 CPU
+- Reservations: 256M RAM, 0.25 CPU
+
+---
 
 ## 🎯 Usage Examples
 
 ### Plan a Feature
 ```bash
-curl -X POST http://localhost:8080/plan \
+curl -X POST http://localhost:8081/plan \
   -H "Content-Type: application/json" \
   -d '{
-    "task": "Create a shopping cart feature with checkout",
-    "context": {
-      "tech_stack": "Next.js, FastAPI, PostgreSQL"
-    }
+    "task": "Create shopping cart feature",
+    "context": {"tech_stack": "React, FastAPI, PostgreSQL"}
   }'
 ```
 
 ### Execute with Specific Agent
 ```bash
-curl -X POST http://localhost:8080/agent/frontend-specialist/execute \
+curl -X POST http://localhost:8081/agent/coder-agent/execute \
   -H "Content-Type: application/json" \
   -d '{
-    "agent": "frontend-specialist",
-    "message": "Create a responsive product card component",
+    "message": "Generate a TypeScript utility for date formatting",
     "context": {}
   }'
 ```
 
-### Start a Workflow
+### Check Agent Health
 ```bash
-# Feature development workflow
-curl -X POST http://localhost:8080/workflow/feature \
-  -H "Content-Type: application/json" \
-  -d '{
-    "workflow_type": "feature",
-    "description": "User authentication system",
-    "requirements": {
-      "auth_method": "JWT",
-      "providers": ["email", "google"]
-    }
-  }'
+curl http://localhost:8081/health          # Orchestrator
+curl http://localhost:8002/health          # Coder agent
+curl http://localhost:8012/health          # Frontend specialist
 ```
 
-### Check Task Status
+---
+
+## 🐳 Docker Commands
+
+### Start Services
+
 ```bash
-curl http://localhost:8080/task/task_20240205_143022
+# Lean profile (recommended for 4GB systems)
+docker compose -f docker-compose.yml -f docker-compose.agents-lite.yml up -d
+
+# Full stack with all agents
+docker compose --profile agents up -d
+
+# Just core services (no agents)
+docker compose up -d
 ```
 
-## 🔧 Agent Services
+### Monitor & Debug
 
-| Agent | Port | Model | Purpose |
-|-------|------|-------|---------|
-| **Orchestrator** | 8080 | - | Coordination & API |
-| **Project Strategist** | 8001 | Opus | Planning & delegation |
-| **Frontend Specialist** | 8002 | Sonnet | UI/UX development |
-| **Backend Specialist** | 8003 | Sonnet | API & business logic |
-| **Database Architect** | 8004 | Sonnet | Schema & queries |
-| **QA Engineer** | 8005 | Sonnet | Testing & validation |
-| **DevOps Engineer** | 8006 | Sonnet | CI/CD & infrastructure |
-| **Security Engineer** | 8007 | Sonnet | Security audits |
-| **System Architect** | 8008 | Opus | Architecture design |
+```bash
+# View all containers
+docker ps
+
+# View agent logs
+docker logs crew-orchestrator -f
+docker logs coder-agent -f
+
+# Check resource usage
+docker stats
+
+# Inspect container details
+docker inspect coder-agent
+```
+
+### Stop & Cleanup
+
+```bash
+# Stop all services
+docker compose down
+
+# Stop and remove volumes
+docker compose down -v
+
+# Remove specific agent
+docker stop coder-agent
+docker rm coder-agent
+
+# Cleanup unused images
+docker image prune -a
+
+# Full cleanup (warning: removes all Docker data)
+docker system prune -a
+```
+
+---
+
+## 🧠 Hive Mind Integration
+
+All agents share knowledge through:
+
+- **Team_Memory_Standards.md** — Coding standards & conventions
+- **Agent_Skills_Library.md** — Reusable skills & patterns
+- **Redis** — Real-time task coordination
+- **PostgreSQL** — Persistent memory & history
+- **agent_memory volume** — Shared workspace
+
+---
+
+## 🔍 Monitoring & Health
+
+### Agent Health Endpoints
+```bash
+# Orchestrator
+curl http://localhost:8081/health
+
+# Individual agents (typically)
+curl http://localhost:8002/health    # coder-agent
+curl http://localhost:8012/health    # frontend-specialist
+curl http://localhost:8003/health    # backend-specialist
+```
+
+### Prometheus Metrics
+Access at `http://localhost:9090`
+
+```
+# Agent CPU usage
+container_cpu_usage_seconds_total{name=~".*agent.*"}
+
+# Agent memory
+container_memory_usage_bytes{name=~".*agent.*"}
+
+# Agent restarts
+container_last_seen{name=~".*agent.*"}
+```
+
+### Grafana Dashboards
+Access at `http://localhost:3001`
+
+Pre-configured dashboards:
+- Docker container metrics
+- Agent performance
+- System resource usage
+
+---
+
+## 🔐 Security Best Practices
+
+1. **Environment variables** — Never commit `.env` files
+2. **API keys** — Store in Docker Secrets or secrets manager
+3. **Network isolation** — Agents on backend-net by default
+4. **Resource limits** — Configured to prevent runaway containers
+5. **Auto-restart** — Enabled for production stability
+
+---
+
+## 🚨 Troubleshooting
+
+### Agent Won't Start
+```bash
+# Check logs
+docker logs <agent-name>
+
+# Verify dependencies
+docker ps | grep -E "redis|postgres|hypercode-core"
+
+# Restart dependencies first
+docker restart redis postgres hypercode-core
+
+# Then restart agent
+docker restart <agent-name>
+```
+
+### Out of Memory
+```bash
+# Check current usage
+docker stats --no-stream
+
+# Stop unused agents
+docker stop <agent-name>
+
+# If WSL2 (Windows): Increase memory
+# Edit: %USERPROFILE%\.wslconfig
+[wsl2]
+memory=8GB
+processors=4
+```
+
+### Port Conflicts
+```bash
+# Find what's using port 8002
+docker ps --format "{{.Names}} {{.Ports}}" | grep 8002
+
+# Stop conflicting container
+docker stop <container>
+
+# Restart agent
+docker restart <agent-name>
+```
+
+### Connection Errors
+```bash
+# Test Redis connection
+docker exec redis redis-cli ping
+
+# Test Postgres connection
+docker exec postgres pg_isready
+
+# Test Ollama connection
+docker exec hypercode-ollama ollama list
+```
+
+---
 
 ## 📁 Project Structure
 
 ```
 agents/
-├── base-agent/              # Shared base agent class
-│   ├── Dockerfile
-│   ├── agent.py
+├── agent-factory/              ⭐ NEW: On-demand spawning
+│   ├── spawn_agent.sh          — Spawn individual agents
+│   └── README.md               — Complete usage guide
+├── healer/                     — Health monitoring & healing
+│   ├── main.py
+│   ├── adapters/
 │   └── requirements.txt
-├── crew-orchestrator/       # Central coordination service
-│   ├── Dockerfile
+├── crew-orchestrator/          — Central orchestration
 │   ├── main.py
 │   └── requirements.txt
 ├── 01-frontend-specialist/
@@ -146,154 +401,38 @@ agents/
 ├── 05-devops-engineer/
 ├── 06-security-engineer/
 ├── 07-system-architect/
-└── 08-project-strategist/
+├── 09-tips-tricks-writer/
+├── test-agent/
+├── coder/                      — Code generation agent
+└── base-agent/                 — Shared base class
 
-Configuration_Kit/           # Hive Mind (mounted as volume)
+Configuration_Kit/              — Hive Mind (shared knowledge)
 ├── Team_Memory_Standards.md
 └── Agent_Skills_Library.md
 ```
 
-## 🧠 Hive Mind Integration
-
-All agents share knowledge through:
-- **Team_Memory_Standards.md** - Coding standards, conventions
-- **Agent_Skills_Library.md** - Reusable skills & patterns
-- **Redis** - Real-time task coordination
-- **PostgreSQL** - Persistent memory & history
-
-## 🐳 Docker Commands
-
-```bash
-# Start all agents
-docker-compose -f docker-compose.agents.yml up -d
-
-# View logs
-docker-compose -f docker-compose.agents.yml logs -f
-
-# Stop all agents
-docker-compose -f docker-compose.agents.yml down
-
-# Rebuild specific agent
-docker-compose -f docker-compose.agents.yml build frontend-specialist
-docker-compose -f docker-compose.agents.yml up -d frontend-specialist
-
-# Scale specialists (if needed)
-docker-compose -f docker-compose.agents.yml up -d --scale backend-specialist=2
-
-# View resource usage
-docker stats
-```
-
-## 🔍 Monitoring
-
-Access the agent dashboard at: http://localhost:8090
-
-View individual agent health:
-- Orchestrator: http://localhost:8080/health
-- Project Strategist: http://localhost:8001/health
-- Frontend: http://localhost:8002/health
-- Backend: http://localhost:8003/health
-
-## 🔐 Security Best Practices
-
-1. **Never commit `.env.agents`** - Contains API keys
-2. **Use secrets management** for production (Docker Secrets, Vault)
-3. **Restrict network access** - Only expose orchestrator publicly
-4. **Regular updates** - Keep base images updated
-5. **Resource limits** - Already configured in compose file
-
-## 🚀 Scaling for Production
-
-### Kubernetes Deployment
-```bash
-# Convert Docker Compose to Kubernetes
-kompose convert -f docker-compose.agents.yml
-
-# Apply to cluster
-kubectl apply -f .
-```
-
-### Load Balancing
-Add multiple instances of specialist agents:
-```yaml
-deploy:
-  replicas: 3
-```
-
-### Horizontal Pod Autoscaling (K8s)
-```yaml
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: backend-specialist-hpa
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: backend-specialist
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-```
-
-## 🐛 Troubleshooting
-
-### Agent not starting
-```bash
-# Check logs
-docker logs project-strategist
-
-# Verify API key is set
-docker exec project-strategist env | grep ANTHROPIC
-```
-
-### Redis connection issues
-```bash
-# Test Redis
-docker exec agent-redis redis-cli ping
-
-# Restart Redis
-docker-compose -f docker-compose.agents.yml restart redis
-```
-
-### Out of memory
-```bash
-# Check current usage
-docker stats
-
-# Increase Docker Desktop memory allocation
-# Settings > Resources > Memory > 8GB+
-```
-
-## 📚 Integration with Trae
-
-Mount your Trae workspace:
-```yaml
-volumes:
-  - ${TRAE_WORKSPACE_PATH}:/workspace:ro
-```
-
-Configure MCP tools in agent environment:
-```yaml
-environment:
-  - MCP_GITHUB_TOKEN=${GITHUB_TOKEN}
-  - MCP_FILESYSTEM_ROOT=/workspace
-```
+---
 
 ## 🎓 Next Steps
 
-1. ✅ Deploy to production with Kubernetes
-2. ✅ Add monitoring with Prometheus + Grafana
-3. ✅ Implement webhook integrations (GitHub, Slack)
-4. ✅ Create custom agents for your domain
-5. ✅ Set up CI/CD pipeline for agent updates
+1. ✅ **Deploy lean profile** for your system size
+2. ✅ **Monitor with Grafana** at http://localhost:3001
+3. ✅ **Test agent communication** with curl requests
+4. ✅ **Spawn agents on-demand** using agent-factory
+5. ✅ **Implement custom workflows** for your use case
+6. ✅ **Scale to Kubernetes** for production
 
 ---
 
-**Built with ❤️ for HyperCode V2.0**
+## 📖 Documentation
+
+- **Agent Factory:** `agents/agent-factory/README.md`
+- **Healer Agent:** `agents/healer/README.md`
+- **Main README:** `README.md`
+- **Compose Files:**
+  - `docker-compose.yml` — Main services
+  - `docker-compose.agents-lite.yml` — Lean profile
+
+---
+
+**🏴󠁧󠁢󠁷󠁬󠁳󠁿 Built for HyperCode V2.0 — Neurodivergent-first AI Agent Ecosystem**

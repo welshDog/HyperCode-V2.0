@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pydantic
+redis
+PERPLEXITY>=0.18.1
+httpx
+requests
+tenacity

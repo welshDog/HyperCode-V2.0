@@ -1,0 +1,392 @@
+---
+# ServiceMonitor for Celery Exporter
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: celery-exporter
+  namespace: hypercode
+spec:
+  selector:
+    matchLabels:
+      app: celery-exporter
+  endpoints:
+  - port: 9808
+    interval: 30s
+
+---
+# PrometheusRule for additional business metrics
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: hypercode-business-metrics
+  namespace: hypercode
+spec:
+  groups:
+  - name: business.rules
+    interval: 1m
+    rules:
+    # Celery task metrics
+    - alert: CeleryTaskFailureRate
+      expr: |
+        (sum(rate(celery_task_failed_total[5m])) by (queue)) /
+        (sum(rate(celery_task_total[5m])) by (queue)) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High Celery task failure rate in queue {{ $labels.queue }}"
+        description: "Task failure rate is {{ $value | humanizePercentage }}"
+
+    - alert: CeleryQueueBacklog
+      expr: celery_queue_length > 1000
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Large Celery queue backlog detected"
+        description: "Queue has {{ $value }} pending tasks"
+
+    # Application-level metrics
+    - alert: HighErrorRate
+      expr: (sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))) > 0.01
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High HTTP error rate detected"
+        description: "Error rate is {{ $value | humanizePercentage }}"
+
+    - alert: SlowResponseTimes
+      expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, endpoint)) > 1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Slow response times for {{ $labels.endpoint }}"
+        description: "p95 response time is {{ $value | humanizeDuration }}"
+
+    - alert: DatabaseConnectionPoolExhaustion
+      expr: (db_connection_active / db_connection_max) > 0.9
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Database connection pool nearly exhausted"
+        description: "{{ $value | humanizePercentage }} of connections in use"
+
+    - alert: CacheHitRateLow
+      expr: (cache_hits / (cache_hits + cache_misses)) < 0.8
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Cache hit rate is low"
+        description: "Cache hit rate is {{ $value | humanizePercentage }}"
+
+---
+# GrafanaDataSource for Prometheus
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasource-prometheus
+  namespace: hypercode
+data:
+  prometheus.yaml: |
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      url: http://prometheus:9090
+      isDefault: true
+      access: proxy
+      editable: true
+
+---
+# GrafanaDataSource for Loki
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasource-loki
+  namespace: hypercode
+data:
+  loki.yaml: |
+    apiVersion: 1
+    datasources:
+    - name: Loki
+      type: loki
+      url: http://loki:3100
+      access: proxy
+      editable: true
+
+---
+# GrafanaDataSource for Tempo
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasource-tempo
+  namespace: hypercode
+data:
+  tempo.yaml: |
+    apiVersion: 1
+    datasources:
+    - name: Tempo
+      type: tempo
+      url: http://tempo:3200
+      access: proxy
+      editable: true
+
+---
+# Grafana Dashboard ConfigMap - System Overview
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-system-overview
+  namespace: hypercode
+data:
+  system-overview.json: |
+    {
+      "dashboard": {
+        "title": "HyperCode System Overview",
+        "tags": ["hypercode", "system"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "title": "Cluster CPU Usage",
+            "targets": [
+              {
+                "expr": "sum(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) / sum(machine_cpu_cores)"
+              }
+            ]
+          },
+          {
+            "title": "Cluster Memory Usage",
+            "targets": [
+              {
+                "expr": "(sum(node_memory_MemTotal_bytes) - sum(node_memory_MemAvailable_bytes)) / sum(node_memory_MemTotal_bytes)"
+              }
+            ]
+          },
+          {
+            "title": "Pod Count",
+            "targets": [
+              {
+                "expr": "count(kube_pod_info{namespace=\"hypercode\"})"
+              }
+            ]
+          },
+          {
+            "title": "Running Pods",
+            "targets": [
+              {
+                "expr": "count(kube_pod_status_phase{namespace=\"hypercode\",phase=\"Running\"})"
+              }
+            ]
+          }
+        ]
+      }
+    }
+
+---
+# Grafana Dashboard ConfigMap - Application Metrics
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-application
+  namespace: hypercode
+data:
+  application.json: |
+    {
+      "dashboard": {
+        "title": "HyperCode Application Metrics",
+        "tags": ["hypercode", "application"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "title": "API Request Rate",
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total[5m])) by (method)"
+              }
+            ]
+          },
+          {
+            "title": "API Error Rate",
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))"
+              }
+            ]
+          },
+          {
+            "title": "Response Time (p95)",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))"
+              }
+            ]
+          },
+          {
+            "title": "Database Queries/sec",
+            "targets": [
+              {
+                "expr": "sum(rate(pg_stat_statements_calls[5m]))"
+              }
+            ]
+          }
+        ]
+      }
+    }
+
+---
+# Grafana Dashboard ConfigMap - Database Metrics
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-database
+  namespace: hypercode
+data:
+  database.json: |
+    {
+      "dashboard": {
+        "title": "HyperCode Database Metrics",
+        "tags": ["hypercode", "database"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "title": "Database Connections",
+            "targets": [
+              {
+                "expr": "pg_stat_activity_count"
+              }
+            ]
+          },
+          {
+            "title": "Cache Hit Ratio",
+            "targets": [
+              {
+                "expr": "sum(pg_stat_statements_blks_hit) / (sum(pg_stat_statements_blks_hit) + sum(pg_stat_statements_blks_read))"
+              }
+            ]
+          },
+          {
+            "title": "Database Size",
+            "targets": [
+              {
+                "expr": "pg_database_size_bytes{datname=\"hypercode\"}"
+              }
+            ]
+          },
+          {
+            "title": "Transaction Rate",
+            "targets": [
+              {
+                "expr": "rate(pg_stat_statements_calls[5m])"
+              }
+            ]
+          }
+        ]
+      }
+    }
+
+---
+# Grafana Dashboard ConfigMap - Redis Metrics
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-redis
+  namespace: hypercode
+data:
+  redis.json: |
+    {
+      "dashboard": {
+        "title": "HyperCode Redis Metrics",
+        "tags": ["hypercode", "redis", "cache"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "title": "Memory Usage",
+            "targets": [
+              {
+                "expr": "redis_memory_used_bytes"
+              }
+            ]
+          },
+          {
+            "title": "Evicted Keys",
+            "targets": [
+              {
+                "expr": "redis_evicted_keys_total"
+              }
+            ]
+          },
+          {
+            "title": "Hit Rate",
+            "targets": [
+              {
+                "expr": "redis_keyspace_hits_total / (redis_keyspace_hits_total + redis_keyspace_misses_total)"
+              }
+            ]
+          },
+          {
+            "title": "Connected Clients",
+            "targets": [
+              {
+                "expr": "redis_connected_clients"
+              }
+            ]
+          }
+        ]
+      }
+    }
+
+---
+# AlertmanagerConfig for routing alerts
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: hypercode
+data:
+  config.yml: |
+    global:
+      resolve_timeout: 5m
+    
+    route:
+      receiver: 'default'
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 12h
+      
+      routes:
+      - match:
+          severity: critical
+        receiver: 'critical'
+        repeat_interval: 5m
+      
+      - match:
+          severity: warning
+        receiver: 'warning'
+        repeat_interval: 30m
+    
+    receivers:
+    - name: 'default'
+      webhook_configs:
+      - url: 'http://localhost:5001/'
+    
+    - name: 'critical'
+      webhook_configs:
+      - url: 'http://alerting-webhook:5000/'
+        send_resolved: true
+      pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+    
+    - name: 'warning'
+      email_configs:
+      - to: 'ops-team@example.com'
+        from: 'alertmanager@example.com'
+        smarthost: 'smtp.example.com:587'
+        auth_username: 'alertmanager@example.com'
+        auth_password: '${SMTP_PASSWORD}'
+        headers:
+          Subject: 'Alert: {{ .GroupLabels.alertname }}'
