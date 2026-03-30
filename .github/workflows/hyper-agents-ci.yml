@@ -11,8 +11,8 @@ on:
       - develop
       - main
     paths:
-            - 'agents/**'
-            - 'tests/**'
+      - 'agents/**'
+      - 'tests/**'
       - '.github/workflows/hyper-agents-ci.yml'
 
 concurrency:
