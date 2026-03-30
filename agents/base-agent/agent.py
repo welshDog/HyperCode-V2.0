@@ -5,6 +5,7 @@ Each specialized agent extends this base
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
+import asyncio
 import os
 import redis.asyncio as redis
 from contextlib import asynccontextmanager
@@ -90,9 +91,22 @@ class BaseAgent:
     async def startup(self):
         if self.logger:
             self.logger.info("initializing_agent", agent=self.config.name)
-        
-        # Initialize Redis
-        self.redis = await redis.from_url(self.config.redis_url, decode_responses=True)
+
+        # Initialize Redis with retry
+        for attempt in range(5):
+            try:
+                self.redis = await redis.from_url(self.config.redis_url, decode_responses=True)
+                await self.redis.ping()
+                if self.logger:
+                    self.logger.info("redis_connected")
+                break
+            except Exception as e:
+                wait = 2 ** attempt
+                if self.logger:
+                    self.logger.warning(f"Redis connect failed (attempt {attempt + 1}): {e}. Retry in {wait}s")
+                await asyncio.sleep(wait)
+        else:
+            raise RuntimeError("Could not connect to Redis after 5 attempts")
         
         # Initialize AI Client
         if AIClient and self.config.api_key:
@@ -194,37 +208,51 @@ class BaseAgent:
     async def generate_plan(self, task, rag_context, project_context):
         if not self.client:
             return "No AI client configured — running in limited mode"
-            
+
         prompt = f"""
         You are {self.config.name} ({self.config.role}).
-        
+
         CONTEXT FROM BIBLE:
         {rag_context}
-        
+
         PROJECT STATUS:
         {project_context}
-        
+
         TASK:
         {task}
-        
+
         Create a brief execution plan.
         """
-        
-        if AI_BACKEND == "anthropic":
-            response = await self.client.messages.create(
-                model=self.config.model,
-                max_tokens=1000,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            return response.content[0].text
-        elif AI_BACKEND == "openai":
-            response = await self.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}]
-            )
-            return response.choices[0].message.content
-        
-        return "No AI backend available"
+
+        for attempt in range(4):
+            try:
+                if AI_BACKEND == "anthropic":
+                    response = await self.client.messages.create(
+                        model=self.config.model,
+                        max_tokens=1000,
+                        timeout=30.0,
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+                    return response.content[0].text
+                elif AI_BACKEND == "openai":
+                    response = await self.client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=[{"role": "user", "content": prompt}],
+                        timeout=30.0,
+                    )
+                    return response.choices[0].message.content
+                return "No AI backend available"
+            except Exception as e:
+                err_str = str(e).lower()
+                if attempt < 3 and ("rate" in err_str or "connection" in err_str or "timeout" in err_str):
+                    wait = 2 ** (attempt + 1)
+                    if self.logger:
+                        self.logger.warning(f"AI call failed (attempt {attempt + 1}): {e}. Retry in {wait}s")
+                    await asyncio.sleep(wait)
+                else:
+                    if self.logger:
+                        self.logger.error(f"AI API error: {e}")
+                    return f"Plan generation failed: {e}"
 
     def run(self):
         import uvicorn

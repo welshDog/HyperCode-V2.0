@@ -81,6 +81,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self._events: Dict[Tuple[str, str], Deque[float]] = {}
         self._lock = asyncio.Lock()
 
+    def _evict_stale_keys(self, window_start: float) -> None:
+        stale = [k for k, dq in self._events.items() if not dq or dq[-1] < window_start]
+        for k in stale:
+            del self._events[k]
+
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         if not self._config.enabled:
             return await call_next(request)
@@ -96,6 +101,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         window_start = now - self._config.window_seconds
 
         async with self._lock:
+            self._evict_stale_keys(window_start)
+
             dq = self._events.get(key)
             if dq is None:
                 dq = deque()

@@ -39,6 +39,14 @@ app = FastAPI(
     redoc_url=f"{settings.API_V1_STR}/redoc",
 )
 
+@app.on_event("shutdown")
+async def _shutdown_event() -> None:
+    logger.info("Shutdown initiated...")
+    from app.db.session import engine as _engine
+    _engine.dispose()
+    logger.info("Graceful shutdown complete")
+
+
 @app.on_event("startup")
 async def _startup_validate_security() -> None:
     settings.validate_security()

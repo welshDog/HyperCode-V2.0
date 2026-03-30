@@ -46,12 +46,14 @@ class WorkerSettings:
     allow_abort_jobs = True
 
 async def get_redis_pool():
-    # Helper to get a simple redis connection pool
-    from arq.connections import create_pool
-    from arq.connections import RedisSettings
     import os
-    
+    import redis.asyncio as aioredis
+
     redis_host = os.getenv('ORCHESTRATOR_REDIS_HOST', 'localhost')
     redis_port = int(os.getenv('ORCHESTRATOR_REDIS_PORT', 6379))
-    
-    return await create_pool(RedisSettings(host=redis_host, port=redis_port))
+
+    return await aioredis.from_url(
+        f"redis://{redis_host}:{redis_port}",
+        encoding="utf-8",
+        decode_responses=True,
+    )

@@ -61,7 +61,7 @@ async def execute_task(payload: dict, current_user: Any = Depends(deps.get_curre
             )
         return resp.json()
     except Exception as e:
-        return {"status": "error", "detail": str(e)}
+        raise HTTPException(status_code=503, detail=f"Orchestrator unavailable: {e}")
 
 
 @router.post("/approvals/respond")

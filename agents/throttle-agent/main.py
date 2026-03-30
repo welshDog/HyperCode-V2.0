@@ -398,8 +398,11 @@ THROTTLE_ACTIVE_CONTAINER = os.getenv("THROTTLE_ACTIVE_CONTAINER", "").strip()
 if THROTTLE_ACTIVE_CONTAINER:
     THROTTLE_PROTECT_CONTAINERS.add(THROTTLE_ACTIVE_CONTAINER)
 
+import threading as _threading
+
 app = FastAPI(title="Throttle Agent")
 
+_throttle_lock = _threading.Lock()
 _started_at: float = time.time()
 _last_poll_ts: float = 0.0
 _last_ram_pct: float | None = None
@@ -478,9 +481,10 @@ def _notify_healer_state(containers: list[str], paused: bool) -> None:
         "reason": "throttle_agent",
     }
     try:
-        httpx.post(f"{HEALER_URL}/throttle/state", json=payload, timeout=2.0)
-    except Exception:
-        return
+        resp = httpx.post(f"{HEALER_URL}/throttle/state", json=payload, timeout=2.0)
+        resp.raise_for_status()
+    except Exception as e:
+        logger.warning("Healer notification failed, will retry next cycle", extra={"error": str(e)})
 
 
 def _healer_allows_resume(container: str) -> bool:
@@ -655,15 +659,20 @@ def _autopilot_cycle_sync() -> None:
     client.ping()
     DOCKER_UP.set(1)
 
-    _last_poll_ts = time.time()
-    _last_ram_pct = _estimate_system_ram_pct(client, tiers_cfg)
-    if _last_ram_pct is not None:
-        SYSTEM_RAM_USAGE_PCT.set(_last_ram_pct)
-        ram_history.append(_last_ram_pct)
+    current_ram = _estimate_system_ram_pct(client, tiers_cfg)
+    now = time.time()
+
+    with _throttle_lock:
+        _last_poll_ts = now
+        _last_ram_pct = current_ram
+
+    if current_ram is not None:
+        SYSTEM_RAM_USAGE_PCT.set(current_ram)
+        ram_history.append(current_ram)
 
     _update_grafana_metrics()
 
-    ram_pct = _last_ram_pct
+    ram_pct = current_ram
     if ram_pct is None:
         return
 
@@ -678,29 +687,30 @@ def _autopilot_cycle_sync() -> None:
     if THROTTLE_KEEP_OBSERVABILITY and ram_pct < THROTTLE_PAUSE_TIER5_AT:
         desired_pause = [t for t in desired_pause if t != 5]
 
-    for tier in desired_pause:
-        if tier in THROTTLE_PROTECT_TIERS:
-            continue
-        if tier in _autopilot_paused_tiers:
-            continue
-        _pause_tier_sync(client, tier)
-        _autopilot_paused_tiers.add(tier)
+    with _throttle_lock:
+        for tier in desired_pause:
+            if tier in THROTTLE_PROTECT_TIERS:
+                continue
+            if tier in _autopilot_paused_tiers:
+                continue
+            _pause_tier_sync(client, tier)
+            _autopilot_paused_tiers.add(tier)
 
-    if ram_pct < THROTTLE_RESUME_BELOW:
-        if _autopilot_below_since is None:
-            _autopilot_below_since = time.time()
-    else:
-        _autopilot_below_since = None
+        if ram_pct < THROTTLE_RESUME_BELOW:
+            if _autopilot_below_since is None:
+                _autopilot_below_since = time.time()
+        else:
+            _autopilot_below_since = None
 
-    if _autopilot_paused_tiers and _autopilot_below_since is not None:
-        hold_seconds = max(THROTTLE_RESUME_HOLD_MINUTES, 1) * 60
-        if time.time() - _autopilot_below_since >= hold_seconds:
-            for tier in [4, 5, 6]:
-                if tier in _autopilot_paused_tiers:
-                    _resume_tier_sync(client, tier)
-                    _autopilot_paused_tiers.remove(tier)
-            if not _autopilot_paused_tiers:
-                _autopilot_below_since = None
+        if _autopilot_paused_tiers and _autopilot_below_since is not None:
+            hold_seconds = max(THROTTLE_RESUME_HOLD_MINUTES, 1) * 60
+            if time.time() - _autopilot_below_since >= hold_seconds:
+                for tier in [4, 5, 6]:
+                    if tier in _autopilot_paused_tiers:
+                        _resume_tier_sync(client, tier)
+                        _autopilot_paused_tiers.remove(tier)
+                if not _autopilot_paused_tiers:
+                    _autopilot_below_since = None
 
 
 @app.on_event("startup")
@@ -817,16 +827,21 @@ def decisions() -> dict[str, Any]:
         return {"error": "docker_unreachable", "detail": str(e)}
 
     now = time.time()
-    if now - _last_poll_ts > POLL_INTERVAL_SECONDS or _last_ram_pct is None:
-        _last_poll_ts = now
-        _last_ram_pct = _estimate_system_ram_pct(client, tiers_cfg)
-        if _last_ram_pct is not None:
-            SYSTEM_RAM_USAGE_PCT.set(_last_ram_pct)
-            ram_history.append(_last_ram_pct)
+    with _throttle_lock:
+        needs_poll = now - _last_poll_ts > POLL_INTERVAL_SECONDS or _last_ram_pct is None
+    if needs_poll:
+        current_ram = _estimate_system_ram_pct(client, tiers_cfg)
+        with _throttle_lock:
+            _last_poll_ts = now
+            _last_ram_pct = current_ram
+        if current_ram is not None:
+            SYSTEM_RAM_USAGE_PCT.set(current_ram)
+            ram_history.append(current_ram)
 
     _update_grafana_metrics()
 
-    ram_pct = _last_ram_pct
+    with _throttle_lock:
+        ram_pct = _last_ram_pct
     actions: list[str] = []
     reason = "unknown"
 

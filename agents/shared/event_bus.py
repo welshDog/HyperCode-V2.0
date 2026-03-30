@@ -132,22 +132,31 @@ class AgentEventBus:
     ) -> None:
         """
         Subscribe to a channel and call handler for each message.
-        Runs forever — wrap in asyncio.create_task() for background listening.
+        Runs forever with automatic reconnection — wrap in asyncio.create_task() for background listening.
         """
-        if not self._redis:
-            raise RuntimeError("Event bus not connected. Call connect() first.")
+        while True:
+            try:
+                if not self._redis:
+                    raise RuntimeError("Event bus not connected. Call connect() first.")
 
-        self._pubsub = self._redis.pubsub()
-        await self._pubsub.subscribe(channel)
-        logger.info("📥 Subscribed to channel: %s", channel)
+                self._pubsub = self._redis.pubsub()
+                await self._pubsub.subscribe(channel)
+                logger.info("📥 Subscribed to channel: %s", channel)
 
-        async for raw_message in self._pubsub.listen():
-            if raw_message["type"] == "message":
+                async for raw_message in self._pubsub.listen():
+                    if raw_message["type"] == "message":
+                        try:
+                            msg = AgentMessage.from_redis_payload(raw_message["data"])
+                            await handler(msg)
+                        except Exception as exc:
+                            logger.error("❌ Handler error: %s | raw: %s", exc, raw_message["data"][:120])
+            except Exception as exc:
+                logger.warning("⚠️ Redis subscription dropped: %s. Reconnecting in 3s...", exc)
+                await asyncio.sleep(3)
                 try:
-                    msg = AgentMessage.from_redis_payload(raw_message["data"])
-                    await handler(msg)
-                except Exception as exc:
-                    logger.error("❌ Handler error: %s | raw: %s", exc, raw_message["data"][:120])
+                    await self.connect()
+                except Exception:
+                    pass
 
     # ── XP Ledger ────────────────────────────────────────────────────────────────
     async def award_xp(

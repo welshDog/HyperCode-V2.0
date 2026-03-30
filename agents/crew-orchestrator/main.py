@@ -118,16 +118,17 @@ async def lifespan(app: FastAPI):
     redis_client = await get_redis_pool()
     logger.info("Redis connected")
 
-    # Start background health monitoring
+    # Start background tasks
     monitor_task = asyncio.create_task(monitor_agent_health())
+    fan_out_task = asyncio.create_task(_redis_event_fan_out())
 
     yield
 
     # Shutdown
-    if monitor_task:
-        monitor_task.cancel()
+    for task in (monitor_task, fan_out_task):
+        task.cancel()
         try:
-            await monitor_task
+            await task
         except asyncio.CancelledError:
             pass
 
@@ -672,6 +673,7 @@ async def execute_smoke(
 
 # --- WEBSOCKET FOR APPROVALS ---
 connected_dashboards: List[WebSocket] = []
+_dashboards_lock = asyncio.Lock()
 
 # --- WEBSOCKETS ---
 
@@ -796,7 +798,8 @@ async def websocket_approvals(websocket: WebSocket):
             await websocket.close(code=1008)
             return
     await websocket.accept()
-    connected_dashboards.append(websocket)
+    async with _dashboards_lock:
+        connected_dashboards.append(websocket)
     logger.info("Dashboard connected to approval stream")
 
     try:
@@ -812,12 +815,14 @@ async def websocket_approvals(websocket: WebSocket):
 
     except WebSocketDisconnect:
         logger.info("Dashboard disconnected")
-        connected_dashboards.remove(websocket)
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
     finally:
-        if websocket in connected_dashboards:
-            connected_dashboards.remove(websocket)
+        async with _dashboards_lock:
+            try:
+                connected_dashboards.remove(websocket)
+            except ValueError:
+                pass
 
 
 @app.post("/approvals/respond")
@@ -1031,6 +1036,3 @@ async def ws_events(websocket: WebSocket):
         _ws_clients.discard(websocket)
 
 
-@app.on_event("startup")
-async def _start_event_fan_out():
-    asyncio.create_task(_redis_event_fan_out())

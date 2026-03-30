@@ -112,7 +112,13 @@ async def create_task(
         queue_payload["plan_reference"] = plan_reference
 
     from app.core.celery_app import celery_app
-    celery_app.send_task("hypercode.tasks.process_agent_job", args=[queue_payload])
+    from celery.exceptions import OperationalError as CeleryOperationalError
+    try:
+        celery_app.send_task("hypercode.tasks.process_agent_job", args=[queue_payload])
+    except CeleryOperationalError as e:
+        import logging as _logging
+        _logging.getLogger(__name__).error(f"Celery broker unreachable: {e}")
+        raise HTTPException(status_code=503, detail="Task queue unavailable. Retry in 30 seconds.")
 
     return task
 

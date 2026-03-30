@@ -28,7 +28,6 @@ class Settings(BaseSettings):
     
     # AI
     PERPLEXITY_API_KEY: Optional[str] = None
-    PERPLEXITY_API_KEY: Optional[str] = None
     OPENROUTER_API_KEY: Optional[str] = None
     HYPERCODE_MEMORY_KEY: Optional[str] = None
     OLLAMA_HOST: str = "http://hypercode-ollama:11434"

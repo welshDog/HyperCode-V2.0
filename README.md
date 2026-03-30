@@ -1,3 +1,4 @@
+
 [![Version](https://img.shields.io/badge/version-2.4.0-blue)](backend/app/core/config.py)
 
 **Doc Tag:** v2.4.0 | **Last Updated:** 2026-03-30

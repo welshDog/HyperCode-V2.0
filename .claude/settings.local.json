@@ -76,7 +76,8 @@
       "mcp__hypercode__hypercode_agent_system_health",
       "mcp__hypercode__hypercode_list_agents",
       "mcp__hypercode__hypercode_list_tasks",
-      "Bash(gh release:*)"
+      "Bash(gh release:*)",
+      "Bash(cd:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

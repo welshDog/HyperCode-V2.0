@@ -1,9 +1,12 @@
+import logging
 from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from app.core.rag import rag
 from app.api import deps
 from app.models import models
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -24,7 +27,11 @@ def ingest_memory(
     """
     Ingest text into the vector memory.
     """
-    chunks_count = rag.ingest_document(request.content, request.source, request.metadata)
+    try:
+        chunks_count = rag.ingest_document(request.content, request.source, request.metadata)
+    except Exception as e:
+        logger.error(f"ChromaDB ingest failed: {e}")
+        raise HTTPException(status_code=503, detail="Memory service unavailable")
     if chunks_count == 0:
         raise HTTPException(status_code=500, detail="Failed to ingest document")
     return {"status": "success", "chunks_ingested": chunks_count}
@@ -37,7 +44,11 @@ def query_memory(
     """
     Semantic search in vector memory.
     """
-    results = rag.query(request.query, request.limit)
+    try:
+        results = rag.query(request.query, request.limit)
+    except Exception as e:
+        logger.error(f"ChromaDB query failed: {e}")
+        raise HTTPException(status_code=503, detail="Memory service unavailable")
     return {"results": results}
 
 @router.post("/reset", response_model=dict)
@@ -47,5 +58,9 @@ def reset_memory(
     """
     Wipe all memory.
     """
-    rag.reset()
+    try:
+        rag.reset()
+    except Exception as e:
+        logger.error(f"ChromaDB reset failed: {e}")
+        raise HTTPException(status_code=503, detail="Memory service unavailable")
     return {"status": "memory_wiped"}
