@@ -4,8 +4,9 @@ const CORE_URL = process.env.HYPERCODE_CORE_URL ?? 'http://hypercode-core:8000'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
+  await params
   try {
     const token = req.headers.get('authorization') ?? ''
     // Core wallet endpoint is user-scoped via JWT — userId param is informational

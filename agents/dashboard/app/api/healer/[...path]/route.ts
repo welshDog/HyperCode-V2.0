@@ -8,8 +8,9 @@ import { NextRequest, NextResponse } from 'next/server';
 const HEALER_BASE =
   process.env.HEALER_AGENT_URL ?? 'http://healer-agent:8008';
 
-export async function GET(req: NextRequest, { params }: { params: { path: string[] } }) {
-  const upstreamPath = '/' + (params.path ?? []).join('/');
+export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+  const { path } = await params;
+  const upstreamPath = '/' + (path ?? []).join('/');
   const upstreamUrl  = `${HEALER_BASE}${upstreamPath}`;
 
   try {

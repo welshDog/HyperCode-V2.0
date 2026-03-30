@@ -83,7 +83,11 @@
       "Bash(git-filter-repo --version)",
       "Read(//h/HyperStation zone/HyperCode/**)",
       "Read(//h/HyperStation zone/**)",
-      "Bash(ls *.md)"
+      "Bash(ls *.md)",
+      "Bash(ls docker-compose*.yml)",
+      "Bash(docker network:*)",
+      "Bash(docker context:*)",
+      "Bash(find src:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
