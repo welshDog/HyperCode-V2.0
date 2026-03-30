@@ -1,129 +1,73 @@
-# 🚀 Production Deployment Guide
+# Deployment Guide
+
+This guide covers how to deploy the HyperCode-V2.0 ecosystem using Docker Compose.
 
 ## Prerequisites
 
-- **Docker & Docker Compose** (or Kubernetes)
-- **4GB+ RAM** available
-- **Anthropic/OpenAI API key**
-- **Domain name** (optional, for HTTPS)
+*   **Docker Desktop** (latest version)
+*   **Git**
+*   **Python 3.11+** (for local CLI usage)
+*   **Perplexity API Key** (for the AI Brain)
 
-## Deployment Options
+## Environment Configuration
 
-### Option 1: Docker Compose (Standard Deployment)
+1.  **Clone the Repository**:
+    ```bash
+    git clone https://github.com/welshDog/HyperCode-V2.0.git
+    cd HyperCode-V2.0
+    ```
 
-This is the recommended method for most users and small teams. It launches the entire ecosystem on a single host.
+2.  **Environment Variables**:
+    Create a `.env` file in the `backend/` directory (or root, depending on compose config).
+    Required variables:
+    ```ini
+    PERPLEXITY_API_KEY=pplx-xxxxxxxxxxxxxxxx
+    HYPERCODE_DB_URL=postgresql://postgres:postgres@postgres:5432/hypercode
+    HYPERCODE_REDIS_URL=redis://redis:6379/0
+    SECRET_KEY=your_secret_key_here
+    ```
 
-#### 1. Prepare Environment
+## Running the Swarm
+
+### 1. Start Infrastructure
+Launch the core services (Backend, Worker, DB, Redis, Monitoring):
+
 ```bash
-# Clone repository
-git clone https://github.com/welshDog/HyperCode-V2.0.git
-cd HyperCode-V2.0
-
-# Configure Environment
-cp .env.example .env
-nano .env
+docker-compose up --build -d
 ```
 
-#### 2. Configure Settings
-Ensure your `.env` file has:
-- `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`
-- Secure passwords for Database (`POSTGRES_PASSWORD`) if exposing to public.
-- `HYPERCODE_JWT_SECRET` (generate a random string).
+### 2. Verify Services
+Check if all containers are healthy:
 
-#### 3. Deploy
 ```bash
-# Start all services
-docker compose up -d
-
-# Verify Deployment
-docker compose ps
+docker ps
 ```
 
-#### 4. Access
-- Frontend: `http://localhost:3000`
-- API: `http://localhost:8000`
+You should see:
+*   `hypercode-core` (Port 8000)
+*   `celery-worker`
+*   `postgres` (Port 5432)
+*   `redis` (Port 6379)
+*   `prometheus` (Port 9090)
+*   `grafana` (Port 3000/3001)
 
----
+### 3. Database Migration
+If this is a fresh install, run migrations (usually handled by the entrypoint, but manual steps below):
 
-### Option 2: Kubernetes (Enterprise Scale)
-
-For high-availability production environments.
-
-#### 1. Create Namespace
 ```bash
-kubectl create namespace hypercode-agents
+docker exec -it hypercode-core alembic upgrade head
 ```
 
-#### 2. Create Secrets
-```bash
-kubectl create secret generic anthropic-key \
-  --from-literal=api-key=sk-ant-xxxxx \
-  -n hypercode-agents
+## Stopping the Swarm
 
-kubectl create secret generic db-credentials \
-  --from-literal=password=<strong-password> \
-  -n hypercode-agents
+To stop all services:
+
+```bash
+docker-compose down
 ```
 
-#### 3. Deploy Infrastructure
+To stop and remove volumes (reset database):
+
 ```bash
-# Apply base infrastructure
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/redis.yaml
-kubectl apply -f k8s/postgres.yaml
+docker-compose down -v
 ```
-
-#### 4. Deploy Agents
-```bash
-# Apply agent deployments
-kubectl apply -f k8s/orchestrator.yaml
-kubectl apply -f k8s/agents/
-```
-
-#### 5. Setup Ingress
-```bash
-kubectl apply -f k8s/ingress.yaml
-```
-
----
-
-## Security Hardening
-
-### 1. API Key Rotation
-Regularly rotate keys in your `.env` or K8s secrets.
-
-### 2. Network Isolation
-HyperCode uses internal Docker networks (`backend-net`, `data-net`) to isolate services. Ensure you do not expose ports 5432 (Postgres) or 6379 (Redis) to the public internet in production.
-
-### 3. Resource Limits
-Default `docker-compose.yml` includes resource limits. Adjust `deploy.resources.limits` based on your server capacity.
-
-## Monitoring Setup
-
-### Prometheus + Grafana
-HyperCode comes with a pre-configured observability stack.
-- **Grafana**: `http://localhost:3001`
-- **Prometheus**: `http://localhost:9090`
-
-### Logging
-Logs are driver-configured to `json-file` with rotation.
-```bash
-docker compose logs -f hypercode-core
-```
-
-## Maintenance
-
-### Updates
-```bash
-git pull origin main
-docker compose pull
-docker compose up -d
-```
-
-### Backup
-See `runbook.md` for detailed backup procedures.
-
----
-
-**Support**: For issues, create a GitHub issue or contact the team.
-**Documentation**: See `docs/` for detailed guides.

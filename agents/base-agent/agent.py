@@ -4,14 +4,39 @@ Each specialized agent extends this base
 """
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 import os
-import asyncio
-import httpx
-import redis
-from anthropic import Anthropic
-from datetime import datetime
-import json
+import redis.asyncio as redis
+from contextlib import asynccontextmanager
+import sys
+
+# Allow imports from shared modules
+sys.path.append('/app')
+try:
+    from shared.rag_memory import AgentMemory
+    from shared.project_memory import ProjectMemory
+    from shared.logging_config import setup_logging
+    from shared.approval_system import ApprovalSystem
+except ImportError:
+    print("⚠️ Shared modules not found, running in limited mode")
+    AgentMemory = None
+    ProjectMemory = None
+    def setup_logging(name):
+        return None
+    ApprovalSystem = None
+
+# AI Client — try anthropic first, fallback to openai
+try:
+    from anthropic import AsyncAnthropic as AIClient
+    AI_BACKEND = "anthropic"
+except ImportError:
+    try:
+        from openai import AsyncOpenAI as AIClient
+        AI_BACKEND = "openai"
+    except ImportError:
+        AIClient = None
+        AI_BACKEND = None
+        print("⚠️ No AI client found (anthropic or openai). Running in limited mode.")
 
 class AgentConfig:
     """Base configuration for all agents"""
@@ -20,296 +45,187 @@ class AgentConfig:
         self.role = os.getenv("AGENT_ROLE", "Generic Agent")
         self.model = os.getenv("AGENT_MODEL", "claude-3-5-sonnet-20241022")
         self.port = int(os.getenv("AGENT_PORT", "8001"))
-        self.anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+        self.api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("PERPLEXITY_API_KEY") or os.getenv("OPENAI_API_KEY")
         self.redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
         self.core_url = os.getenv("CORE_URL", "http://hypercode-core:8000")
-        self.health_url = os.getenv("AGENT_HEALTH_URL", f"http://localhost:{self.port}/health")
-        
-        # Load Hive Mind standards
-        self.load_hive_mind()
-    
-    def load_hive_mind(self):
-        """Load Team Memory Standards and Skills"""
-        try:
-            with open("/app/hive_mind/Team_Memory_Standards.md", "r") as f:
-                self.team_standards = f.read()
-            with open("/app/hive_mind/Agent_Skills_Library.md", "r") as f:
-                self.skills_library = f.read()
-        except FileNotFoundError:
-            print("⚠️ Hive Mind files not found, using defaults")
-            self.team_standards = ""
-            self.skills_library = ""
-
-    def load_capabilities(self) -> list[str]:
-        try:
-            import json
-            with open("/app/config.json", "r") as f:
-                cfg = json.load(f)
-            specs = cfg.get("specializations") or []
-            return [str(s).lower() for s in specs]
-        except Exception:
-            return []
+        self.hypercode_api_key = os.getenv("HYPERCODE_API_KEY")
 
 class TaskRequest(BaseModel):
-    task_id: str
-    task: str
+    id: Optional[str] = None
+    task_id: Optional[str] = None
+    task: Optional[str] = None
+    description: Optional[str] = None
+    type: Optional[str] = "generic"
     context: Optional[Dict[str, Any]] = None
+    requires_approval: bool = True
 
 class TaskResponse(BaseModel):
-    task_id: str
-    agent: str
+    task_id: Optional[str] = None
+    agent: Optional[str] = None
     status: str
-    result: Optional[str] = None
-    artifacts: Optional[List[str]] = None
+    result: Any
+    error: Optional[str] = None
 
 class BaseAgent:
     def __init__(self, config: AgentConfig):
         self.config = config
-        self.app = FastAPI(title=f"{config.name} Agent")
-        self.client = Anthropic(api_key=config.anthropic_key)
-        self.redis = redis.from_url(config.redis_url, decode_responses=True)
-        self._agent_id: str | None = None
-        self._heartbeat_task: asyncio.Task | None = None
+        self.logger = setup_logging(config.name)
         
-        # Register routes
+        self.redis = None
+        self.agent_memory = None
+        self.project_memory = None
+        self.approval_system = None
+        self.client = None
+
+        @asynccontextmanager
+        async def lifespan(app: FastAPI):
+            """Initialize shared systems on startup"""
+            await self.startup()
+            yield
+            await self.shutdown()
+
+        self.app = FastAPI(title=f"{config.name} Agent", lifespan=lifespan)
         self.setup_routes()
-    
+
+    async def startup(self):
+        if self.logger:
+            self.logger.info("initializing_agent", agent=self.config.name)
+        
+        # Initialize Redis
+        self.redis = await redis.from_url(self.config.redis_url, decode_responses=True)
+        
+        # Initialize AI Client
+        if AIClient and self.config.api_key:
+            self.client = AIClient(api_key=self.config.api_key)
+        
+        # Initialize Shared Systems
+        try:
+            if AgentMemory:
+                self.agent_memory = AgentMemory(self.config.name)
+                bible_path = "/app/HYPER-AGENT-BIBLE.md"
+                if os.path.exists(bible_path):
+                    self.agent_memory.ingest_document(bible_path)
+            
+            if ProjectMemory:
+                self.project_memory = ProjectMemory(self.config.redis_url)
+        except Exception:
+            if self.logger:
+                self.logger.warning("Shared memory modules not available")
+            
+        await self.initialize()
+
+    async def initialize(self):
+        """Hook for subclasses to add custom initialization logic"""
+        pass
+
+    def register_tool(self, tool_func):
+        if self.logger:
+            self.logger.info(f"Registered tool: {tool_func.__name__}")
+            
+        if ApprovalSystem:
+            self.approval_system = ApprovalSystem(self.config.redis_url)
+
+        if self.logger:
+            self.logger.info("agent_ready")
+
+    async def shutdown(self):
+        if self.redis:
+            await self.redis.close()
+        if self.logger:
+            self.logger.info("agent_shutdown")
+
     def setup_routes(self):
         @self.app.get("/")
         async def root():
             return {
                 "agent": self.config.name,
                 "role": self.config.role,
-                "model": self.config.model,
                 "status": "ready"
             }
         
         @self.app.get("/health")
         async def health():
             try:
-                self.redis.ping()
-                return {"status": "healthy", "redis": "connected"}
+                if self.redis:
+                    await self.redis.ping()
+                return {"status": "healthy"}
             except Exception as e:
                 raise HTTPException(status_code=503, detail=str(e))
-        
-        @self.app.get("/status")
-        async def status():
-            current_task = self.redis.get(f"agent:{self.config.name}:current_task")
-            return {
-                "agent": self.config.name,
-                "status": "busy" if current_task else "idle",
-                "current_task": current_task,
-                "last_activity": datetime.now().isoformat()
-            }
 
-        @self.app.on_event("startup")
-        async def _startup_register():
-            await self._register_with_core()
-            self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
-
-        @self.app.on_event("shutdown")
-        async def _shutdown_cleanup():
-            try:
-                if self._heartbeat_task:
-                    self._heartbeat_task.cancel()
-            except Exception:
-                pass
-        
-        @self.app.post("/execute", response_model=TaskResponse)
-        async def execute_task(request: TaskRequest):
-            return await self.execute(request)
-        
-        @self.app.post("/plan")
-        async def plan_task(request: TaskRequest):
-            """Project Strategist specific endpoint"""
-            return await self.plan(request)
-    
-    async def execute(self, request: TaskRequest) -> TaskResponse:
-        """
-        Main execution logic - override in specialized agents
-        """
-        # Mark agent as busy
-        self.redis.set(f"agent:{self.config.name}:current_task", request.task_id)
-        
-        try:
-            # Build context with Hive Mind
-            system_prompt = self.build_system_prompt()
+        @self.app.post("/execute")
+        async def execute(request: TaskRequest):
+            task_desc = request.description or request.task
+            task_id = request.id or request.task_id or "unknown"
             
-            # --- SWARM MEMORY RECALL ---
+            if self.logger:
+                self.logger.info("task_received", task_id=task_id)
+            
             try:
-                memories = await self.recall(request.task, limit=3)
-                if memories:
-                    memory_context = "\n".join([f"- {m.get('content')} (Score: {m.get('metadata', {}).get('score', 0):.2f})" for m in memories])
-                    system_prompt += f"\n\n**Relevant Team Memories:**\n{memory_context}\n"
-                    print(f"🧠 {self.config.name} recalled {len(memories)} memories for task {request.task_id}")
+                result = await self.process_task(task_desc, request.context, request.requires_approval)
+                return {"status": "success", "result": result}
             except Exception as e:
-                print(f"⚠️ Memory recall failed: {e}")
-            # ---------------------------
+                if self.logger:
+                    self.logger.error("task_failed", error=str(e))
+                raise HTTPException(status_code=500, detail=str(e))
 
-            # Call Claude
-            message = self.client.messages.create(
+    async def process_task(self, task: str, context: Dict[str, Any], requires_approval: bool):
+        """Override this method in specialized agents"""
+        rag_context = ""
+        if self.agent_memory:
+            rag_context = self.agent_memory.query_relevant_context(task)
+            
+        project_context = {}
+        if self.project_memory:
+            project_context = self.project_memory.get_project_context()
+
+        plan = await self.generate_plan(task, rag_context, project_context)
+        
+        if requires_approval and self.approval_system:
+            approval = await self.approval_system.request_approval(
+                self.config.name,
+                "execute_task",
+                {"task": task, "plan": plan}
+            )
+            if approval['status'] != "approved":
+                raise Exception(f"Task rejected: {approval.get('reason')}")
+        
+        return f"Executed task: {task} based on plan: {plan}"
+
+    async def generate_plan(self, task, rag_context, project_context):
+        if not self.client:
+            return "No AI client configured — running in limited mode"
+            
+        prompt = f"""
+        You are {self.config.name} ({self.config.role}).
+        
+        CONTEXT FROM BIBLE:
+        {rag_context}
+        
+        PROJECT STATUS:
+        {project_context}
+        
+        TASK:
+        {task}
+        
+        Create a brief execution plan.
+        """
+        
+        if AI_BACKEND == "anthropic":
+            response = await self.client.messages.create(
                 model=self.config.model,
-                max_tokens=4096,
-                system=system_prompt,
-                messages=[{
-                    "role": "user",
-                    "content": f"Task: {request.task}\n\nContext: {json.dumps(request.context or {})}"
-                }]
+                max_tokens=1000,
+                messages=[{"role": "user", "content": prompt}]
             )
-            
-            result = message.content[0].text
-            
-            # Store result in Redis
-            self.redis.hset(
-                f"task:{request.task_id}",
-                f"result:{self.config.name}",
-                result
+            return response.content[0].text
+        elif AI_BACKEND == "openai":
+            response = await self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": prompt}]
             )
-            
-            # --- SWARM MEMORY REMEMBER ---
-            try:
-                # Only remember significant results (heuristic: length > 50 chars)
-                if len(result) > 50:
-                    await self.remember(
-                        content=f"Task: {request.task}\nResult: {result[:500]}...", # Truncate for summary
-                        keywords=["task_result", self.config.role],
-                        metadata={"task_id": request.task_id, "full_result_length": len(result)}
-                    )
-                    print(f"💾 {self.config.name} stored memory for task {request.task_id}")
-            except Exception as e:
-                print(f"⚠️ Memory storage failed: {e}")
-            # -----------------------------
-
-            return TaskResponse(
-                task_id=request.task_id,
-                agent=self.config.name,
-                status="completed",
-                result=result
-            )
+            return response.choices[0].message.content
         
-        except Exception as e:
-            return TaskResponse(
-                task_id=request.task_id,
-                agent=self.config.name,
-                status="error",
-                result=str(e)
-            )
-        finally:
-            # Mark agent as idle
-            self.redis.delete(f"agent:{self.config.name}:current_task")
-    
-    async def plan(self, request: TaskRequest) -> Dict:
-        """
-        Planning logic for Project Strategist
-        """
-        # To be implemented by Project Strategist agent
-        return {"status": "not_implemented"}
-    
-    def build_system_prompt(self) -> str:
-        """
-        Build system prompt with role, standards, and skills
-        """
-        return f"""You are {self.config.role} in the HyperCode development team.
+        return "No AI backend available"
 
-**Team Standards:**
-{self.config.team_standards}
-
-**Available Skills:**
-{self.config.skills_library}
-
-Follow these standards strictly and leverage the skills library when applicable.
-"""
-
-    async def remember(self, content: str, keywords: List[str] = [], metadata: Dict = {}):
-        """Store a memory in the Swarm Memory"""
-        try:
-            payload = {
-                "content": content,
-                "keywords": keywords,
-                "metadata": {**metadata, "agent": self.config.name, "role": self.config.role},
-                "type": "observation"
-            }
-            async with httpx.AsyncClient() as client:
-                await client.post(f"{self.config.core_url}/memory/", json=payload)
-        except Exception as e:
-            print(f"⚠️ Failed to remember: {e}")
-
-    async def recall(self, query: str, limit: int = 5) -> List[Dict]:
-        """Recall memories from the Swarm Memory"""
-        try:
-            async with httpx.AsyncClient() as client:
-                res = await client.get(f"{self.config.core_url}/memory/search", params={"query": query, "limit": limit})
-                if res.status_code == 200:
-                    return res.json()
-            return []
-        except Exception as e:
-            print(f"⚠️ Failed to recall: {e}")
-            return []
-    
     def run(self):
-        """Start the agent service"""
         import uvicorn
         uvicorn.run(self.app, host="0.0.0.0", port=self.config.port)
-
-    async def _register_with_core(self):
-        """Attempts to register the agent with Core. Returns True on success."""
-        try:
-            print(f"🔄 Attempting to register {self.config.name} with Core at {self.config.core_url}...")
-            payload = {
-                "name": self.config.name,
-                "role": (self.config.role or "general").lower(),
-                "version": "1.0.0",
-                "capabilities": self.config.load_capabilities(),
-                "topics": ["agent.events"],
-                "health_url": self.config.health_url,
-                "dedup_key": self.config.name,
-            }
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                r = await client.post(f"{self.config.core_url}/agents/register", json=payload)
-                if r.status_code in (200, 201, 204):
-                    data = r.json()
-                    self._agent_id = data.get("id")
-                    print(f"✅ Successfully registered agent: {self.config.name} (ID: {self._agent_id})")
-                    return True
-                else:
-                    print(f"⚠️ Registration failed with status {r.status_code}: {r.text}")
-        except Exception as e:
-            print(f"⚠️ Agent registration connection failed: {e}")
-        return False
-
-    async def _heartbeat_loop(self):
-        """Sends periodic heartbeats, handling registration if needed."""
-        print(f"💓 Starting heartbeat loop for {self.config.name}...")
-        while True:
-            try:
-                # If not registered, try to register first
-                if not self._agent_id:
-                    success = await self._register_with_core()
-                    if not success:
-                        await asyncio.sleep(5)  # Retry registration sooner
-                        continue
-
-                # Send heartbeat
-                if self._agent_id:
-                    payload = {"agent_id": self._agent_id, "status": "active", "load": 0.0}
-                    async with httpx.AsyncClient(timeout=5.0) as client:
-                        r = await client.post(f"{self.config.core_url}/agents/heartbeat", json=payload)
-                        if r.status_code == 404:
-                            # Agent ID not found (maybe core restarted), re-register
-                            print(f"⚠️ Core lost agent {self._agent_id}, re-registering...")
-                            self._agent_id = None
-                        elif r.status_code != 200:
-                            print(f"⚠️ Heartbeat failed: {r.status_code}")
-                
-                await asyncio.sleep(10) # Heartbeat every 10s
-            except asyncio.CancelledError:
-                print("🛑 Heartbeat loop cancelled")
-                break
-            except Exception as e:
-                print(f"⚠️ Heartbeat error: {e}")
-                await asyncio.sleep(10)
-
-if __name__ == "__main__":
-    config = AgentConfig()
-    agent = BaseAgent(config)
-    agent.run()

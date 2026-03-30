@@ -1,0 +1,46 @@
+# HyperCode Research Repository
+
+## Overview
+This document provides information about the HyperCode research repository, which contains academic papers, experimental code, and research materials related to the HyperCode project.
+
+## Repository Information
+- **URL**: [https://github.com/welshDog/hypercode-research](https://github.com/welshDog/hypercode-research)
+- **Status**: Active
+- **Last Updated": 2025-11-24
+
+## Purpose
+The research repository serves as a companion to the main HyperCode project, containing:
+- Research papers and publications
+- Experimental features and prototypes
+- Benchmarking data and results
+- Academic collaborations
+- Research-oriented documentation
+
+## Getting Started
+
+### Cloning the Repository
+`ash
+git clone https://github.com/welshDog/hypercode-research.git
+cd hypercode-research
+`
+
+### Directory Structure
+`
+hypercode-research/
+ papers/           # Research papers and publications
+ experiments/      # Experimental code and prototypes
+ data/            # Research datasets
+ benchmarks/      # Performance benchmarks
+ docs/            # Research documentation
+`
+
+## Contributing
+Research contributions are welcome! Please see the main [CONTRIBUTING.md](../CONTRIBUTING.md) for general guidelines and the repository's own contribution guidelines for research-specific requirements.
+
+## Related Resources
+- [Main Project Repository](../README.md)
+- [HyperCode Documentation](../docs/README.md)
+- [Research Roadmap](./RESEARCH_ROADMAP.md) (coming soon)
+
+## Contact
+For research-related inquiries, please open an issue in the research repository or contact the research team.

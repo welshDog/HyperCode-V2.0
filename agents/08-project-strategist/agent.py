@@ -99,7 +99,7 @@ Create a detailed breakdown with specific subtasks for each specialist agent."""
         # Parse the plan
         try:
             plan = json.loads(result)
-        except:
+        except Exception:
             # If not JSON, wrap it
             plan = {"raw_plan": result, "tasks": []}
         
@@ -166,3 +166,4 @@ if __name__ == "__main__":
     config = AgentConfig()
     agent = ProjectStrategist(config)
     agent.run()
+

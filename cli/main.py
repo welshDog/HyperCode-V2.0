@@ -1,6 +1,5 @@
 import typer
 import requests
-import json
 import os
 from rich.console import Console
 from rich.table import Table

@@ -38,7 +38,7 @@ This is the definitive master plan to evolve **HyperCode V2.0** from a skeleton 
 -   **Features & Status**:
     -   [~] **Agent Registry**: Core endpoints and models present; stabilization and contracts pending.
     -   [ ] **Tool Sandbox**: Secure execution environment for agent tools.
-    -   [ ] **LLM Gateway**: Unified interface to OpenAI/Anthropic with rate limiting and cost tracking.
+    -   [ ] **LLM Gateway**: Unified interface to OpenAI/PERPLEXITY with rate limiting and cost tracking.
 
 ### Phase 2 Progress Update (as of 2026-02-04)
 - Event Bus retry helpers, DLQ consumer utilities, and integration tests completed.

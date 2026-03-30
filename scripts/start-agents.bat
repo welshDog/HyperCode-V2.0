@@ -20,16 +20,16 @@ if not exist .env.agents (
     echo Creating .env.agents file...
     copy .env.agents.example .env.agents
     echo.
-    echo Please edit .env.agents and add your ANTHROPIC_API_KEY
+    echo Please edit .env.agents and add your PERPLEXITY_API_KEY
     echo Then run this script again.
     exit /b 0
 )
 
 REM Check if API key is set
-findstr /C:"your_anthropic_api_key_here" .env.agents >nul
+findstr /C:"your_PERPLEXITY_API_KEY_here" .env.agents >nul
 if %errorlevel% equ 0 (
     echo.
-    echo Please edit .env.agents and add your ANTHROPIC_API_KEY
+    echo Please edit .env.agents and add your PERPLEXITY_API_KEY
     echo The file is located at: .env.agents
     exit /b 1
 )

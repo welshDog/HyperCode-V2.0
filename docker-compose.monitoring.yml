@@ -1,91 +1,130 @@
-version: "3.9"
-
 networks:
-  hypernet:
+  backend-net:
+    name: hypercode_public_net
     external: true
-    name: hypercode_hypernet
 
 services:
   prometheus:
     image: prom/prometheus:latest
+    container_name: prometheus
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./monitoring:/etc/prometheus/monitoring:ro
+      - ./monitoring/prometheus:/etc/prometheus
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
     ports:
       - "9090:9090"
-    networks: [hypernet]
-
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3001:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_PLUGINS_DISABLED=grafana-exploretraces-app
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
-    networks: [hypernet]
-    depends_on:
-      - prometheus
+    extra_hosts:
+      - "prometheus-prod-55-prod-gb-south-1.grafana.net:18.171.24.48"
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    networks:
+      - backend-net
+    restart: unless-stopped
 
   alertmanager:
     image: prom/alertmanager:latest
+    container_name: alertmanager
+    volumes:
+      - ./monitoring/alertmanager:/etc/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
     ports:
       - "9093:9093"
+    networks:
+      - backend-net
+    restart: unless-stopped
+
+  alert-webhook:
+    build:
+      context: ./monitoring/alert-webhook
+    container_name: alert-webhook
+    environment:
+      - ALERT_WEBHOOK_DATA_PATH=/data/alerts.jsonl
     volumes:
-      - ./monitoring/alertmanager/config.yml:/etc/alertmanager/config.yml
-    networks: [hypernet]
+      - ./artifacts/alerts:/data
+    ports:
+      - "18080:8080"
+    networks:
+      - backend-net
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-password}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3001:3000"
+    networks:
+      - backend-net
+    depends_on:
+      prometheus:
+        condition: service_started
+    restart: unless-stopped
 
   node-exporter:
     image: prom/node-exporter:latest
+    container_name: node-exporter
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
     command:
       - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
       - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($|/)'
-    networks: [hypernet]
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
+    networks:
+      - backend-net
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml
+    networks:
+      - backend-net
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml
+    command: -config.file=/etc/promtail/promtail-config.yml
+    networks:
+      - backend-net
+    restart: unless-stopped
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
     container_name: cadvisor
+    ports:
+      - "8080:8080"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
-    ports:
-      - "8080:8080"
-    networks: [hypernet]
-
-  redis-exporter:
-    image: oliver006/redis_exporter:v1.44.0
-    environment:
-      - REDIS_ADDR=redis:6379
-    ports:
-      - "9121:9121"
-    networks: [hypernet]
-
-  blackbox-exporter:
-    image: prom/blackbox-exporter:latest
-    ports:
-      - "9115:9115"
-    networks: [hypernet]
-
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    environment:
-      - COLLECTOR_OTLP_ENABLED=true
-    ports:
-      - "16686:16686" # UI
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
-    networks: [hypernet]
-
-volumes:
-  grafana_data:
+    networks:
+      - backend-net
+    restart: unless-stopped

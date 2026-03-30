@@ -1,4 +1,10 @@
 const request = require('supertest');
+
+process.env.NODE_ENV = 'test';
+process.env.AUTH_PASSTHROUGH = 'true';
+process.env.JWT_SECRET = 'test-secret';
+delete process.env.CORE_API_URL;
+
 const app = require('../server');
 const { Pool } = require('pg');
 
@@ -12,6 +18,7 @@ jest.mock('pg', () => {
 
 describe('Hyper-Mission API', () => {
   let pool;
+  const authHeader = { Authorization: 'Bearer test' };
 
   beforeEach(() => {
     pool = new (require('pg').Pool)();
@@ -29,7 +36,7 @@ describe('Hyper-Mission API', () => {
     ];
     pool.query.mockResolvedValueOnce({ rows: mockTasks });
 
-    const res = await request(app).get('/api/tasks');
+    const res = await request(app).get('/api/tasks').set(authHeader);
     
     expect(res.statusCode).toEqual(200);
     expect(res.body.length).toEqual(2);
@@ -39,7 +46,7 @@ describe('Hyper-Mission API', () => {
 
   it('GET /api/tasks handles errors', async () => {
     pool.query.mockRejectedValueOnce(new Error('DB Error'));
-    const res = await request(app).get('/api/tasks');
+    const res = await request(app).get('/api/tasks').set(authHeader);
     expect(res.statusCode).toEqual(500);
   });
 
@@ -48,7 +55,7 @@ describe('Hyper-Mission API', () => {
     const newTask = { title: 'New', impact: 5, effort: 5, urgency: 'medium' };
     pool.query.mockResolvedValueOnce({ rows: [{ id: 3, ...newTask, status: 'pending' }] });
 
-    const res = await request(app).post('/api/tasks').send(newTask);
+    const res = await request(app).post('/api/tasks').set(authHeader).send(newTask);
     
     expect(res.statusCode).toEqual(201);
     expect(res.body.id).toEqual(3);
@@ -56,20 +63,20 @@ describe('Hyper-Mission API', () => {
 
   it('POST /api/tasks handles errors', async () => {
     pool.query.mockRejectedValueOnce(new Error('DB Error'));
-    const res = await request(app).post('/api/tasks').send({});
+    const res = await request(app).post('/api/tasks').set(authHeader).send({});
     expect(res.statusCode).toEqual(500);
   });
 
   // --- PUT /api/tasks/:id/done ---
   it('PUT /api/tasks/:id/done validates done definition', async () => {
-    const res = await request(app).put('/api/tasks/1/done').send({});
+    const res = await request(app).put('/api/tasks/1/done').set(authHeader).send({});
     expect(res.statusCode).toEqual(400);
     expect(res.body.error).toContain('Done Definition not met');
   });
 
   it('PUT /api/tasks/:id/done succeeds with evidence', async () => {
     pool.query.mockResolvedValueOnce({ rows: [{ id: 1, status: 'completed' }] });
-    const res = await request(app).put('/api/tasks/1/done').send({
+    const res = await request(app).put('/api/tasks/1/done').set(authHeader).send({
       evidence_link: 'http://github.com',
       peer_review_checked: true
     });
@@ -79,7 +86,7 @@ describe('Hyper-Mission API', () => {
 
   it('PUT /api/tasks/:id/done handles not found', async () => {
     pool.query.mockResolvedValueOnce({ rows: [] });
-    const res = await request(app).put('/api/tasks/999/done').send({
+    const res = await request(app).put('/api/tasks/999/done').set(authHeader).send({
         evidence_link: 'http://github.com',
         peer_review_checked: true
     });
@@ -88,7 +95,7 @@ describe('Hyper-Mission API', () => {
 
   it('PUT /api/tasks/:id/done handles errors', async () => {
       pool.query.mockRejectedValueOnce(new Error('DB Error'));
-      const res = await request(app).put('/api/tasks/1/done').send({
+      const res = await request(app).put('/api/tasks/1/done').set(authHeader).send({
           evidence_link: 'http://github.com',
           peer_review_checked: true
       });
@@ -105,20 +112,20 @@ describe('Hyper-Mission API', () => {
       .mockResolvedValueOnce({ rows: [{ id: 102, title: 'Draft outline' }] })
       .mockResolvedValueOnce({ rows: [{ id: 103, title: 'Review requirements' }] });
 
-    const res = await request(app).post('/api/tasks/1/breakdown');
+    const res = await request(app).post('/api/tasks/1/breakdown').set(authHeader);
     expect(res.statusCode).toEqual(201);
     expect(res.body.length).toEqual(3);
   });
 
   it('POST /api/tasks/:id/breakdown handles parent not found', async () => {
     pool.query.mockResolvedValueOnce({ rows: [] });
-    const res = await request(app).post('/api/tasks/999/breakdown');
+    const res = await request(app).post('/api/tasks/999/breakdown').set(authHeader);
     expect(res.statusCode).toEqual(404);
   });
 
   it('POST /api/tasks/:id/breakdown handles errors', async () => {
       pool.query.mockRejectedValueOnce(new Error('DB Error'));
-      const res = await request(app).post('/api/tasks/1/breakdown');
+      const res = await request(app).post('/api/tasks/1/breakdown').set(authHeader);
       expect(res.statusCode).toEqual(500);
   });
 
@@ -128,7 +135,7 @@ describe('Hyper-Mission API', () => {
       .mockResolvedValueOnce({ rows: [{ count: '10' }] }) // Total
       .mockResolvedValueOnce({ rows: [{ count: '5' }] }); // Completed
 
-    const res = await request(app).get('/api/dashboard');
+    const res = await request(app).get('/api/dashboard').set(authHeader);
     expect(res.statusCode).toEqual(200);
     expect(res.body.percent_complete).toEqual(50);
     expect(res.body.velocity_trend).toEqual('stable');
@@ -136,7 +143,7 @@ describe('Hyper-Mission API', () => {
 
   it('GET /api/dashboard handles errors', async () => {
       pool.query.mockRejectedValueOnce(new Error('DB Error'));
-      const res = await request(app).get('/api/dashboard');
+      const res = await request(app).get('/api/dashboard').set(authHeader);
       expect(res.statusCode).toEqual(500);
   });
 
@@ -146,7 +153,7 @@ describe('Hyper-Mission API', () => {
       .mockResolvedValueOnce({ rows: [{ title: 'Task A' }] }) // Yesterday
       .mockResolvedValueOnce({ rows: [{ title: 'Task B' }] }); // Today
 
-    const res = await request(app).get('/api/standup');
+    const res = await request(app).get('/api/standup').set(authHeader);
     expect(res.statusCode).toEqual(200);
     expect(res.body.yesterday).toContain('Task A');
     expect(res.body.today).toContain('Task B');
@@ -154,7 +161,7 @@ describe('Hyper-Mission API', () => {
 
   it('GET /api/standup handles errors', async () => {
       pool.query.mockRejectedValueOnce(new Error('DB Error'));
-      const res = await request(app).get('/api/standup');
+      const res = await request(app).get('/api/standup').set(authHeader);
       expect(res.statusCode).toEqual(500);
   });
 

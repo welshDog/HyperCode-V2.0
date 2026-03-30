@@ -4,7 +4,7 @@
   "description": "HyperCode Architect Agent",
   "author": "HyperCode",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "AGPL-3.0",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

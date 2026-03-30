@@ -1,11 +1,9 @@
-import asyncio
 import httpx
 import time
 import json
 import yaml
-import os
-from typing import List, Dict, Optional, Any
-from .models import TestScenario, TestCase, TestResult, ScenarioResult, AgentType
+from typing import Any
+from .models import TestScenario, TestCase, TestResult, ScenarioResult
 from .evaluator import Evaluator
 
 class TestRunner:
@@ -97,11 +95,6 @@ class TestRunner:
     def _resolve_url(self, case: TestCase) -> str:
         # Simple port mapping for local testing
         # In a real env, this might come from env vars or service discovery
-        ports = {
-            AgentType.ORCHESTRATOR: 8080,
-            AgentType.CODER: 8000, # Assuming direct access or via core? Let's check docker-compose later
-            # For now, default to Orchestrator as gateway
-        }
         
         # If the case.endpoint is a full URL, use it
         if case.endpoint.startswith("http"):

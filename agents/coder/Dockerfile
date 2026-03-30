@@ -1,3 +1,6 @@
+# Coder Agent - Standardized
+# Based on BaseAgent pattern (FastAPI)
+
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -9,19 +12,26 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     docker.io \
     git \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies (before copying code for better caching)
+# Install docker-mcp via pipx to avoid dependency conflicts (httpx version)
+ENV PIPX_HOME=/opt/pipx
+ENV PIPX_BIN_DIR=/usr/local/bin
+RUN pip install pipx && \
+    pipx install git+https://github.com/QuantGeekDev/docker-mcp.git
+
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
 
-# Create non-root user and set ownership
-RUN useradd -m -u 1000 appuser \
-    && chown -R appuser:appuser /app
+ENV PYTHONPATH=/app
 
-USER appuser
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD python -c "import httpx; httpx.get('http://localhost:8002/health').raise_for_status()" || exit 1
 
 CMD ["python", "main.py"]
