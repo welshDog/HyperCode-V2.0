@@ -77,7 +77,10 @@
       "mcp__hypercode__hypercode_list_agents",
       "mcp__hypercode__hypercode_list_tasks",
       "Bash(gh release:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(java -jar ~/bfg.jar --version)",
+      "Read(//c/Users/Lyndz/Downloads/**)",
+      "Bash(git-filter-repo --version)"
     ]
   },
   "enableAllProjectMcpServers": true,
