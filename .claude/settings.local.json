@@ -71,7 +71,16 @@
       "Bash(docker start:*)",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\)[0]; s=d[''''State'''']; print\\(s[''''Status''''], s[''''ExitCode''''], s.get\\(''''Error'''',''''''''\\)\\)\")",
       "Bash(find 'H:\\\\HyperStation zone\\\\HyperCode\\\\HyperCode-V2.0\\\\agents\\\\dashboard\\\\app\\\\api' -name *.ts)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "mcp__hypercode__hypercode_system_health",
+      "mcp__hypercode__hypercode_agent_system_health",
+      "mcp__hypercode__hypercode_list_agents",
+      "mcp__hypercode__hypercode_list_tasks",
+      "Bash(gh release:*)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "hypercode"
+  ]
 }
