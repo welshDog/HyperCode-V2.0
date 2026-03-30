@@ -87,7 +87,9 @@
       "Bash(ls docker-compose*.yml)",
       "Bash(docker network:*)",
       "Bash(docker context:*)",
-      "Bash(find src:*)"
+      "Bash(find src:*)",
+      "Bash(pip index:*)",
+      "Bash(pip install:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
