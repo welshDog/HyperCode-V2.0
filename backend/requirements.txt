@@ -265,8 +265,7 @@ rustworkx==0.17.1
 s3transfer==0.16.0
 safehttpx==0.1.6
 safetensors==0.5.3
-safety==3.3.0
-safety-schemas==0.0.10
+# safety + safety-schemas removed from prod image — belongs in CI only (conflicts with mcp>=2.11 pydantic constraint)
 schedule==1.2.2
 scikit-learn==1.7.1
 scipy==1.16.1
