@@ -91,7 +91,9 @@
       "Bash(pip index:*)",
       "Bash(pip install:*)",
       "Bash(mv Contributing CONTRIBUTING.md)",
-      "Bash(mv Microsoft.PowerShell_profile.ps1 scripts/)"
+      "Bash(mv Microsoft.PowerShell_profile.ps1 scripts/)",
+      "Bash(find 'H:/HyperStation zone/HyperCode/HyperCode-V2.0' -name mape_k_engine.py -not -path */node_modules/*)",
+      "Bash(docker cp:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
