@@ -1,7 +1,6 @@
-
 [![Version](https://img.shields.io/badge/version-2.4.0-blue)](backend/app/core/config.py)
 
-**Doc Tag:** v2.4.0 | **Last Updated:** 2026-03-30
+**Doc Tag:** v2.4.0 | **Last Updated:** 2026-03-31
 
 [![GitHub Sponsors](https://img.shields.io/github/sponsors/welshDog?style=social&logo=github)](https://github.com/sponsors/welshDog)
 [![CI](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/ci.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/ci.yml)
@@ -24,6 +23,18 @@
 - New here: [QUICKSTART.md](QUICKSTART.md)
 - Stuck / stack won't boot: [RUNBOOK.md](RUNBOOK.md)
 - MCP Gateway + Model Runner setup: [START_HERE.md](START_HERE.md)
+
+## 📖 See Also
+
+Extra deep-dive READMEs for specific subsystems:
+
+| Document | What's Inside |
+|---|---|
+| [README_HEALTH_REPORTS.md](README_HEALTH_REPORTS.md) | System health report format + how to read agent status logs |
+| [README_INFRASTRUCTURE_UPGRADE.md](README_INFRASTRUCTURE_UPGRADE.md) | Infrastructure upgrade guide — Docker, Redis, Postgres migrations |
+| [README_OBSERVABILITY.md](README_OBSERVABILITY.md) | Grafana + Prometheus setup, dashboards, alerting rules |
+| [SUPER_HYPER_BROSKI_AGENT_README.md](SUPER_HYPER_BROSKI_AGENT_README.md) | The Super Hyper BROski Agent — capabilities + deployment |
+| [verification/README.md](verification/README.md) | Coder-agent verification reports + promotion protocol |
 
 ## Why HyperCode Exists 🤯
 
@@ -521,14 +532,20 @@ Get the entire ecosystem running in **under 2 minutes** with **Hyper Station**.
    # Edit .env and add your API keys (PERPLEXITY/OpenAI)
    ```
 
-3. **Install Shortcuts (Recommended)**
+3. **Validate your .env before launch**
+   ```powershell
+   python scripts/validate_env.py
+   ```
+   *Checks all required vars are set before services spin up.*
+
+4. **Install Shortcuts (Recommended)**
    Run the setup script to create Desktop shortcuts for one-click launch:
    ```powershell
    .\scripts\install_shortcuts.ps1
    ```
    *This creates "HYPER STATION START" and "HYPER STATION STOP" on your Desktop.*
 
-4. **Launch the Mission**
+5. **Launch the Mission**
    Double-click **HYPER STATION START** or run:
    ```powershell
    .\scripts\hyper-station-start.bat
