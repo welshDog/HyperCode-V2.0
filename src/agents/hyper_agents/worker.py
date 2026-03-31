@@ -127,6 +127,7 @@ class WorkerAgent(HyperAgent):
         self.max_concurrent_tasks = max_concurrent_tasks
         self.hyperfocus_mode = hyperfocus_mode
         self._task_queue: asyncio.PriorityQueue = asyncio.PriorityQueue()
+        self._enqueue_seq: int = 0  # tie-breaker: prevents Task comparison on equal priority
         self._active_tasks: Dict[str, Task] = {}
         self._completed_tasks: List[TaskResult] = []
         self._task_history: List[TaskResult] = []
@@ -253,7 +254,7 @@ class WorkerAgent(HyperAgent):
         """
         results: List[TaskResult] = []
         while not self._task_queue.empty():
-            _, task = await self._task_queue.get()
+            _, _seq, task = await self._task_queue.get()
             result = await self.execute_task(task)
             results.append(result)
             self._task_queue.task_done()
@@ -268,9 +269,11 @@ class WorkerAgent(HyperAgent):
         Returns:
             task_id for tracking.
         """
-        # Lower number = higher priority in PriorityQueue
+        # Lower number = higher priority in PriorityQueue.
+        # Sequence counter breaks ties so Task objects are never compared directly.
         priority_value = 5 - task.priority.value
-        self._task_queue.put_nowait((priority_value, task))
+        self._task_queue.put_nowait((priority_value, self._enqueue_seq, task))
+        self._enqueue_seq += 1
         self._log(
             f"Queued task [{task.task_id}]: {task.name} "
             f"(priority: {task.priority.name})"
