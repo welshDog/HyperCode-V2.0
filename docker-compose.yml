@@ -9,6 +9,9 @@ networks:
     driver: bridge
     name: hypercode_data_net
     internal: true
+  hypercode-agents-net:               
+    name: hypercode-v20_hypercode-net
+    external: true                    
 
 volumes:
   redis-data:
@@ -1396,7 +1399,8 @@ services:
     volumes:
       - ollama-data:/root/.ollama
     networks:
-      - backend-net
+     - backend-net        
+     - hypercode-agents-net 
     deploy:
       resources:
         limits:
