@@ -459,10 +459,7 @@ services:
     networks:
       - backend-net
     healthcheck:
-      test: ["CMD-SHELL", "echo OK"]
-      interval: 60s
-      timeout: 5s
-      retries: 2
+      disable: true
     restart: unless-stopped
     logging:
       driver: "json-file"

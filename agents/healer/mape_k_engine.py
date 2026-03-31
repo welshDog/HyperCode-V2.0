@@ -385,9 +385,7 @@ DEFAULT_SERVICES: list[ServiceConfig] = [
         "Super BROski Agent", 8015,
         "http://super-hyper-broski-agent:8015/health",
         "super-hyper-broski-agent"),
-    ServiceConfig(
-        "Throttle Agent", 8014,
-        "http://throttle-agent:8014/health", "throttle-agent"),
+    # throttle-agent not deployed in current stack — removed from monitor list
     ServiceConfig(
         "Test Agent", 8080,
         "http://test-agent:8080/health", "test-agent"),
@@ -397,12 +395,7 @@ DEFAULT_SERVICES: list[ServiceConfig] = [
     ServiceConfig(
         "Mission Control", 3000,
         "http://hypercode-dashboard:3000/health", "hypercode-dashboard"),
-    ServiceConfig(
-        "MCP Gateway", 8820,
-        "http://mcp-gateway:8820/health", "mcp-gateway"),
-    ServiceConfig(
-        "MCP REST Adapter", 8821,
-        "http://mcp-rest-adapter:8821/health", "mcp-rest-adapter"),
+    # mcp-gateway and mcp-rest-adapter not deployed in current stack — removed from monitor list
     ServiceConfig(
         "Ollama LLM", 11434,
         "http://hypercode-ollama:11434/api/tags", "hypercode-ollama"),
