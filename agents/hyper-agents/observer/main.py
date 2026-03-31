@@ -6,13 +6,20 @@ alert rule management, and real-time stats endpoints.
 
 Port  : 8092 (configurable via AGENT_PORT env)
 Health: GET /health
+
+Real-time Watcher:
+  Polls hyper-worker (8093) + hyper-architect (8091) every 30s.
+  Feeds their stats as metrics into the Observer automatically.
+  Check /swarm to see live swarm health at any time.
 """
 
 from __future__ import annotations
 
+import asyncio
 import os
 from typing import Any, List, Optional
 
+import httpx
 import uvicorn
 from fastapi import HTTPException
 from pydantic import BaseModel
@@ -32,6 +39,11 @@ AGENT_NAME = os.getenv("AGENT_NAME", "sys-observer-01")
 AGENT_PORT = int(os.getenv("AGENT_PORT", "8092"))
 CREW_URL = os.getenv("CREW_ORCHESTRATOR_URL", "http://crew-orchestrator:8081")
 WINDOW_SIZE = int(os.getenv("OBSERVER_WINDOW_SIZE", "200"))
+WATCH_INTERVAL = int(os.getenv("WATCH_INTERVAL_SECONDS", "30"))
+
+# Targets to watch — override via env if ports change
+WORKER_URL   = os.getenv("WORKER_URL",   "http://hyper-worker:8093")
+ARCHITECT_URL = os.getenv("ARCHITECT_URL", "http://hyper-architect:8091")
 
 
 # ── Concrete agent implementation ─────────────────────────────────────────────
@@ -91,6 +103,83 @@ def _alert_callback(alert: Alert) -> None:
         "what_to_do": alert.what_to_do,
         "timestamp": alert.timestamp,
     })
+
+
+# ── Swarm snapshot store ──────────────────────────────────────────────────────
+
+_swarm_snapshots: list[dict[str, Any]] = []
+
+
+async def _poll_agent(client: httpx.AsyncClient, name: str, url: str) -> dict[str, Any]:
+    """Fetch /stats or /health from an agent. Returns a status dict."""
+    try:
+        r = await client.get(f"{url}/stats", timeout=5.0)
+        if r.status_code == 404:
+            r = await client.get(f"{url}/health", timeout=5.0)
+        data = r.json() if r.status_code == 200 else {}
+        return {"agent": name, "url": url, "reachable": True, "data": data}
+    except Exception as exc:
+        return {"agent": name, "url": url, "reachable": False, "error": str(exc)}
+
+
+async def _watch_swarm() -> None:
+    """Background task — polls Worker + Architect, feeds metrics to Observer."""
+    await asyncio.sleep(5)  # wait for stack to settle on startup
+    async with httpx.AsyncClient() as client:
+        while True:
+            targets = [
+                ("hyper-worker",    WORKER_URL),
+                ("hyper-architect", ARCHITECT_URL),
+            ]
+            snapshot: dict[str, Any] = {"agents": []}
+
+            for name, url in targets:
+                result = await _poll_agent(client, name, url)
+                snapshot["agents"].append(result)
+
+                # Feed reachability as a metric (1 = up, 0 = down)
+                agent.record(Metric(
+                    name=f"agent.{name}.reachable",
+                    value=1.0 if result["reachable"] else 0.0,
+                    metric_type=MetricType.GAUGE,
+                    tags={"agent": name},
+                ))
+
+                # Feed task stats from Worker if available
+                if result["reachable"] and name == "hyper-worker":
+                    data = result.get("data", {})
+                    if "total_executed" in data:
+                        agent.record(Metric(
+                            name="agent.hyper-worker.tasks_executed",
+                            value=float(data["total_executed"]),
+                            metric_type=MetricType.COUNTER,
+                            tags={"agent": "hyper-worker"},
+                        ))
+                    if "queued_tasks" in data:
+                        agent.record(Metric(
+                            name="agent.hyper-worker.queue_depth",
+                            value=float(data["queued_tasks"]),
+                            metric_type=MetricType.GAUGE,
+                            tags={"agent": "hyper-worker"},
+                        ))
+
+                # Feed goal count from Architect if available
+                if result["reachable"] and name == "hyper-architect":
+                    data = result.get("data", {})
+                    if "total_goals" in data:
+                        agent.record(Metric(
+                            name="agent.hyper-architect.total_goals",
+                            value=float(data["total_goals"]),
+                            metric_type=MetricType.COUNTER,
+                            tags={"agent": "hyper-architect"},
+                        ))
+
+            # Keep last 100 snapshots
+            _swarm_snapshots.append(snapshot)
+            if len(_swarm_snapshots) > 100:
+                _swarm_snapshots.pop(0)
+
+            await asyncio.sleep(WATCH_INTERVAL)
 
 
 # ── Instantiate ───────────────────────────────────────────────────────────────
@@ -243,12 +332,38 @@ async def stats() -> dict[str, Any]:
     return agent.stats
 
 
+@app.get("/swarm")
+async def swarm_status() -> dict[str, Any]:
+    """Live swarm health — latest snapshot of all watched agents."""
+    if not _swarm_snapshots:
+        return {"status": "warming_up", "message": "First poll not complete yet. Check back in 30s."}
+    latest = _swarm_snapshots[-1]
+    summary = {
+        a["agent"]: "✅ UP" if a["reachable"] else "🔴 DOWN"
+        for a in latest["agents"]
+    }
+    return {
+        "swarm_health": summary,
+        "total_snapshots": len(_swarm_snapshots),
+        "watch_interval_seconds": WATCH_INTERVAL,
+        "latest_snapshot": latest,
+    }
+
+
+@app.get("/swarm/history")
+async def swarm_history() -> dict[str, Any]:
+    """All stored swarm snapshots (last 100 polls)."""
+    return {"snapshots": _swarm_snapshots, "count": len(_swarm_snapshots)}
+
+
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
 @app.on_event("startup")
 async def startup() -> None:
     await agent.initialize()
     agent.register_with_crew(crew_url=CREW_URL)
+    # 🦅 Start the real-time swarm watcher in the background
+    asyncio.create_task(_watch_swarm())
 
 
 @app.on_event("shutdown")
