@@ -89,7 +89,9 @@
       "Bash(docker context:*)",
       "Bash(find src:*)",
       "Bash(pip index:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(mv Contributing CONTRIBUTING.md)",
+      "Bash(mv Microsoft.PowerShell_profile.ps1 scripts/)"
     ]
   },
   "enableAllProjectMcpServers": true,
