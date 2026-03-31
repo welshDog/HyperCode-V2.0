@@ -110,3 +110,50 @@ services:
       hypercode.agent: "true"
       hypercode.archetype: "worker"
       hypercode.version: "2.0"
+
+  # ── 🦅 Agent X — Meta-Architect (Design / Deploy / Evolve) ───────────────
+  agent-x:
+    build:
+      context: .
+      dockerfile: agents/agent-x/Dockerfile
+    container_name: agent-x
+    hostname: agent-x
+    ports:
+      - "8080:8080"
+    environment:
+      AGENT_NAME: agent-x-01
+      AGENT_PORT: "8080"
+      CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8081
+      OLLAMA_HOST: http://hypercode-ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-tinyllama:latest}
+      WORKSPACE_PATH: /workspace
+      HYPER_AGENTS_COMPOSE: /workspace/docker-compose.hyper-agents.yml
+      AGENTS_COMPOSE: /workspace/docker-compose.agents.yml
+      OBSERVER_URL: http://hyper-observer:8092
+      WORKER_URL: http://hyper-worker:8093
+      ARCHITECT_URL: http://hyper-architect:8091
+      AGENT_HEALTH_THRESHOLD: "60"
+      LLM_TIMEOUT_SECONDS: "120"
+    volumes:
+      # Docker socket — required for build/deploy/rollback operations
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Repo root — required for reading/writing agent code and Dockerfiles
+      - .:/workspace
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - hypercode-net
+    depends_on:
+      - hyper-architect
+      - hyper-observer
+      - hyper-worker
+    labels:
+      hypercode.agent: "true"
+      hypercode.archetype: "architect"
+      hypercode.version: "2.0"
+      hypercode.role: "meta-architect"

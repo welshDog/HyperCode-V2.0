@@ -235,6 +235,30 @@ async def list_handlers() -> dict[str, Any]:
     return {"handlers": sorted(HANDLER_REGISTRY.keys())}
 
 
+@app.get("/handlers")
+async def list_handlers_alias() -> dict[str, Any]:
+    """Alias for /tasks/handlers — convenient shortcut."""
+    return {"handlers": sorted(HANDLER_REGISTRY.keys())}
+
+
+@app.get("/tasks/history")
+async def task_history() -> dict[str, Any]:
+    """Return the last N completed task results."""
+    return {
+        "history": [
+            {
+                "task_id": r.task_id,
+                "task_name": r.task_name,
+                "success": r.success,
+                "duration_ms": round(r.duration_ms, 2),
+                "summary": r.summary,
+            }
+            for r in agent._task_history[-50:]  # last 50
+        ],
+        "total_executed": agent._total_tasks_executed,
+    }
+
+
 @app.get("/stats")
 async def stats() -> dict[str, Any]:
     """Current worker statistics."""

@@ -168,6 +168,32 @@ async def register_agent(req: RegisterAgentRequest) -> dict[str, Any]:
     return {"status": "registered", "agent_id": req.agent_id}
 
 
+@app.get("/goals")
+async def list_goals() -> dict[str, Any]:
+    """List all goals with their current status and progress."""
+    goals = []
+    for goal_id, goal in agent._goals.items():
+        goals.append({
+            "goal_id": goal.goal_id,
+            "title": goal.title,
+            "status": goal.status.value,
+            "progress": round(goal.progress, 4),
+            "step_count": len(goal.steps),
+        })
+    return {"goals": goals, "total": len(goals)}
+
+
+@app.get("/agents")
+async def list_registered_agents() -> dict[str, Any]:
+    """List all agents registered with the architect."""
+    return {
+        "agents": [
+            {"agent_id": aid, "role": role}
+            for aid, role in agent.registered_agents.items()
+        ]
+    }
+
+
 @app.get("/stats")
 async def stats() -> dict[str, Any]:
     """Current architect statistics."""
