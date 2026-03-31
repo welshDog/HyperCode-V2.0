@@ -30,15 +30,13 @@ import asyncio
 import logging
 import os
 import time
+from contextlib import asynccontextmanager
 from typing import Any, Optional
 
 import uvicorn
-from fastapi import BackgroundTasks, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
-
-# ── Inline HyperAgent base (Agent X doesn't use the src package to stay self-contained) ──
-from fastapi import FastAPI
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("agent-x")
@@ -50,7 +48,7 @@ AGENT_PORT = int(os.getenv("AGENT_PORT", "8080"))
 CREW_URL = os.getenv("CREW_ORCHESTRATOR_URL", "http://crew-orchestrator:8081")
 VERSION = "2.0.0"
 
-# ── Import sub-modules ────────────────────────────────────────────────────────
+# ── Import sub-modules ────────────────────────────────────────────────────────────
 
 from agentx.designer import (
     AgentSpec,
@@ -60,18 +58,56 @@ from agentx.designer import (
     suggest_improvement,
 )
 from agentx.docker_ops import (
+    COMPOSE_FILE,
+    WORKSPACE,
     build_image,
     container_health,
     deploy_service,
     list_containers,
     restart_service,
     write_agent_file,
-    WORKSPACE,
-    COMPOSE_FILE,
 )
 from agentx.pipeline import EvolutionaryPipeline, KNOWN_AGENTS
 
 # ── App + state ───────────────────────────────────────────────────────────────
+
+_start_time = time.time()
+_pipeline: EvolutionaryPipeline | None = None
+_spawn_history: list[dict[str, Any]] = []
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Modern FastAPI lifespan — replaces deprecated on_event handlers."""
+    global _pipeline
+
+    # ── STARTUP ──
+    _pipeline = EvolutionaryPipeline()
+    logger.info(f"[Agent X] Starting up on port {AGENT_PORT}...")
+
+    import httpx
+    payload = {
+        "name": AGENT_NAME,
+        "archetype": "architect",
+        "version": VERSION,
+        "port": AGENT_PORT,
+        "health_url": f"http://agent-x:{AGENT_PORT}/health",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.post(f"{CREW_URL}/agents/register", json=payload)
+            logger.info(f"[Agent X] Registered with Crew: {resp.status_code}")
+    except Exception as exc:
+        logger.warning(f"[Agent X] Crew registration pending: {exc}")
+
+    llm_ready = await ollama_available()
+    logger.info(f"[Agent X] Ready. LLM={llm_ready}")
+
+    yield  # ← app runs here
+
+    # ── SHUTDOWN ──
+    logger.info("[Agent X] Shutting down.")
+
 
 app = FastAPI(
     title="Agent X — Meta-Architect",
@@ -80,22 +116,26 @@ app = FastAPI(
         "autonomously using LLM-powered design and Docker operations."
     ),
     version=VERSION,
+    lifespan=lifespan,
 )
 
-_start_time = time.time()
-_pipeline = EvolutionaryPipeline()
-_spawn_history: list[dict[str, Any]] = []
+
+def _get_pipeline() -> EvolutionaryPipeline:
+    """Safe accessor — pipeline is ready after lifespan startup."""
+    if _pipeline is None:
+        raise HTTPException(status_code=503, detail="Pipeline not initialised yet.")
+    return _pipeline
 
 
-# ── Request / Response models ─────────────────────────────────────────────────
+# ── Request / Response models ────────────────────────────────────────────────────────────
 
 class SpawnRequest(BaseModel):
     description: str
-    auto_deploy: bool = False  # If True and dry_run=False, builds + deploys immediately
+    auto_deploy: bool = False
 
 
 class EvolveRequest(BaseModel):
-    dry_run: bool = True        # Default safe: show plan only
+    dry_run: bool = True
 
 
 class RebuildRequest(BaseModel):
@@ -103,7 +143,7 @@ class RebuildRequest(BaseModel):
 
 
 class PipelineRunRequest(BaseModel):
-    dry_run: bool = True        # Default safe: no actual deploys
+    dry_run: bool = True
 
 
 class DesignSpecRequest(BaseModel):
@@ -111,10 +151,10 @@ class DesignSpecRequest(BaseModel):
 
 
 class DesignCodeRequest(BaseModel):
-    spec: dict[str, Any]        # AgentSpec fields as dict
+    spec: dict[str, Any]
 
 
-# ── Standard health / info routes ─────────────────────────────────────────────
+# ── Standard health / info routes ─────────────────────────────────────────────────
 
 @app.get("/health")
 async def health() -> dict[str, Any]:
@@ -147,7 +187,7 @@ async def info() -> dict[str, Any]:
     }
 
 
-# ── Agent registry & health ───────────────────────────────────────────────────
+# ── Agent registry & health ─────────────────────────────────────────────────────
 
 @app.get("/agents")
 async def list_agents() -> dict[str, Any]:
@@ -205,24 +245,13 @@ async def agent_status(name: str) -> dict[str, Any]:
     return result
 
 
-# ── Agent spawning ────────────────────────────────────────────────────────────
+# ── Agent spawning ─────────────────────────────────────────────────────────────────
 
 @app.post("/agents/spawn", status_code=202)
 async def spawn_agent(req: SpawnRequest, background_tasks: BackgroundTasks) -> dict[str, Any]:
-    """Design and scaffold a brand new agent from a plain-English description.
-
-    Steps:
-      1. LLM generates AgentSpec (name, port, archetype, endpoints)
-      2. LLM generates agent Python code + Dockerfile + requirements.txt
-      3. Files written to workspace (agents/{name}/)
-      4. If auto_deploy=True, builds Docker image + deploys
-
-    By default (auto_deploy=False): design + write files only — no Docker ops.
-    """
     spec = await design_agent_spec(req.description)
     generated = await generate_agent_code(spec)
 
-    # Write generated files to workspace
     files_written = {}
     try:
         main_path = write_agent_file(f"agents/{spec.name}/main.py", generated.code)
@@ -268,7 +297,6 @@ async def spawn_agent(req: SpawnRequest, background_tasks: BackgroundTasks) -> d
 
 
 async def _background_build_deploy(spec: AgentSpec, record: dict[str, Any]) -> None:
-    """Background task: build image + deploy for a newly spawned agent."""
     build_result = await build_image(
         name=spec.name,
         version="v1.0.0",
@@ -281,27 +309,18 @@ async def _background_build_deploy(spec: AgentSpec, record: dict[str, Any]) -> N
         "duration_seconds": build_result.duration_seconds,
         "error": build_result.error,
     }
-    if build_result.success:
-        record["deploy_status"] = "built_ready_to_deploy"
-    else:
-        record["deploy_status"] = "build_failed"
+    record["deploy_status"] = "built_ready_to_deploy" if build_result.success else "build_failed"
 
 
 @app.get("/agents/spawn/history")
 async def spawn_history() -> dict[str, Any]:
-    """List all previously spawned agents."""
     return {"spawned": _spawn_history, "total": len(_spawn_history)}
 
 
-# ── Agent evolution ───────────────────────────────────────────────────────────
+# ── Agent evolution ─────────────────────────────────────────────────────────────────
 
 @app.post("/agents/{name}/evolve")
 async def evolve_agent(name: str, req: EvolveRequest) -> dict[str, Any]:
-    """Trigger evolutionary improvement for a single agent.
-
-    dry_run=True (default): analyse + generate improvement plan, no deployment.
-    dry_run=False: build new image + deploy + verify health.
-    """
     manifest = next((m for m in KNOWN_AGENTS if m["name"] == name), None)
     if not manifest:
         raise HTTPException(status_code=404, detail=f"Agent '{name}' not in registry.")
@@ -313,7 +332,6 @@ async def evolve_agent(name: str, req: EvolveRequest) -> dict[str, Any]:
     except OSError:
         current_code = "# Source code not accessible in container"
 
-    # Get current performance data
     import httpx
     stats: dict[str, Any] = {}
     try:
@@ -325,6 +343,7 @@ async def evolve_agent(name: str, req: EvolveRequest) -> dict[str, Any]:
         pass
 
     improvement = await suggest_improvement(name, current_code, stats)
+    pipeline = _get_pipeline()
 
     result: dict[str, Any] = {
         "agent": name,
@@ -334,9 +353,7 @@ async def evolve_agent(name: str, req: EvolveRequest) -> dict[str, Any]:
     }
 
     if not req.dry_run:
-        from agentx.pipeline import _score_agent
-
-        scores = await _pipeline.scan()
+        scores = await pipeline.scan()
         agent_score = next((s for s in scores if s.name == name), None)
         if agent_score:
             result["current_score"] = agent_score.score
@@ -355,7 +372,7 @@ async def evolve_agent(name: str, req: EvolveRequest) -> dict[str, Any]:
         }
 
         if build.success:
-            from .docker_ops import wait_for_healthy
+            from agentx.docker_ops import wait_for_healthy
             deploy = await deploy_service(
                 service_name=manifest["service_name"],
                 compose_file=COMPOSE_FILE,
@@ -372,10 +389,6 @@ async def evolve_agent(name: str, req: EvolveRequest) -> dict[str, Any]:
 
 @app.post("/agents/{name}/rebuild")
 async def rebuild_agent(name: str, req: RebuildRequest) -> dict[str, Any]:
-    """Rebuild and redeploy an agent without changing its code.
-
-    Useful for picking up base image updates or config changes.
-    """
     manifest = next((m for m in KNOWN_AGENTS if m["name"] == name), None)
     if not manifest:
         raise HTTPException(status_code=404, detail=f"Agent '{name}' not in registry.")
@@ -395,52 +408,41 @@ async def rebuild_agent(name: str, req: RebuildRequest) -> dict[str, Any]:
     }
 
 
-# ── Evolutionary pipeline ─────────────────────────────────────────────────────
+# ── Evolutionary pipeline ──────────────────────────────────────────────────────────
 
 @app.post("/pipeline/run")
 async def run_pipeline(req: PipelineRunRequest, background_tasks: BackgroundTasks) -> dict[str, Any]:
-    """Kick off a full evolutionary pipeline cycle.
-
-    dry_run=True (default) — safe: scan + score + design improvements only.
-    dry_run=False — live: also builds new images + deploys + verifies + rolls back on failure.
-
-    Runs in the background. Poll /pipeline/status for progress.
-    """
-    if _pipeline.is_running:
+    pipeline = _get_pipeline()
+    if pipeline.is_running:
         raise HTTPException(
             status_code=409,
             detail="Pipeline already running. Check /pipeline/status for progress.",
         )
-    background_tasks.add_task(_pipeline.run_cycle, req.dry_run)
+    background_tasks.add_task(pipeline.run_cycle, req.dry_run)
     return {
         "status": "started",
         "dry_run": req.dry_run,
-        "message": (
-            "Pipeline running in background. "
-            "Poll GET /pipeline/status for progress."
-        ),
+        "message": "Pipeline running in background. Poll GET /pipeline/status for progress.",
     }
 
 
 @app.get("/pipeline/status")
 async def pipeline_status() -> dict[str, Any]:
-    """Current pipeline state (or last completed cycle if not running)."""
-    return _pipeline.current_status()
+    return _get_pipeline().current_status()
 
 
 @app.get("/pipeline/history")
 async def pipeline_history() -> dict[str, Any]:
-    """Full history of all evolution cycles."""
+    pipeline = _get_pipeline()
     return {
-        "cycles": [r.summary() for r in _pipeline.history],
-        "total": len(_pipeline.history),
+        "cycles": [r.summary() for r in pipeline.history],
+        "total": len(pipeline.history),
     }
 
 
 @app.post("/pipeline/scan")
 async def scan_agents() -> dict[str, Any]:
-    """Scan + score all agents without triggering any changes. Fast health check."""
-    scores = await _pipeline.scan()
+    scores = await _get_pipeline().scan()
     return {
         "scores": [
             {
@@ -459,11 +461,10 @@ async def scan_agents() -> dict[str, Any]:
     }
 
 
-# ── LLM design tools ──────────────────────────────────────────────────────────
+# ── LLM design tools ───────────────────────────────────────────────────────────────
 
 @app.post("/design/spec")
 async def design_spec(req: DesignSpecRequest) -> dict[str, Any]:
-    """Generate an AgentSpec from a plain-English description (LLM-powered)."""
     spec = await design_agent_spec(req.description)
     return {
         "name": spec.name,
@@ -481,7 +482,6 @@ async def design_spec(req: DesignSpecRequest) -> dict[str, Any]:
 
 @app.post("/design/code")
 async def design_code(req: DesignCodeRequest) -> dict[str, Any]:
-    """Generate full Python agent code + Dockerfile + requirements from a spec dict."""
     spec = AgentSpec(
         name=req.spec.get("name", "custom-agent"),
         container_name=req.spec.get("container_name", "hyper-custom"),
@@ -506,7 +506,6 @@ async def design_code(req: DesignCodeRequest) -> dict[str, Any]:
 
 @app.get("/design/code/{name}", response_class=PlainTextResponse)
 async def get_agent_code(name: str) -> str:
-    """Return the current source code for a known agent (plain text)."""
     manifest = next((m for m in KNOWN_AGENTS if m["name"] == name), None)
     if not manifest:
         raise HTTPException(status_code=404, detail=f"Agent '{name}' not in registry.")
@@ -518,13 +517,12 @@ async def get_agent_code(name: str) -> str:
         raise HTTPException(status_code=503, detail="Source code not accessible in container.")
 
 
-# ── LLM status ────────────────────────────────────────────────────────────────
+# ── LLM status ─────────────────────────────────────────────────────────────────────
 
 @app.get("/llm/status")
 async def llm_status() -> dict[str, Any]:
-    """Check whether Ollama (local LLM) is reachable and has models loaded."""
     import httpx
-    from .designer import OLLAMA_HOST, OLLAMA_MODEL
+    from agentx.designer import OLLAMA_HOST, OLLAMA_MODEL
 
     available = await ollama_available()
     models: list[str] = []
@@ -548,11 +546,10 @@ async def llm_status() -> dict[str, Any]:
     }
 
 
-# ── Docker inventory ──────────────────────────────────────────────────────────
+# ── Docker inventory ───────────────────────────────────────────────────────────────
 
 @app.get("/docker/containers")
 async def docker_containers() -> dict[str, Any]:
-    """List all running Docker containers (requires socket mount)."""
     containers = await list_containers()
     hypercode_containers = await list_containers(label="hypercode.agent=true")
     return {
@@ -565,41 +562,10 @@ async def docker_containers() -> dict[str, Any]:
 
 @app.get("/docker/health/{container_name}")
 async def docker_container_health(container_name: str) -> dict[str, Any]:
-    """Docker-level health check for a specific container."""
     return await container_health(container_name)
-
-
-# ── Lifecycle ─────────────────────────────────────────────────────────────────
-
-@app.on_event("startup")
-async def startup() -> None:
-    logger.info(f"[Agent X] Starting up on port {AGENT_PORT}...")
-
-    # Register with Crew Orchestrator (non-blocking)
-    import httpx
-    payload = {
-        "name": AGENT_NAME,
-        "archetype": "architect",
-        "version": VERSION,
-        "port": AGENT_PORT,
-        "health_url": f"http://agent-x:{AGENT_PORT}/health",
-    }
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.post(f"{CREW_URL}/agents/register", json=payload)
-            logger.info(f"[Agent X] Registered with Crew: {resp.status_code}")
-    except Exception as exc:
-        logger.warning(f"[Agent X] Crew registration pending: {exc}")
-
-    logger.info(f"[Agent X] Ready. LLM={await ollama_available()}")
-
-
-@app.on_event("shutdown")
-async def shutdown() -> None:
-    logger.info("[Agent X] Shutting down.")
 
 
 # ── Entry ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=AGENT_PORT, log_level="info")
+    uvicorn.run("agentx.main:app", host="0.0.0.0", port=AGENT_PORT, log_level="info")
