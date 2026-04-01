@@ -1478,7 +1478,9 @@ services:
   # ── 🩺 Healer Agent — Self-Healing & Recovery ─────────────────────────────
   # Merged from docker-compose.agents.yml
   healer-agent:
-    build: ./agents/healer
+    build:
+      context: ./agents
+      dockerfile: healer/Dockerfile
     container_name: healer-agent
     restart: always
     ports:
