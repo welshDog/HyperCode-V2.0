@@ -135,3 +135,55 @@ async def trace_example():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.app.main:app", host="0.0.0.0", port=8000, reload=True)
+
+# =============================================================================
+# DASHBOARD ENDPOINT AUDIT — 2026-04-01
+# =============================================================================
+#
+# EXISTING ENDPOINTS (all under /api/v1 prefix):
+#   GET  /health                          — liveness check (root level)
+#   GET  /                                — welcome message (root level)
+#   GET  /metrics                         — Prometheus scrape endpoint
+#   GET  /api/v1/trace-example            — OTel demo
+#   POST /api/v1/auth/*                   — auth flows
+#   GET  /api/v1/users/*                  — user CRUD (JWT required)
+#   GET  /api/v1/projects/*               — project CRUD (JWT required)
+#   GET  /api/v1/tasks/                   — task list (JWT required)
+#   POST /api/v1/tasks/                   — create task (JWT required)
+#   POST /api/v1/execute                  — dashboard command (JWT required)
+#   GET  /api/v1/logs                     — dashboard logs (JWT required, from Tasks table)
+#   GET  /api/v1/memory/*                 — memory endpoints
+#   WS   /api/v1/orchestrator/ws/approvals — approvals WebSocket (Redis pub/sub)
+#   GET  /api/v1/broski/*                 — BROski$ economy endpoints
+#   GET  /api/v1/planning/*               — planning endpoints
+#
+# MISSING ENDPOINTS (needed by dashboard — causes "—" display values):
+#   GET  /api/v1/metrics                  — MetricsSnapshot JSON (useMetrics.ts polls this)
+#   GET  /api/v1/agents/status            — agent online/offline status (useAgentStatus.ts)
+#   GET  /api/v1/events                   — SSE event stream (useEventStream.ts)
+#   GET  /api/v1/logs (public/no auth)    — log list without JWT (useLogs.ts)
+#   GET  /api/v1/system/state             — stable/watch/on_fire state
+#   GET  /api/v1/error-budget             — SLO error budget calculation
+#   WS   /ws/metrics                      — 5s broadcast MetricsSnapshot
+#   WS   /ws/agents                       — agent heartbeat broadcast
+#   WS   /ws/events                       — live event stream WebSocket
+#   WS   /ws/logs                         — live log stream WebSocket
+#
+# BROKEN FRONTEND HOOKS:
+#   useAgentStatus.ts   → WS  ws://localhost:8081/ws/agents   (8081 = crew-orchestrator, no such endpoint)
+#   useEventStream.ts   → WS  ws://${host}:8081/ws/events     (same wrong port/endpoint)
+#   useLogs.ts          → WS  ws://${host}:8081/ws/events     (same wrong port/endpoint)
+#
+# FIX PLAN (tasks 2–12):
+#   Task 2  — GET /api/v1/metrics + WS /ws/metrics (metrics_broadcaster.py)
+#   Task 3  — GET /api/v1/agents/status + WS /ws/agents (agent heartbeat)
+#   Task 4  — Fix frontend hooks to point at port 8000
+#   Task 5  — GET /api/v1/events SSE + WS /ws/events (events_broadcaster.py)
+#   Task 6  — GET /api/v1/logs (no auth) + WS /ws/logs (logs_broadcaster.py)
+#   Task 7  — GET /api/v1/error-budget (reliability.py)
+#   Task 8  — GET /api/v1/system/state (extended health)
+#   Task 9  — Public task CRUD at /api/tasks + Alembic migration
+#   Task 10 — HTTP metrics middleware (req count, response times, error rate in Redis)
+#   Task 11 — Frontend Zustand focus-mode store + FocusToggle component
+#   Task 12 — Backend tests for all new endpoints/WS/middleware
+# =============================================================================
