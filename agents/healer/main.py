@@ -230,6 +230,7 @@ async def lifespan(app: FastAPI):
     logger.info("🧠 MAPE-K loop started — polling every 10s")
 
     asyncio.create_task(alert_listener())
+    asyncio.create_task(heartbeat_loop())
     if WATCHDOG_ENABLED:
         asyncio.create_task(watchdog_loop())
     logger.info("Healer Agent started - monitoring system health")
@@ -283,6 +284,48 @@ async def _publish_heal_event(
         logger.info(f"📤 HealEvent published | {event.summary()}")
     except Exception as e:
         logger.warning(f"EventBus publish failed (non-fatal): {e}")
+
+
+# ── Heartbeat + heals_today ───────────────────────────────────────────────────────────────────────
+
+def _seconds_until_midnight_utc() -> int:
+    """Seconds from now until next midnight UTC — used to set heals_today expiry."""
+    now = datetime.utcnow()
+    tomorrow = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    return max(int((tomorrow - now).total_seconds()), 1)
+
+
+async def heartbeat_loop() -> None:
+    """
+    Publishes agent heartbeat to Redis every 10s.
+    Key: agents:heartbeat:healer-agent  (TTL 30s — disappears if healer dies)
+    Also ensures healer:heals_today has a midnight-reset expiry.
+    """
+    key = f"agents:heartbeat:{HEALER_AGENT_ID}"
+    while True:
+        if redis_client:
+            try:
+                await redis_client.hset(
+                    key,
+                    mapping={
+                        "name": "healer-agent",
+                        "status": "online",
+                        "last_seen": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    },
+                )
+                await redis_client.expire(key, 30)
+
+                # Ensure healer:heals_today resets at midnight UTC
+                ttl = await redis_client.ttl("healer:heals_today")
+                if ttl == -1:  # key exists but has no expiry — set one
+                    import calendar
+                    midnight_ts = int(
+                        (datetime.utcnow() + timedelta(seconds=_seconds_until_midnight_utc())).timestamp()
+                    )
+                    await redis_client.expireat("healer:heals_today", midnight_ts)
+            except Exception as exc:
+                logger.warning(f"Heartbeat write failed (non-fatal): {exc}")
+        await asyncio.sleep(10)
 
 
 # ── System helpers ────────────────────────────────────────────────────────────────────────────────
@@ -439,6 +482,18 @@ async def attempt_heal_agent(
                         heal_pattern="docker_restart",
                         status="recovered",
                     ))
+                    # Increment daily heal counter — read by GET /api/v1/metrics
+                    if redis_client:
+                        try:
+                            await redis_client.incr("healer:heals_today")
+                            ttl = await redis_client.ttl("healer:heals_today")
+                            if ttl < 0:  # set midnight expiry on first heal of the day
+                                midnight_ts = int(
+                                    (datetime.utcnow() + timedelta(seconds=_seconds_until_midnight_utc())).timestamp()
+                                )
+                                await redis_client.expireat("healer:heals_today", midnight_ts)
+                        except Exception:
+                            pass
                     return HealResult(agent=agent_name, status="recovered", action="restart", details=f"Restart successful - recovered after {wait_time}s", timestamp=datetime.now().isoformat())
             except asyncio.TimeoutError:
                 continue

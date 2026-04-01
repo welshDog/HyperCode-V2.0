@@ -16,11 +16,12 @@ import app.models.broski as _broski
 del _broski
 import app.models.dashboard_task as _dashboard_task
 del _dashboard_task
-import logging
-import time
-import sys
-import os
+import asyncio
 import datetime
+import logging
+import os
+import sys
+import time
 import redis.asyncio as aioredis
 
 # Shared async Redis client for metrics middleware (initialised at startup)
@@ -81,8 +82,34 @@ async def _startup_validate_security() -> None:
         )
         await _metrics_redis.ping()
         logger.info("Metrics Redis client connected")
+        # Start background heartbeat so dashboard shows this service as an active agent
+        asyncio.create_task(_core_heartbeat_loop())
     except Exception:
         logger.warning("Metrics Redis unavailable — metrics middleware will no-op")
+
+async def _core_heartbeat_loop() -> None:
+    """
+    Publishes hypercode-core heartbeat to Redis every 10s.
+    Key: agents:heartbeat:hypercode-core  (TTL 30s)
+    Read by GET /api/v1/agents/status to populate the dashboard agent count.
+    """
+    key = "agents:heartbeat:hypercode-core"
+    while True:
+        if _metrics_redis is not None:
+            try:
+                await _metrics_redis.hset(
+                    key,
+                    mapping={
+                        "name": "hypercode-core",
+                        "status": "online",
+                        "last_seen": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    },
+                )
+                await _metrics_redis.expire(key, 30)
+            except Exception:
+                pass
+        await asyncio.sleep(10)
+
 
 # CORS Middleware
 app.add_middleware(

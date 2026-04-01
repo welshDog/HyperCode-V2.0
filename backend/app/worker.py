@@ -1,5 +1,6 @@
 from app.core.celery_app import celery_app
 from celery import Task as CeleryTask
+from celery.signals import worker_ready
 from app.agents.router import router
 from app.db.session import SessionLocal
 from app.models.models import Task, TaskStatus
@@ -7,9 +8,45 @@ import asyncio
 from datetime import datetime, timezone
 import logging
 import os
+import threading
+import time
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+_HEARTBEAT_KEY = "agents:heartbeat:celery-worker"
+_REDIS_URL     = os.getenv("HYPERCODE_REDIS_URL", "redis://redis:6379/0")
+
+
+def _celery_heartbeat_thread() -> None:
+    """
+    Daemon thread: publishes a Redis heartbeat every 10s so the dashboard
+    shows celery-worker as an active agent.
+    Uses the synchronous redis client — safe inside a Celery worker process.
+    """
+    import redis as _redis_sync
+    r = _redis_sync.Redis.from_url(_REDIS_URL, decode_responses=True, socket_connect_timeout=3)
+    while True:
+        try:
+            r.hset(
+                _HEARTBEAT_KEY,
+                mapping={
+                    "name": "celery-worker",
+                    "status": "online",
+                    "last_seen": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                },
+            )
+            r.expire(_HEARTBEAT_KEY, 30)
+        except Exception as exc:
+            logger.warning(f"Celery heartbeat failed (non-fatal): {exc}")
+        time.sleep(10)
+
+
+@worker_ready.connect
+def _on_worker_ready(sender, **kwargs) -> None:
+    t = threading.Thread(target=_celery_heartbeat_thread, name="celery-heartbeat", daemon=True)
+    t.start()
+    logger.info("Celery worker heartbeat thread started — publishing to Redis every 10s")
 
 class AgentTask(CeleryTask):
     abstract = True
