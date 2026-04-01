@@ -23,102 +23,39 @@ OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://hypercode-ollama:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "tinyllama:latest")
 LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT_SECONDS", "120"))
 
-# ── Prompts ───────────────────────────────────────────────────────────────────
+# ── Prompts (tinyllama-optimised: short, direct, JSON-only) ─────────────────
 
-_SYSTEM_PROMPT = """\
-You are Agent X — the Meta-Architect of HyperCode V2.0.
-Your job is to design and improve Python FastAPI agents that fit into the HyperCode architecture.
+_SYSTEM_PROMPT = "You are a Python FastAPI agent code generator. Output only what is asked. No explanations."
 
-RULES:
-1. All agents must subclass HyperAgent from src.agents.hyper_agents.base_agent
-2. Agents run on FastAPI with /health and /info routes (provided by base class)
-3. Agents must implement: async def execute(self, task: dict) -> dict
-4. Use async/await throughout
-5. Use pydantic BaseModel for all request/response schemas
-6. Always include proper error handling with ND-friendly messages
-7. Follow existing patterns: AgentStatus, AgentArchetype, NDErrorResponse
+_DESIGN_SPEC_PROMPT = """Output only a JSON object for this agent: {description}
+Fields: name, container_name, port (8094-8099), archetype (worker/observer/architect), purpose, capabilities (list), endpoints (list), dependencies (list)
+JSON only. No other text."""
 
-ARCHITECTURE:
-- HyperArchitect (8091): goal planning and step management
-- HyperObserver (8092): metric collection and alerting
-- HyperWorker (8093): task execution with retry and priority queue
-- Agent X (8080): YOU — meta-architect that designs/deploys/evolves other agents
-- Crew Orchestrator (8081): task routing hub
-- Healer Agent (8010): auto-recovery for crashed containers
+_CODE_GEN_PROMPT = """Write a Python FastAPI agent.
+Name: {name} Port: {port} Archetype: {archetype} Purpose: {purpose}
+Must have: /health endpoint, execute() method, uvicorn entry point.
+Python code only. No markdown."""
 
-OUTPUT FORMAT:
-Return valid Python code only. No markdown fences. No explanations outside comments.\
-"""
+_IMPROVE_PROMPT = """Agent: {agent_name}
+Issue: {issue}
+Metrics: {metrics}
 
-_DESIGN_SPEC_PROMPT = """\
-Given this agent description: {description}
-
-Generate a complete agent specification as JSON with these fields:
-- name: snake_case name for the agent
-- container_name: docker container name (hyper-{name})
-- port: port number (pick from available: 8094-8099)
-- archetype: one of worker/observer/architect/custom
-- purpose: one sentence description
-- capabilities: list of 3-5 key capabilities
-- endpoints: list of HTTP endpoints the agent should expose
-- dependencies: list of other agents/services this agent needs
-- suggested_handlers: for worker agents, list of task type names
-
-Return ONLY the JSON object, no other text.\
-"""
-
-_CODE_GEN_PROMPT = """\
-Generate a complete, production-ready Python FastAPI agent file for:
-
-Name: {name}
-Port: {port}
-Archetype: {archetype}
-Purpose: {purpose}
-Capabilities: {capabilities}
-Endpoints: {endpoints}
-
-Requirements:
-- Import from src.agents.hyper_agents (HyperAgent, AgentArchetype, AgentStatus)
-- Concrete execute() method
-- All listed endpoints implemented
-- Startup event that calls agent.set_ready() and agent.register_with_crew()
-- Uvicorn entry point at bottom
-- Environment variables for AGENT_NAME, AGENT_PORT, CREW_ORCHESTRATOR_URL
-
-Return ONLY the Python code, no markdown, no explanation.\
-"""
-
-_IMPROVE_PROMPT = """\
-Analyze this agent code and suggest ONE specific improvement to make it more reliable,
-efficient, or capable. Focus on practical, implementable changes.
-
-Current code:
-{current_code}
-
-Performance data:
-{performance_data}
-
-Return a JSON object with:
-- issue: what specific problem or opportunity was identified
-- improvement: clear description of what to change
-- impact: expected benefit (reliability/performance/capability)
-- code_diff: the specific code change as a unified diff or new function
-
-Return ONLY the JSON, no other text.\
-"""
+Respond with ONLY this JSON (no other text):
+{{"issue": "one line problem", "improvement": "one line fix", "impact": "one line benefit", "code_diff": "key code change or empty string"}}"""
 
 
 # ── LLM client ────────────────────────────────────────────────────────────────
 
 async def _ollama_generate(prompt: str, system: str = _SYSTEM_PROMPT) -> str:
-    """Call Ollama generate API. Returns raw text or error string."""
+    """Call Ollama generate API. Returns raw text or empty string."""
     payload = {
         "model": OLLAMA_MODEL,
         "prompt": f"{system}\n\n{prompt}",
         "stream": False,
         "options": {
-            "temperature": 0.3,
-            "num_predict": 2048,
+            "temperature": 0.1,      # lower = more deterministic JSON
+            "num_predict": 512,      # trimmed from 2048 — tinyllama needs less rope
+            "stop": ["\n\n\n"],      # stop before it goes full CEO speech
         },
     }
     try:
@@ -141,7 +78,7 @@ async def _ollama_chat(messages: list[dict[str, str]]) -> str:
         "model": OLLAMA_MODEL,
         "messages": messages,
         "stream": False,
-        "options": {"temperature": 0.3, "num_predict": 2048},
+        "options": {"temperature": 0.1, "num_predict": 512},
     }
     try:
         async with httpx.AsyncClient(timeout=LLM_TIMEOUT) as client:
@@ -191,18 +128,14 @@ class GeneratedCode:
 
 
 async def design_agent_spec(description: str) -> AgentSpec:
-    """Ask the LLM to design an agent spec from a plain-English description.
-
-    Falls back to a reasonable default spec if LLM is unavailable.
-    """
+    """Ask the LLM to design an agent spec from a plain-English description."""
     import json, re
 
     prompt = _DESIGN_SPEC_PROMPT.format(description=description)
     raw = await _ollama_generate(prompt)
 
     if raw:
-        # Extract JSON from response (handle cases where LLM adds extra text)
-        json_match = re.search(r'\{.*\}', raw, re.DOTALL)
+        json_match = re.search(r'\{.*?\}', raw, re.DOTALL)
         if json_match:
             try:
                 data = json.loads(json_match.group())
@@ -221,7 +154,7 @@ async def design_agent_spec(description: str) -> AgentSpec:
             except (json.JSONDecodeError, KeyError) as exc:
                 logger.warning(f"[Designer] Failed to parse LLM spec JSON: {exc}")
 
-    # Fallback: synthesize spec from description text
+    # Fallback
     name = description.lower().replace(" ", "-")[:30].strip("-")
     return AgentSpec(
         name=name,
@@ -237,22 +170,16 @@ async def design_agent_spec(description: str) -> AgentSpec:
 
 
 async def generate_agent_code(spec: AgentSpec) -> GeneratedCode:
-    """Generate full Python agent code from a spec.
-
-    Returns working boilerplate if LLM is unavailable.
-    """
+    """Generate full Python agent code from a spec."""
     prompt = _CODE_GEN_PROMPT.format(
         name=spec.name,
         port=spec.port,
         archetype=spec.archetype,
         purpose=spec.purpose,
-        capabilities=", ".join(spec.capabilities),
-        endpoints=", ".join(spec.endpoints),
     )
     code = await _ollama_generate(prompt)
 
-    if not code or len(code) < 200:
-        # Fallback: generate solid boilerplate
+    if not code or len(code) < 100:
         code = _boilerplate(spec)
         llm_used = False
         warnings = ["Ollama unavailable — boilerplate template used"]
@@ -260,14 +187,11 @@ async def generate_agent_code(spec: AgentSpec) -> GeneratedCode:
         llm_used = True
         warnings = []
 
-    dockerfile = _dockerfile_template(spec)
-    requirements = _requirements_template()
-
     return GeneratedCode(
         agent_name=spec.name,
         code=code,
-        dockerfile=dockerfile,
-        requirements=requirements,
+        dockerfile=_dockerfile_template(spec),
+        requirements=_requirements_template(),
         llm_used=llm_used,
         warnings=warnings,
     )
@@ -278,26 +202,39 @@ async def suggest_improvement(
     current_code: str,
     performance_data: dict[str, Any],
 ) -> dict[str, Any]:
-    """Ask LLM to suggest one specific improvement for an agent.
-
-    Returns structured improvement dict, or empty dict if LLM unavailable.
-    """
+    """Ask LLM to suggest one specific improvement for an agent."""
     import json, re
 
+    # Extract just the key metrics — don't send walls of code to tinyllama
+    issue = performance_data.get("issues", ["unknown issue"])
+    issue_str = issue[0] if issue else "performance degradation"
+    metrics = {
+        "score": performance_data.get("score", 0),
+        "success_rate": performance_data.get("success_rate", 0),
+        "error_count": performance_data.get("error_count", 0),
+    }
+
     prompt = _IMPROVE_PROMPT.format(
-        current_code=current_code[:3000],  # cap to avoid context overflow
-        performance_data=str(performance_data),
+        agent_name=agent_name,
+        issue=issue_str,
+        metrics=str(metrics),
     )
     raw = await _ollama_generate(prompt)
 
     if raw:
-        json_match = re.search(r'\{.*\}', raw, re.DOTALL)
+        # Try to grab first JSON object from response
+        json_match = re.search(r'\{[^{}]*\}', raw, re.DOTALL)
         if json_match:
             try:
-                return json.loads(json_match.group())
-            except json.JSONDecodeError:
-                pass
+                result = json.loads(json_match.group())
+                # Validate it has the fields we need
+                if "issue" in result and "improvement" in result:
+                    logger.info(f"[Designer] LLM improvement generated for {agent_name}")
+                    return result
+            except json.JSONDecodeError as exc:
+                logger.warning(f"[Designer] JSON parse failed: {exc} | raw: {raw[:200]}")
 
+    logger.warning(f"[Designer] LLM returned no usable JSON for {agent_name}")
     return {
         "issue": "LLM analysis unavailable",
         "improvement": "Ensure Ollama is running and has a model loaded",
@@ -306,7 +243,7 @@ async def suggest_improvement(
     }
 
 
-# ── Code templates ────────────────────────────────────────────────────────────
+# ── Code templates ────────────────────────────────────────────────────────────────
 
 def _boilerplate(spec: AgentSpec) -> str:
     class_name = "".join(w.capitalize() for w in spec.name.replace("-", "_").split("_")) + "Agent"
