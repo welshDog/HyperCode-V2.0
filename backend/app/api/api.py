@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import auth, users, projects, tasks, dashboard, memory, orchestrator, broski, planning
-from app.ws import metrics_broadcaster, agents_broadcaster
+from app.ws import metrics_broadcaster, agents_broadcaster, events_broadcaster
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
@@ -20,3 +20,6 @@ api_router.include_router(metrics_broadcaster.router, prefix="", tags=["metrics"
 
 # Dashboard live data — Task 3: GET /api/v1/agents/status + WS /api/v1/ws/agents
 api_router.include_router(agents_broadcaster.router, prefix="", tags=["agents-status"])
+
+# Dashboard live data — Task 5: GET /api/v1/events SSE + WS /api/v1/ws/events
+api_router.include_router(events_broadcaster.router, prefix="", tags=["events"])
