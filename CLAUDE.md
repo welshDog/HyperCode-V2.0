@@ -84,17 +84,20 @@ HyperCode-V2.0/
 
 ### Quick Start
 ```bash
-# Start full stack
+# Core stack (infra + observability + MCP)
 docker compose up -d
 
-# Start agents only (lighter)
-docker compose -f docker-compose.agents.yml up -d
+# Core + all agents
+docker compose --profile agents up -d
 
-# Start with observability
-docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+# Core + hyper agents (architect, observer, worker, agent-x)
+docker compose --profile hyper up -d
 
-# Windows-specific
-docker compose -f docker-compose.windows.yml up -d
+# Full stack (everything)
+docker compose --profile agents --profile hyper --profile health --profile mission up -d
+
+# Windows path overrides
+docker compose -f docker-compose.yml -f docker-compose.windows.yml up -d
 ```
 
 ### Testing
@@ -143,14 +146,30 @@ make observability     # Start Grafana/Prometheus stack
 - Agent endpoints: `/agents/{agent_name}/{action}`
 
 ### Docker Compose Strategy
-- `docker-compose.yml` — full production stack
-- `docker-compose.dev.yml` — dev overrides
-- `docker-compose.agents.yml` — agents only
-- `docker-compose.agents-lite.yml` — lightweight agent subset
-- `docker-compose.monitoring.yml` — observability stack
-- `docker-compose.mcp-gateway.yml` — MCP protocol gateway
-- `docker-compose.hyperhealth.yml` — health monitoring
-- `docker-compose.secrets.yml` — Docker secrets overlay
+
+**Single-file with profiles** — `docker-compose.yml` is the canonical stack.
+
+| Profile | Command | Services |
+|---------|---------|---------|
+| *(none)* | `docker compose up -d` | Core infra + observability + MCP server |
+| `agents` | `docker compose --profile agents up -d` | All specialist agents |
+| `hyper` | `docker compose --profile hyper up -d` | Hyper-architect, observer, worker, agent-x |
+| `health` | `docker compose --profile health up -d` | HyperHealth API + worker |
+| `mission` | `docker compose --profile mission up -d` | HyperMission API + UI |
+| `discord` | `docker compose --profile discord up -d` | Broski Discord bot |
+| `nim` | `docker compose --profile nim up -d` | NVIDIA NIM LLM service |
+
+**Overlay files** (use alongside main with `-f`):
+- `docker-compose.dev.yml` — dev environment (hot-reload, pgadmin, mailhog)
+- `docker-compose.monitoring.yml` — full monitoring stack alternative
+- `docker-compose.mcp-gateway.yml` — extended MCP gateway stack
+- `docker-compose.agents.yml` — self-contained standalone agent stack
+- `docker-compose.nano.yml` — ultra-low RAM overrides (<4GB)
+- `docker-compose.secrets.yml` — Docker secrets overlay (production)
+- `docker-compose.windows.yml` — Windows path overrides
+
+**Archived** (obsolete, see `docs/archive/docker/`):
+- `docker-compose.health.yml`, `docker-compose.mcp-full.yml`, `docker-compose.agents-test.yml`
 
 ---
 

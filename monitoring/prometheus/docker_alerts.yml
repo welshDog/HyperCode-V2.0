@@ -39,13 +39,32 @@ groups:
       description: "Container CPU usage is above 80%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
 
   - alert: ContainerHighMemoryUsage
-    expr: (sum(container_memory_usage_bytes) BY (instance, name) / sum(container_spec_memory_limit_bytes) BY (instance, name) * 100) > 85
+    expr: |
+      (
+        container_memory_usage_bytes{name!=""}
+        / container_spec_memory_limit_bytes{name!=""}
+      ) > 0.80
+      and container_spec_memory_limit_bytes{name!=""} > 0
     for: 2m
     labels:
       severity: warning
     annotations:
-      summary: "Container High Memory usage (instance {{ $labels.instance }})"
-      description: "Container Memory usage is above 85%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+      summary: "Container {{ $labels.name }} memory > 80%"
+      description: "Container {{ $labels.name }} is using {{ $value | humanizePercentage }} of its memory limit. Run: docker stats {{ $labels.name }}"
+
+  - alert: ContainerCriticalMemoryUsage
+    expr: |
+      (
+        container_memory_usage_bytes{name!=""}
+        / container_spec_memory_limit_bytes{name!=""}
+      ) > 0.90
+      and container_spec_memory_limit_bytes{name!=""} > 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Container {{ $labels.name }} memory > 90% — OOM risk"
+      description: "Container {{ $labels.name }} is using {{ $value | humanizePercentage }} of its memory limit. OOM kill imminent — increase limit or restart."
 
   - alert: ContainerVolumeUsage
     expr: (1 - (container_fs_inodes_free / container_fs_inodes_total)) * 100 > 80

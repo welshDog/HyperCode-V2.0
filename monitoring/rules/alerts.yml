@@ -16,3 +16,41 @@ groups:
         annotations:
           description: Agent registry errors increasing
 
+  - name: container_memory
+    rules:
+      - alert: ContainerHighMemoryUsage
+        expr: |
+          (
+            container_memory_usage_bytes{name!=""}
+            / container_spec_memory_limit_bytes{name!=""}
+          ) > 0.8
+          and
+          container_spec_memory_limit_bytes{name!=""} > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} memory > 80%"
+          description: >
+            Container {{ $labels.name }} is using
+            {{ $value | humanizePercentage }} of its memory limit.
+            Check with: docker stats {{ $labels.name }}
+
+      - alert: ContainerCriticalMemoryUsage
+        expr: |
+          (
+            container_memory_usage_bytes{name!=""}
+            / container_spec_memory_limit_bytes{name!=""}
+          ) > 0.9
+          and
+          container_spec_memory_limit_bytes{name!=""} > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ $labels.name }} memory > 90% — OOM risk"
+          description: >
+            Container {{ $labels.name }} is using
+            {{ $value | humanizePercentage }} of its memory limit.
+            OOM kill imminent. Increase limit or restart container.
+

@@ -10,15 +10,6 @@ groups:
       summary: "High CPU usage detected on {{ $labels.instance }}"
       description: "Container CPU usage is above 80% for more than 1 minute."
 
-  - alert: HighMemoryUsage
-    expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.85
-    for: 1m
-    labels:
-      severity: warning
-    annotations:
-      summary: "High Memory usage detected on {{ $labels.instance }}"
-      description: "Container Memory usage is above 85% for more than 1 minute."
-
   - alert: ServiceDown
     expr: up == 0
     for: 30s
