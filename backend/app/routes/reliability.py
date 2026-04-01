@@ -1,7 +1,8 @@
 """
-Task 7 — Reliability / Error Budget
+Tasks 7 & 8 — Reliability / Error Budget + System State
 Provides:
   GET /api/v1/error-budget  — SLO error budget calculation
+  GET /api/v1/system/state  — aggregate stable/watch/on_fire health state
 
 SLO definition (hardcoded baseline, configurable via env vars):
   Target error rate: <= 1%   (SLO_ERROR_RATE_TARGET, default 1.0)
@@ -45,6 +46,49 @@ class ErrorBudget(BaseModel):
     budgetPct: float          # percentage of budget remaining (100 = full, 0 = exhausted)
     gate: str                 # "ok" | "warning" | "exhausted"
     collectedAt: str
+
+
+class SystemState(BaseModel):
+    state: str         # "stable" | "watch" | "on_fire"
+    reasons: List[str] # human-readable list of triggered conditions
+    errorBudget: ErrorBudget
+    collectedAt: str
+
+
+@router.get("/system/state", response_model=SystemState)
+async def get_system_state() -> SystemState:
+    """
+    Computes aggregate system health state from error budget + agent heartbeats.
+
+    States:
+      stable   — budget > 20%, all conditions green
+      watch    — budget 0–20% OR any warning-level condition
+      on_fire  — budget exhausted (< 0%) OR error rate > 5%
+    """
+    budget = await get_error_budget()
+    reasons: List[str] = []
+
+    if budget.gate == "exhausted":
+        reasons.append(f"Error budget exhausted ({budget.budgetPct:.1f}% remaining)")
+    elif budget.gate == "warning":
+        reasons.append(f"Error budget low ({budget.budgetPct:.1f}% remaining)")
+
+    if budget.actualErrorPct > 5.0:
+        reasons.append(f"Error rate critical: {budget.actualErrorPct:.2f}% (threshold 5%)")
+
+    if budget.gate == "exhausted" or budget.actualErrorPct > 5.0:
+        state = "on_fire"
+    elif budget.gate == "warning":
+        state = "watch"
+    else:
+        state = "stable"
+
+    return SystemState(
+        state=state,
+        reasons=reasons,
+        errorBudget=budget,
+        collectedAt=budget.collectedAt,
+    )
 
 
 @router.get("/error-budget", response_model=ErrorBudget)

@@ -28,5 +28,5 @@ api_router.include_router(events_broadcaster.router, prefix="", tags=["events"])
 # Dashboard live data — Task 6: GET /api/v1/logs + WS /api/v1/ws/logs
 api_router.include_router(logs_broadcaster.router, prefix="", tags=["logs"])
 
-# Dashboard live data — Task 7: GET /api/v1/error-budget
+# Dashboard live data — Tasks 7 & 8: GET /api/v1/error-budget + GET /api/v1/system/state
 api_router.include_router(reliability.router, prefix="", tags=["reliability"])
