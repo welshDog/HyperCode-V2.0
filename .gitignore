@@ -161,3 +161,8 @@ agents/*/logs/
 # OS artifacts
 Thumbs.db
 desktop.ini
+
+# Compiled binaries
+*.exe
+*.jar
+*.test.exe
