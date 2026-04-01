@@ -754,8 +754,9 @@ services:
     container_name: hypercode-dashboard
     environment:
       - NEXT_PUBLIC_CORE_URL=http://hypercode-core:8000
-      - NEXT_PUBLIC_ORCHESTRATOR_WS_HOST=localhost
-      - NEXT_PUBLIC_ORCHESTRATOR_WS_PORT=8081
+      - HYPERCODE_CORE_URL=http://hypercode-core:8000
+      - NEXT_PUBLIC_CORE_WS_HOST=localhost
+      - NEXT_PUBLIC_CORE_WS_PORT=8000
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
       - PORT=3000
@@ -1482,6 +1483,8 @@ services:
     restart: always
     ports:
       - "127.0.0.1:8008:8008"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - backend-net
       - data-net
