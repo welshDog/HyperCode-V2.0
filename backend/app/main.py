@@ -18,6 +18,11 @@ import logging
 import time
 import sys
 import os
+import datetime
+import redis.asyncio as aioredis
+
+# Shared async Redis client for metrics middleware (initialised at startup)
+_metrics_redis: aioredis.Redis | None = None
 
 # DEBUG: Print to stderr to ensure visibility in Docker logs
 print("Starting HyperCode Core API...", file=sys.stderr)
@@ -41,7 +46,10 @@ app = FastAPI(
 
 @app.on_event("shutdown")
 async def _shutdown_event() -> None:
+    global _metrics_redis
     logger.info("Shutdown initiated...")
+    if _metrics_redis is not None:
+        await _metrics_redis.aclose()
     from app.db.session import engine as _engine
     _engine.dispose()
     logger.info("Graceful shutdown complete")
@@ -49,6 +57,7 @@ async def _shutdown_event() -> None:
 
 @app.on_event("startup")
 async def _startup_validate_security() -> None:
+    global _metrics_redis
     settings.validate_security()
     if os.getenv("DB_AUTO_CREATE", "false").strip().lower() == "true":
         Base.metadata.create_all(bind=engine)
@@ -62,6 +71,16 @@ async def _startup_validate_security() -> None:
             db.close()
     except Exception:
         logger.exception("Failed to seed BROski achievements")
+    try:
+        _metrics_redis = aioredis.from_url(
+            settings.HYPERCODE_REDIS_URL,
+            decode_responses=True,
+            socket_connect_timeout=2,
+        )
+        await _metrics_redis.ping()
+        logger.info("Metrics Redis client connected")
+    except Exception:
+        logger.warning("Metrics Redis unavailable — metrics middleware will no-op")
 
 # CORS Middleware
 app.add_middleware(
@@ -89,6 +108,35 @@ app.add_middleware(
         "/metrics",
     ),
 )
+
+@app.middleware("http")
+async def _http_metrics_middleware(request: Request, call_next):
+    """
+    Task 10 — HTTP metrics middleware.
+    Writes per-minute request counts, response times, and error counts to Redis.
+    Keys consumed by GET /api/v1/metrics to build MetricsSnapshot.
+    """
+    t0 = time.monotonic()
+    response = await call_next(request)
+    elapsed_ms = round((time.monotonic() - t0) * 1000, 2)
+
+    if _metrics_redis is not None:
+        try:
+            minute_key = datetime.datetime.utcnow().strftime("%Y%m%d%H%M")
+            async with _metrics_redis.pipeline(transaction=False) as pipe:
+                pipe.incr(f"req_count:{minute_key}")
+                pipe.expire(f"req_count:{minute_key}", 120)
+                pipe.lpush("response_times", elapsed_ms)
+                pipe.ltrim("response_times", 0, 99)
+                if response.status_code >= 400:
+                    pipe.incr(f"error_count:{minute_key}")
+                    pipe.expire(f"error_count:{minute_key}", 120)
+                await pipe.execute()
+        except Exception:
+            pass  # Never let metrics writing break a real request
+
+    return response
+
 
 @app.exception_handler(Exception)
 async def _unhandled_exception_handler(request: Request, exc: Exception):
