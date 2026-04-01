@@ -103,7 +103,8 @@
       "Bash(mkdir -p \"H:\\\\HyperStation zone\\\\HyperCode\\\\HyperCode-V2.0\\\\docs\\\\archive\\\\docker\")",
       "Bash(mv docker-compose.health.yml docker-compose.mcp-full.yml docker-compose.agents-test.yml docs/archive/docker/)",
       "Bash(ls:*)",
-      "Bash(docker stats:*)"
+      "Bash(docker stats:*)",
+      "Bash(find 'H:\\\\HyperStation zone\\\\HyperCode\\\\HyperCode-V2.0\\\\agents\\\\dashboard' -name *.tsx -o -name *.ts)"
     ]
   },
   "enableAllProjectMcpServers": true,
