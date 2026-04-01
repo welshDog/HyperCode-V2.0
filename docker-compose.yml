@@ -372,6 +372,10 @@ services:
     container_name: cadvisor
     # privileged: true # Required for cAdvisor to access Docker internals
     # Using specific mounts instead of privileged mode for better security
+    command:
+      - '--disable_metrics=disk,diskIO'   # WSL2/Windows path scanning causes 10-17min scans + OOM
+      - '--housekeeping_interval=120s'    # Reduce scan frequency: 60s → 120s
+      - '--storage_duration=1h'           # Trim in-memory retention window
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -391,10 +395,10 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 1G
+          memory: 512M
         reservations:
           cpus: "0.1"
-          memory: 256M
+          memory: 128M
     logging:
       driver: "json-file"
       options:
