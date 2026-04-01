@@ -20,10 +20,10 @@ import httpx
 logger = logging.getLogger(__name__)
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://hypercode-ollama:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "tinyllama:latest")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5-coder:3b")
 LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT_SECONDS", "120"))
 
-# ── Prompts (tinyllama-optimised: short, direct, JSON-only) ─────────────────
+# ── Prompts (qwen2.5-coder optimised: short, direct, JSON-only) ─────────────────
 
 _SYSTEM_PROMPT = "You are a Python FastAPI agent code generator. Output only what is asked. No explanations."
 
@@ -53,9 +53,9 @@ async def _ollama_generate(prompt: str, system: str = _SYSTEM_PROMPT) -> str:
         "prompt": f"{system}\n\n{prompt}",
         "stream": False,
         "options": {
-            "temperature": 0.1,      # lower = more deterministic JSON
-            "num_predict": 512,      # trimmed from 2048 — tinyllama needs less rope
-            "stop": ["\n\n\n"],      # stop before it goes full CEO speech
+            "temperature": 0.1,
+            "num_predict": 512,
+            "stop": ["\n\n\n"],
         },
     }
     try:
@@ -68,7 +68,7 @@ async def _ollama_generate(prompt: str, system: str = _SYSTEM_PROMPT) -> str:
         logger.warning("[Designer] Ollama unreachable — returning fallback response")
         return ""
     except Exception as exc:
-        logger.error(f"[Designer] LLM call failed: {exc}")
+        logger.error(f"[Designer] LLM call failed: {exc!r}")
         return ""
 
 
@@ -87,7 +87,7 @@ async def _ollama_chat(messages: list[dict[str, str]]) -> str:
             data = resp.json()
             return data.get("message", {}).get("content", "")
     except Exception as exc:
-        logger.error(f"[Designer] LLM chat failed: {exc}")
+        logger.error(f"[Designer] LLM chat failed: {exc!r}")
         return ""
 
 
@@ -205,7 +205,6 @@ async def suggest_improvement(
     """Ask LLM to suggest one specific improvement for an agent."""
     import json, re
 
-    # Extract just the key metrics — don't send walls of code to tinyllama
     issue = performance_data.get("issues", ["unknown issue"])
     issue_str = issue[0] if issue else "performance degradation"
     metrics = {
@@ -222,12 +221,10 @@ async def suggest_improvement(
     raw = await _ollama_generate(prompt)
 
     if raw:
-        # Try to grab first JSON object from response
         json_match = re.search(r'\{[^{}]*\}', raw, re.DOTALL)
         if json_match:
             try:
                 result = json.loads(json_match.group())
-                # Validate it has the fields we need
                 if "issue" in result and "improvement" in result:
                     logger.info(f"[Designer] LLM improvement generated for {agent_name}")
                     return result
