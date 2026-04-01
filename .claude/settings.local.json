@@ -93,7 +93,17 @@
       "Bash(mv Contributing CONTRIBUTING.md)",
       "Bash(mv Microsoft.PowerShell_profile.ps1 scripts/)",
       "Bash(find 'H:/HyperStation zone/HyperCode/HyperCode-V2.0' -name mape_k_engine.py -not -path */node_modules/*)",
-      "Bash(docker cp:*)"
+      "Bash(docker cp:*)",
+      "Bash(docker system:*)",
+      "Bash(docker image:*)",
+      "Bash(docker volume:*)",
+      "Bash(docker builder:*)",
+      "Bash(docker inspect:*)",
+      "Bash(docker rm:*)",
+      "Bash(mkdir -p \"H:\\\\HyperStation zone\\\\HyperCode\\\\HyperCode-V2.0\\\\docs\\\\archive\\\\docker\")",
+      "Bash(mv docker-compose.health.yml docker-compose.mcp-full.yml docker-compose.agents-test.yml docs/archive/docker/)",
+      "Bash(ls:*)",
+      "Bash(docker stats:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
