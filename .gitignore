@@ -166,3 +166,9 @@ desktop.ini
 *.exe
 *.jar
 *.test.exe
+
+# Build artifacts
+agents/dashboard/.next/
+agents/**/node_modules/
+**/.next/
+**/node_modules/
