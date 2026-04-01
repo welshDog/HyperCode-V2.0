@@ -125,7 +125,7 @@ services:
       AGENT_PORT: "8080"
       CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8081
       OLLAMA_HOST: http://hypercode-ollama:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-phi3:latest}  # upgraded from tinyllama — better JSON reasoning
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:3b}  # upgraded from phi3 — 2GB, fast JSON, code-focused
       WORKSPACE_PATH: /workspace
       HYPER_AGENTS_COMPOSE: /workspace/docker-compose.hyper-agents.yml
       AGENTS_COMPOSE: /workspace/docker-compose.agents.yml
