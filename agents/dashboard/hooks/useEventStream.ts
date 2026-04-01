@@ -7,13 +7,13 @@ const MAX_EVENTS       = 200
 const RECONNECT_DELAY  = 3_000   // ms before reconnect attempt
 const PING_INTERVAL    = 25_000  // ms between keep-alive pings
 
-// Resolve WS URL: browser always uses the public host so it reaches the
-// orchestrator's exposed port (8081). In SSR/test context we return null.
+// Resolve WS URL: browser connects directly to FastAPI backend (port 8000).
+// In SSR/test context we return null.
 function wsUrl(): string | null {
   if (typeof window === 'undefined') return null
-  const host = process.env.NEXT_PUBLIC_ORCHESTRATOR_WS_HOST ?? window.location.hostname
-  const port = process.env.NEXT_PUBLIC_ORCHESTRATOR_WS_PORT ?? '8081'
-  return `ws://${host}:${port}/ws/events`
+  const host = process.env.NEXT_PUBLIC_CORE_WS_HOST ?? window.location.hostname
+  const port = process.env.NEXT_PUBLIC_CORE_WS_PORT ?? '8000'
+  return `ws://${host}:${port}/api/v1/ws/events`
 }
 
 /** Normalise a raw ws_tasks message into an AgentEvent, or return null. */

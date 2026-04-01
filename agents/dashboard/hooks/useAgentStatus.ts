@@ -1,14 +1,15 @@
 // 🦅 HyperStation — Live Agent Status WebSocket Hook
-// Connects to Orchestrator ws://localhost:8081/ws/agents
-// Auto-reconnects with 3s delay on disconnect
+// Connects to FastAPI backend WS /api/v1/ws/agents (port 8000)
+// Auto-reconnects with exponential backoff (3s → 6s → 12s … cap 30s)
 
 import { useEffect, useState } from 'react';
 
 interface Agent {
   id: string;
   name: string;
-  status: 'idle' | 'thinking' | 'working' | 'error';
+  status: 'idle' | 'thinking' | 'working' | 'error' | 'online' | 'offline' | 'busy';
   lastActivity?: string;
+  last_seen?: string;
   skills?: string[];
 }
 
@@ -18,20 +19,32 @@ interface UseAgentStatusReturn {
   error: string | null;
 }
 
+function wsUrl(): string {
+  const host = (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_CORE_WS_HOST)
+    ? process.env.NEXT_PUBLIC_CORE_WS_HOST
+    : (typeof window !== 'undefined' ? window.location.hostname : 'localhost');
+  const port = process.env.NEXT_PUBLIC_CORE_WS_PORT ?? '8000';
+  return `ws://${host}:${port}/api/v1/ws/agents`;
+}
+
 export function useAgentStatus(): UseAgentStatusReturn {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let ws: WebSocket;
-    let reconnectTimer: NodeJS.Timeout;
+    let ws: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let delay = 3_000;
+    let destroyed = false;
 
     const connect = () => {
+      if (destroyed) return;
       try {
-        ws = new WebSocket('ws://localhost:8081/ws/agents');
+        ws = new WebSocket(wsUrl());
 
         ws.onopen = () => {
+          delay = 3_000; // reset backoff on success
           setConnected(true);
           setError(null);
         };
@@ -41,29 +54,40 @@ export function useAgentStatus(): UseAgentStatusReturn {
             const data = JSON.parse(event.data);
             setAgents(data.agents || []);
             setError(null);
-          } catch (e) {
+          } catch {
             setError('Failed to parse agent data');
           }
         };
 
         ws.onerror = () => {
-          setError('WebSocket connection failed — retrying in 3s');
+          setError(`WebSocket error — retrying in ${delay / 1000}s`);
         };
 
         ws.onclose = () => {
           setConnected(false);
-          reconnectTimer = setTimeout(connect, 3000);
+          if (!destroyed) {
+            reconnectTimer = setTimeout(() => {
+              delay = Math.min(delay * 2, 30_000); // exponential backoff, cap 30s
+              connect();
+            }, delay);
+          }
         };
-      } catch (e) {
-        setError('Could not connect to Orchestrator');
-        reconnectTimer = setTimeout(connect, 3000);
+      } catch {
+        setError('Could not connect to backend');
+        if (!destroyed) {
+          reconnectTimer = setTimeout(() => {
+            delay = Math.min(delay * 2, 30_000);
+            connect();
+          }, delay);
+        }
       }
     };
 
     connect();
 
     return () => {
-      clearTimeout(reconnectTimer);
+      destroyed = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       if (ws) ws.close();
     };
   }, []);
