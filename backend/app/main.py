@@ -14,6 +14,8 @@ import app.models.models as _models
 del _models
 import app.models.broski as _broski
 del _broski
+import app.models.dashboard_task as _dashboard_task
+del _dashboard_task
 import logging
 import time
 import sys

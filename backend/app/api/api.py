@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints import auth, users, projects, tasks, dashboard, memory, orchestrator, broski, planning
 from app.ws import metrics_broadcaster, agents_broadcaster, events_broadcaster, logs_broadcaster
-from app.routes import reliability
+from app.routes import reliability, tasks as public_tasks
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
@@ -30,3 +30,6 @@ api_router.include_router(logs_broadcaster.router, prefix="", tags=["logs"])
 
 # Dashboard live data — Tasks 7 & 8: GET /api/v1/error-budget + GET /api/v1/system/state
 api_router.include_router(reliability.router, prefix="", tags=["reliability"])
+
+# Dashboard live data — Task 9: public task CRUD at /api/v1/tasks (no auth) + auto-task
+api_router.include_router(public_tasks.router, prefix="", tags=["dashboard-tasks"])
