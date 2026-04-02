@@ -42,7 +42,7 @@ RUN mkdir -p /app/cache/huggingface /app/cache/sentence_transformers && \
 COPY --from=builder /app/wheels /wheels
 COPY --from=builder /app/requirements.txt .
 
-RUN pip install --no-cache /wheels/*
+RUN pip install --no-deps /wheels/*
 
 # Copy application code
 COPY . .
