@@ -3,17 +3,19 @@ from discord import app_commands
 from discord.ext import commands
 import aiohttp
 import logging
-import os
+
+from src.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
 class AIRelay(commands.Cog):
     """AI-powered coaching and assistance for neurodivergent users."""
-    
+
     def __init__(self, bot: commands.Bot):
+        import os
         self.bot = bot
         self.openai_key = os.getenv('OPENAI_API_KEY')
-        self.ollama_host = os.getenv('OLLAMA_HOST', 'http://localhost:11434')
+        self.ollama_host = settings.ollama_host  # uses Docker service name from settings
     
     async def get_ai_response(self, prompt: str, system_prompt: str = None) -> str:
         """Get AI response from OpenAI or Ollama."""
@@ -48,8 +50,9 @@ class AIRelay(commands.Cog):
         # Fallback to local Ollama
         try:
             async with aiohttp.ClientSession() as session:
+                import os
                 data = {
-                    'model': 'llama2',
+                    'model': os.getenv('OLLAMA_MODEL', 'phi3:latest'),
                     'prompt': f"{system_prompt or 'You are a helpful ADHD coach.'}\n\nUser: {prompt}\n\nAssistant:",
                     'stream': False
                 }

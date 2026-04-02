@@ -55,6 +55,7 @@ class BroskiBot(commands.Bot):
             "src.cogs.economy",
             "src.cogs.focus",
             "src.cogs.ai_relay",
+            "src.cogs.hypercode_sync",
             # "src.cogs.admin",
             # "src.cogs.monitoring",
         ]

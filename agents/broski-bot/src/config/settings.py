@@ -88,6 +88,16 @@ class Settings(BaseSettings):
     allowed_origins: list[str] = Field(default_factory=list, description="CORS allowed origins")
     secret_key: str = Field(default="placeholder", description="Secret key for encryption")
     
+    # HyperCode Core integration
+    hypercode_core_url: str = Field(
+        default="http://hypercode-core:8000",
+        description="HyperCode Core API base URL",
+    )
+    ollama_host: str = Field(
+        default="http://hypercode-ollama:11434",
+        description="Ollama LLM service URL (Docker service name in stack)",
+    )
+
     # Backup
     backup_enabled: bool = Field(default=True, description="Enable automatic backups")
     backup_interval_hours: int = Field(default=6, description="Backup interval in hours")
