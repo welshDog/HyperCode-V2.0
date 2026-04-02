@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import statistics
 import time
 from collections import defaultdict, deque
@@ -19,6 +20,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
+
+# Backoff config — tuneable via env vars
+HEALER_MAX_RESTART_ATTEMPTS: int = int(os.getenv("HEALER_MAX_RESTART_ATTEMPTS", "3"))
+HEALER_BACKOFF_BASE_SECONDS: int = int(os.getenv("HEALER_BACKOFF_BASE_SECONDS", "300"))   # 5 min base
+HEALER_MAX_BACKOFF_SECONDS:  int = int(os.getenv("HEALER_MAX_BACKOFF_SECONDS",  "1800"))  # 30 min cap
 
 import httpx
 
@@ -76,6 +82,8 @@ class ServiceConfig:
     consecutive_failures: int = 0
     total_heals: int = 0
     last_healed: Optional[float] = None
+    consecutive_failed_heals: int = 0
+    backoff_until: Optional[float] = None
 
 
 @dataclass
@@ -223,6 +231,15 @@ def plan(
     kb: KnowledgeBase,
 ) -> HealAction:
     """Choose best heal action based on config and historical success rates."""
+    # Exponential backoff — stop looping after repeated failed heals
+    if service.backoff_until is not None and time.time() < service.backoff_until:
+        remaining = int(service.backoff_until - time.time())
+        logger.info(
+            "[PLAN] %s -- backoff active after %d failed heals (%ds remaining), skipping",
+            service.name, service.consecutive_failed_heals, remaining,
+        )
+        return HealAction.NO_ACTION
+
     if service.last_healed and (time.time() - service.last_healed) < 60:
         logger.info("[PLAN] %s -- cooldown active, skipping heal", service.name)
         return HealAction.NO_ACTION
@@ -311,6 +328,34 @@ async def execute(
 
     service.total_heals += 1
     service.last_healed = time.time()
+
+    # Track consecutive failed heals and apply exponential backoff
+    if action not in (HealAction.NO_ACTION, HealAction.ALERT_ONLY):
+        if success:
+            if service.consecutive_failed_heals > 0:
+                logger.info(
+                    "[EXECUTE] %s recovered — resetting backoff (was %d failed heals)",
+                    service.name, service.consecutive_failed_heals,
+                )
+            service.consecutive_failed_heals = 0
+            service.backoff_until = None
+        else:
+            service.consecutive_failed_heals += 1
+            if service.consecutive_failed_heals >= HEALER_MAX_RESTART_ATTEMPTS:
+                backoff = min(
+                    HEALER_BACKOFF_BASE_SECONDS * (2 ** (service.consecutive_failed_heals - HEALER_MAX_RESTART_ATTEMPTS)),
+                    HEALER_MAX_BACKOFF_SECONDS,
+                )
+                service.backoff_until = time.time() + backoff
+                logger.warning(
+                    "[EXECUTE] %s — %d consecutive failed heals (max=%d). "
+                    "Backing off for %ds (until %s).",
+                    service.name,
+                    service.consecutive_failed_heals,
+                    HEALER_MAX_RESTART_ATTEMPTS,
+                    backoff,
+                    datetime.fromtimestamp(service.backoff_until, tz=timezone.utc).strftime("%H:%M:%S UTC"),
+                )
 
     event = HealEvent(
         timestamp=ts,
