@@ -117,7 +117,15 @@
       "Bash(grep -n '\"\"8008:8008\"\"' docker-compose.yml)",
       "Bash(find 'H:/HyperStation zone/HyperCode/HyperCode-V2.0/agents/dashboard' -name *.ts -o -name *.tsx)",
       "Bash(find 'H:/HyperStation zone/HyperCode/HyperCode-V2.0/agents/dashboard' -name *.tsx -not -path */.next/*)",
-      "Bash(docker build:*)"
+      "Bash(docker build:*)",
+      "Bash(docker pause:*)",
+      "Bash(docker stop:*)",
+      "Bash(sed -i 's/opentelemetry-api==1.39.1/opentelemetry-api==1.40.0/' \"H:\\\\HyperStation zone\\\\HyperCode\\\\HyperCode-V2.0\\\\backend\\\\requirements.txt\")",
+      "Bash(sed -i 's/opentelemetry-exporter-otlp==1.39.1/opentelemetry-exporter-otlp==1.40.0/' \"H:\\\\HyperStation zone\\\\HyperCode\\\\HyperCode-V2.0\\\\backend\\\\requirements.txt\")",
+      "Bash(sed -i 's/opentelemetry-exporter-otlp-proto-common==1.39.1/opentelemetry-exporter-otlp-proto-common==1.40.0/' \"H:\\\\HyperStation zone\\\\HyperCode\\\\HyperCode-V2.0\\\\backend\\\\requirements.txt\")",
+      "Bash(sed -i 's/opentelemetry-exporter-otlp-proto-http==1.39.1/opentelemetry-exporter-otlp-proto-http==1.40.0/' \"H:\\\\HyperStation zone\\\\HyperCode\\\\HyperCode-V2.0\\\\backend\\\\requirements.txt\")",
+      "Bash(sed -i 's/opentelemetry-proto==1.39.1/opentelemetry-proto==1.40.0/' \"H:\\\\HyperStation zone\\\\HyperCode\\\\HyperCode-V2.0\\\\backend\\\\requirements.txt\")",
+      "Bash(docker info:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
