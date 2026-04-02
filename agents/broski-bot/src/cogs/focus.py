@@ -10,9 +10,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 
 from src.core.database import get_db_session
-from src.models.user import User
-from src.models.focus_session import FocusSession
-from src.models.economy_transaction import Transaction
+from src.models import User, FocusSession, Transaction
 from src.config.logging import get_logger
 
 logger = get_logger(__name__)

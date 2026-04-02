@@ -129,7 +129,14 @@
       "Bash(echo \"curl failed with $?\")",
       "Bash(docker unpause:*)",
       "Bash(npx tsc:*)",
-      "Bash(docker version:*)"
+      "Bash(docker version:*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); s=d[0]['State']; print\\('Status:', s['Status']\\); print\\('Health:', s.get\\('Health',{}\\).get\\('Status'\\)\\); [print\\(l['Output']\\) for l in s.get\\('Health',{}\\).get\\('Log',[]\\)]\")",
+      "Bash(kill %1)",
+      "Bash(wait)",
+      "Bash(wc -l \"/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/models\"/*.py)",
+      "Bash(wc:*)",
+      "Bash(timeout 25 docker logs -f broski-bot)",
+      "Bash(2>&1)"
     ]
   },
   "enableAllProjectMcpServers": true,

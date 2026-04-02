@@ -56,8 +56,9 @@ class BroskiBot(commands.Bot):
             "src.cogs.focus",
             "src.cogs.ai_relay",
             "src.cogs.hypercode_sync",
-            # "src.cogs.admin",
-            # "src.cogs.monitoring",
+            "src.cogs.admin",
+            "src.cogs.life_engine",
+            "src.cogs.profile",
         ]
     
     async def setup_hook(self) -> None:
