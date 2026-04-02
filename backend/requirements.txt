@@ -75,7 +75,7 @@ fabric==3.2.2
 factory_boy==3.3.3
 Faker==33.1.0
 fakeredis==2.33.0
-fastapi==0.116.1
+fastapi==0.135.3
 feedparser==6.0.11
 ffmpy==0.6.1
 filelock==3.16.1
