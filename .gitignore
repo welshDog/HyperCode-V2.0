@@ -191,3 +191,10 @@ agents/memory/
 **/header.bin
 **/length.bin
 **/link_lists.bin
+
+# Frontend build artifacts
+.next/
+node_modules/
+agents/**/.next/
+agents/**/node_modules/
+dashboard/.next/
