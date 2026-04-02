@@ -4,4 +4,3 @@ uvicorn
 requests
 pydantic
 redis
-PERPLEXITY>=0.18.1

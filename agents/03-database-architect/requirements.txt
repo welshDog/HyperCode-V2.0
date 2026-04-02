@@ -5,4 +5,3 @@ redis>=5.0.1
 httpx>=0.26.0
 pydantic>=2.6.0
 pydantic-settings>=2.1.0
-PERPLEXITY>=0.18.1

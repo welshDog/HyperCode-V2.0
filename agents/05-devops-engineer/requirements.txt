@@ -4,5 +4,4 @@ uvicorn
 pydantic
 httpx
 redis
-PERPLEXITY>=0.18.1
 python-multipart
