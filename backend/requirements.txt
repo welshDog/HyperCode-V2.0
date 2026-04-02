@@ -72,10 +72,10 @@ ecdsa==0.19.1
 email-validator==2.3.0
 execnet==2.1.2
 fabric==3.2.2
-factory_boy==3.3.1
+factory_boy==3.3.3
 Faker==33.1.0
 fakeredis==2.33.0
-fastapi==0.116.1
+fastapi==0.135.3
 feedparser==6.0.11
 ffmpy==0.6.1
 filelock==3.16.1
@@ -164,7 +164,7 @@ opentelemetry-api==1.39.1
 opentelemetry-distro==0.60b1
 opentelemetry-exporter-otlp==1.39.1
 opentelemetry-exporter-otlp-proto-common==1.39.1
-opentelemetry-exporter-otlp-proto-grpc==1.39.1
+opentelemetry-exporter-otlp-proto-grpc==1.40.0
 opentelemetry-exporter-otlp-proto-http==1.39.1
 opentelemetry-instrumentation==0.60b1
 opentelemetry-instrumentation-asgi==0.60b1
@@ -222,7 +222,7 @@ pydeck==0.9.1
 pydub==0.25.1
 pyflakes==3.4.0
 pygame==2.6.1
-PyGithub==2.8.1
+PyGithub==2.9.0
 Pygments==2.19.2
 PyJWT==2.11.0
 pylint==4.0.5
@@ -307,7 +307,7 @@ typing==3.7.4.3
 typing-inspect==0.9.0
 typing-inspection==0.4.2
 typing_extensions==4.14.1
-tzdata==2025.2
+tzdata==2025.3
 tzlocal==5.3.1
 urllib3==2.5.0
 uuid_utils==0.14.1

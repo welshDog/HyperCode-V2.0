@@ -13,7 +13,7 @@ jobs:
     name: Security Audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v5
         with:
@@ -45,7 +45,7 @@ jobs:
             --exclude-files '\.secrets\.baseline' \
             > reports/secrets-scan.json || true
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: security-reports
           path: reports/
