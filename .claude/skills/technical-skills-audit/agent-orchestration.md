@@ -43,13 +43,13 @@ Available MCP tools:
 
 ```bash
 # Run agent swarm test
-python run_swarm_test.py
+python scripts/run_swarm_test.py
 
 # Run NemoClaw agent
-python run_nemoclaw.py
+python scripts/run_nemoclaw.py
 
 # Use agents via API
-python use_agents.py
+python scripts/use_agents.py
 ```
 
 ## Agent X — Meta-Architect Pattern

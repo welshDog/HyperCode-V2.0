@@ -95,8 +95,8 @@ async def get_db():
 
 ```bash
 # Run database seed script
-python seed_data.py
+python scripts/seed_data.py
 ```
 
-See `seed_data.py` for default agent registrations, initial BROski$ allocations,
+See `scripts/seed_data.py` for default agent registrations, initial BROski$ allocations,
 and example mission data.

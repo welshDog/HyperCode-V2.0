@@ -7,7 +7,7 @@
 | Ruff | `ruff.toml` | Fast linter + formatter |
 | Pylint | `.pylintrc` | Deep static analysis |
 | Pyright | `pyrightconfig.json` | Type checking |
-| pytest | `pytest.ini` | Test runner |
+| pytest | `pyproject.toml` (`[tool.pytest.ini_options]`) | Test runner — pytest.ini was removed |
 | pyproject.toml | `pyproject.toml` | Project metadata + deps |
 
 ## Standard Agent Pattern

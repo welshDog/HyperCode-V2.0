@@ -4,20 +4,24 @@
 
 ```python
 from fastapi import FastAPI
-import redis
+import redis.asyncio as aioredis
 import os
 
 app = FastAPI()
-r = redis.Redis(host=os.getenv('REDIS_HOST', 'redis'), port=6379)
 
 @app.on_event('startup')
 async def startup():
-    r.publish('hypercode:system', '{"event": "started", "agent": "MY_AGENT"}')
+    r = aioredis.from_url(f"redis://{os.getenv('REDIS_HOST', 'redis')}:6379")
+    await r.publish('hypercode:system', '{"event": "started", "agent": "MY_AGENT"}')
+    await r.aclose()
 
 @app.get('/health')
 async def health():
     return {"status": "healthy", "agent": "MY_AGENT"}
 ```
+
+> **Always use `redis.asyncio` (aioredis) — never sync `redis.Redis` in a FastAPI service.**
+> FastAPI is async-first; blocking Redis calls stall the event loop.
 
 ## Config pattern — ENV ONLY
 

@@ -9,6 +9,22 @@ description: Configures and manages the HyperCode MCP (Model Context Protocol) g
 
 Config lives in: `.mcp.json`
 
+### Currently registered (live)
+
+```json
+{
+  "mcpServers": {
+    "hypercode": {
+      "type": "sse",
+      "url": "http://localhost:8823/sse",
+      "description": "HyperCode AI agent stack — manage agents, tasks, plans, logs and BROski$ economy"
+    }
+  }
+}
+```
+
+### Planned (not yet registered — add when ready)
+
 ```json
 {
   "mcpServers": {
@@ -35,10 +51,11 @@ create_issue                     ❌  (ambiguous)
 
 ## Key MCP tools available
 
-| Server | Key Tools |
-|--------|-----------|
-| `HyperCode:github` | `create_issue`, `create_pr`, `get_file` |
-| `HyperCode:filesystem` | `read_file`, `write_file`, `list_dir` |
-| `HyperCode:redis` | `publish`, `subscribe`, `get`, `set` |
+| Server | Status | Key Tools |
+|--------|--------|-----------|
+| `hypercode` | **Live** | `hypercode_list_agents`, `hypercode_create_task`, `hypercode_system_health`, `hypercode_broski_wallet` |
+| `HyperCode:github` | Planned | `create_issue`, `create_pr`, `get_file` |
+| `HyperCode:filesystem` | Planned | `read_file`, `write_file`, `list_dir` |
+| `HyperCode:redis` | Planned | `publish`, `subscribe`, `get`, `set` |
 
 For full tool list: See [TOOLS.md](TOOLS.md)

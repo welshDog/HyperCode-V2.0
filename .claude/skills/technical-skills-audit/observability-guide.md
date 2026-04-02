@@ -53,5 +53,5 @@ Suggest alerting on:
 
 - `prometheus.yml` — scrape targets & rules
 - `grafana/` — dashboard JSON exports
-- `grafana_quotas.ini` — Grafana org quotas
+- `grafana/grafana_quotas.ini` — Grafana org quotas (moved from root)
 - `monitoring/` — alert rules & recording rules

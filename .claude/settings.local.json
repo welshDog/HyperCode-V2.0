@@ -110,7 +110,8 @@
       "Bash(gh pr:*)",
       "Bash(for pr:*)",
       "Bash(do)",
-      "Bash(echo \"Merging PR #$pr...\")"
+      "Bash(echo \"Merging PR #$pr...\")",
+      "Bash(java -version)"
     ]
   },
   "enableAllProjectMcpServers": true,
