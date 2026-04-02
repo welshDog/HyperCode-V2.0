@@ -172,3 +172,10 @@ agents/dashboard/.next/
 agents/**/node_modules/
 **/.next/
 **/node_modules/
+
+# TLS / SSL Keys - NEVER commit these
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
