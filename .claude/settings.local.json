@@ -111,7 +111,10 @@
       "Bash(for pr:*)",
       "Bash(do)",
       "Bash(echo \"Merging PR #$pr...\")",
-      "Bash(java -version)"
+      "Bash(java -version)",
+      "Bash(while read:*)",
+      "Bash(do sed:*)",
+      "Bash(grep -n '\"\"8008:8008\"\"' docker-compose.yml)"
     ]
   },
   "enableAllProjectMcpServers": true,
