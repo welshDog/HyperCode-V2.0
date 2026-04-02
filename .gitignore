@@ -179,3 +179,15 @@ agents/**/node_modules/
 *.crt
 *.p12
 *.pfx
+
+# Compiled test binaries
+quantum-compiler/*.exe
+quantum-compiler/*.test.exe
+
+# Agent runtime memory (ChromaDB vector data)
+agents/memory/
+**/*.bin
+**/data_level0.bin
+**/header.bin
+**/length.bin
+**/link_lists.bin
