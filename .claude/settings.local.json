@@ -128,7 +128,8 @@
       "Bash(docker info:*)",
       "Bash(echo \"curl failed with $?\")",
       "Bash(docker unpause:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(docker version:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
