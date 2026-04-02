@@ -1231,7 +1231,7 @@ services:
     networks:
       - backend-net
     ports:
-      - "8008:8008"
+      - "127.0.0.1:8094:8008"
     depends_on:
       hypercode-core:
         condition: service_healthy
