@@ -93,8 +93,10 @@ async def _get_agent_statuses(r: aioredis.Redis) -> AgentStatusList:
 
 
 @router.get("/agents/status", response_model=AgentStatusList)
+@router.get("/agents", response_model=AgentStatusList)
 async def get_agent_status() -> AgentStatusList:
-    """REST endpoint — returns current agent heartbeat status from Redis."""
+    """REST endpoint — returns current agent heartbeat status from Redis.
+    Aliased at both /agents/status and /agents for dashboard compatibility."""
     r = await aioredis.from_url(settings.HYPERCODE_REDIS_URL, decode_responses=True)
     try:
         return await _get_agent_statuses(r)

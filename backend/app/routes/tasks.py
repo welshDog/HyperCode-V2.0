@@ -112,6 +112,7 @@ async def _publish_event(event_data: dict) -> None:
 # ── CRUD endpoints ─────────────────────────────────────────────────────────────
 
 @router.get("/tasks", response_model=TaskListResponse)
+@router.get("/tasks/", response_model=TaskListResponse, include_in_schema=False)
 def list_tasks(
     skip: int = 0,
     limit: int = 50,

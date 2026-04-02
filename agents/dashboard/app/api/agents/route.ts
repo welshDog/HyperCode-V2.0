@@ -4,7 +4,7 @@ const CORE_URL = process.env.HYPERCODE_CORE_URL ?? 'http://hypercode-core:8000'
 
 export async function GET() {
   try {
-    const res = await fetch(`${CORE_URL}/api/v1/agents`, {
+    const res = await fetch(`${CORE_URL}/api/v1/agents/status`, {
       headers: { 'Accept': 'application/json' },
       cache:   'no-store',
     })

@@ -5,8 +5,8 @@ const CORE_URL = process.env.HYPERCODE_CORE_URL ?? 'http://hypercode-core:8000'
 export async function GET(req: NextRequest) {
   try {
     const token = req.headers.get('authorization') ?? ''
-    const res = await fetch(`${CORE_URL}/api/v1/broski/wallet`, {
-      headers: { Authorization: token, Accept: 'application/json' },
+    const res = await fetch(`${CORE_URL}/api/v1/broski/pulse`, {
+      headers: { Accept: 'application/json' },
       cache: 'no-store',
     })
     if (!res.ok) throw new Error(`BROski API ${res.status}`)

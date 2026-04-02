@@ -3,7 +3,9 @@ from __future__ import annotations
 
 from typing import Any
 
+import redis
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -107,6 +109,43 @@ def award_coins_and_xp(
         response["level_up"] = level_up_msg
 
     return response
+
+
+@router.get("/pulse")
+def get_broski_pulse(db: Session = Depends(get_db)) -> Any:
+    """Public system-wide BROski$ pulse — no auth needed. Used by dashboard."""
+    from app.models.broski import BROskiWallet
+    from app.core.config import settings as cfg
+
+    total_coins = db.query(func.sum(BROskiWallet.balance)).scalar() or 0
+    total_xp = db.query(func.sum(BROskiWallet.xp)).scalar() or 0
+    user_count = db.query(func.count(BROskiWallet.id)).scalar() or 0
+
+    # Count agents online via Redis heartbeats
+    agents_online = 0
+    try:
+        r = redis.Redis.from_url(cfg.HYPERCODE_REDIS_URL, decode_responses=True, socket_connect_timeout=1)
+        keys = r.keys("agents:heartbeat:*")
+        agents_online = len(keys)
+        r.close()
+    except Exception:
+        pass
+
+    total_xp_int = int(total_xp)
+    level = min(7, max(1, next(
+        (i + 1 for i, threshold in enumerate([0, 100, 250, 500, 1000, 2000, 5000]) if total_xp_int < threshold),
+        7
+    )))
+    level_names = ["Rookie", "Coder", "Builder", "Hacker", "Architect", "Legend", "HyperGod"]
+
+    return {
+        "coins": int(total_coins),
+        "xp": total_xp_int,
+        "level": level,
+        "level_name": level_names[level - 1],
+        "agentsOnline": agents_online,
+        "userCount": int(user_count),
+    }
 
 
 @router.post("/daily-login")
