@@ -10,12 +10,15 @@ import { useCircuitBreakers } from '../../hooks/useHealerTelemetry';
 
 // -- Status config ------------------------------------------------------------
 
-const STATUS_CONFIG = {
+const STATUS_CONFIG: Record<string, { dot: string; label: string; text: string }> = {
   idle     : { dot: 'bg-gray-500',    label: 'Idle',     text: 'text-gray-400'   },
   thinking : { dot: 'bg-yellow-400',  label: 'Thinking', text: 'text-yellow-400' },
   working  : { dot: 'bg-emerald-400', label: 'Working',  text: 'text-emerald-400'},
   error    : { dot: 'bg-red-500',     label: 'Error',    text: 'text-red-400'    },
-} as const;
+  online   : { dot: 'bg-emerald-400', label: 'Online',   text: 'text-emerald-400'},
+  offline  : { dot: 'bg-red-500',     label: 'Offline',  text: 'text-red-400'    },
+  busy     : { dot: 'bg-yellow-400',  label: 'Busy',     text: 'text-yellow-400' },
+};
 
 function circuitColour(state: string): string {
   if (state === 'open')      return 'text-red-400';
@@ -34,7 +37,7 @@ function circuitLabel(state: string): string {
 interface AgentCardProps {
   id: string;
   name: string;
-  status: 'idle' | 'thinking' | 'working' | 'error';
+  status: 'idle' | 'thinking' | 'working' | 'error' | 'online' | 'offline' | 'busy';
   lastActivity?: string;
   skills?: string[];
   circuitState?: string;
