@@ -114,7 +114,10 @@
       "Bash(java -version)",
       "Bash(while read:*)",
       "Bash(do sed:*)",
-      "Bash(grep -n '\"\"8008:8008\"\"' docker-compose.yml)"
+      "Bash(grep -n '\"\"8008:8008\"\"' docker-compose.yml)",
+      "Bash(find 'H:/HyperStation zone/HyperCode/HyperCode-V2.0/agents/dashboard' -name *.ts -o -name *.tsx)",
+      "Bash(find 'H:/HyperStation zone/HyperCode/HyperCode-V2.0/agents/dashboard' -name *.tsx -not -path */.next/*)",
+      "Bash(docker build:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
