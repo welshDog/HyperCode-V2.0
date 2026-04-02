@@ -117,7 +117,7 @@ def get_broski_pulse(db: Session = Depends(get_db)) -> Any:
     from app.models.broski import BROskiWallet
     from app.core.config import settings as cfg
 
-    total_coins = db.query(func.sum(BROskiWallet.balance)).scalar() or 0
+    total_coins = db.query(func.sum(BROskiWallet.coins)).scalar() or 0
     total_xp = db.query(func.sum(BROskiWallet.xp)).scalar() or 0
     user_count = db.query(func.count(BROskiWallet.id)).scalar() or 0
 
@@ -131,18 +131,15 @@ def get_broski_pulse(db: Session = Depends(get_db)) -> Any:
     except Exception:
         pass
 
+    from app.models.broski import xp_to_level
     total_xp_int = int(total_xp)
-    level = min(7, max(1, next(
-        (i + 1 for i, threshold in enumerate([0, 100, 250, 500, 1000, 2000, 5000]) if total_xp_int < threshold),
-        7
-    )))
-    level_names = ["Rookie", "Coder", "Builder", "Hacker", "Architect", "Legend", "HyperGod"]
+    level, level_name = xp_to_level(total_xp_int)
 
     return {
         "coins": int(total_coins),
         "xp": total_xp_int,
         "level": level,
-        "level_name": level_names[level - 1],
+        "level_name": level_name,
         "agentsOnline": agents_online,
         "userCount": int(user_count),
     }
