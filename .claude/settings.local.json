@@ -106,7 +106,11 @@
       "Bash(docker stats:*)",
       "Bash(find 'H:\\\\HyperStation zone\\\\HyperCode\\\\HyperCode-V2.0\\\\agents\\\\dashboard' -name *.tsx -o -name *.ts)",
       "Bash(docker buildx:*)",
-      "Bash(docker images:*)"
+      "Bash(docker images:*)",
+      "Bash(gh pr:*)",
+      "Bash(for pr:*)",
+      "Bash(do)",
+      "Bash(echo \"Merging PR #$pr...\")"
     ]
   },
   "enableAllProjectMcpServers": true,
