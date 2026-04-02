@@ -125,7 +125,10 @@
       "Bash(sed -i 's/opentelemetry-exporter-otlp-proto-common==1.39.1/opentelemetry-exporter-otlp-proto-common==1.40.0/' \"H:\\\\HyperStation zone\\\\HyperCode\\\\HyperCode-V2.0\\\\backend\\\\requirements.txt\")",
       "Bash(sed -i 's/opentelemetry-exporter-otlp-proto-http==1.39.1/opentelemetry-exporter-otlp-proto-http==1.40.0/' \"H:\\\\HyperStation zone\\\\HyperCode\\\\HyperCode-V2.0\\\\backend\\\\requirements.txt\")",
       "Bash(sed -i 's/opentelemetry-proto==1.39.1/opentelemetry-proto==1.40.0/' \"H:\\\\HyperStation zone\\\\HyperCode\\\\HyperCode-V2.0\\\\backend\\\\requirements.txt\")",
-      "Bash(docker info:*)"
+      "Bash(docker info:*)",
+      "Bash(echo \"curl failed with $?\")",
+      "Bash(docker unpause:*)",
+      "Bash(npx tsc:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
