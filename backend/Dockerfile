@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY requirements.txt .
 RUN pip install --upgrade pip && \
-    pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt
 
 # Stage 2: Final
 FROM python:3.11-slim
@@ -39,10 +39,8 @@ RUN addgroup --system appuser && adduser --system --group appuser
 RUN mkdir -p /app/cache/huggingface /app/cache/sentence_transformers && \
     chown -R appuser:appuser /app/cache
 
-COPY --from=builder /app/wheels /wheels
-COPY --from=builder /app/requirements.txt .
-
-RUN pip install --no-deps /wheels/*
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
 COPY . .
