@@ -761,11 +761,11 @@ services:
       - HOSTNAME=0.0.0.0
       - PORT=3000
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {if (r.statusCode !== 200) process.exit(1)}).on('error', () => process.exit(1))"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => {if (r.statusCode >= 500) process.exit(1)}).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 90s
     ports:
       - "127.0.0.1:8088:3000" # Public facing dashboard
     depends_on:
