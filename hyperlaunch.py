@@ -94,13 +94,13 @@ SERVICES: list[ServiceSpec] = [
 
     # ── TIER 1: Infrastructure ─────────────────────────────────────────────
     ServiceSpec(
-        name="redis", container="hypercode-redis", tier=Tier.INFRA,
+        name="redis", container="redis", tier=Tier.INFRA,
         port=6379, health_path="",  # TCP only
         description="Redis — state sync + pub/sub backbone",
         startup_timeout=30,
     ),
     ServiceSpec(
-        name="postgres", container="hypercode-postgres", tier=Tier.INFRA,
+        name="postgres", container="postgres", tier=Tier.INFRA,
         port=5432, health_path="",  # TCP only
         description="PostgreSQL — persistent agent state + logs",
         startup_timeout=45,
@@ -108,21 +108,21 @@ SERVICES: list[ServiceSpec] = [
 
     # ── TIER 2: Core Platform ──────────────────────────────────────────────
     ServiceSpec(
-        name="crew-orchestrator", container="hyper-crew-orchestrator", tier=Tier.CORE,
+        name="crew-orchestrator", container="crew-orchestrator", tier=Tier.CORE,
         port=8081, health_path="/health",
         depends_on=["redis", "postgres"],
         description="Crew Orchestrator — agent lifecycle manager",
         startup_timeout=60,
     ),
     ServiceSpec(
-        name="healer", container="hyper-healer", tier=Tier.CORE,
+        name="healer-agent", container="healer-agent", tier=Tier.CORE,
         port=8008, health_path="/health",
         depends_on=["redis", "crew-orchestrator"],
         description="Healer Agent — self-healing + auto-recovery",
         startup_timeout=60,
     ),
     ServiceSpec(
-        name="hyper-core", container="hyper-core", tier=Tier.CORE,
+        name="hypercode-core", container="hypercode-core", tier=Tier.CORE,
         port=8000, health_path="/health",
         depends_on=["redis", "postgres", "crew-orchestrator"],
         description="HyperCode Core — FastAPI backbone + integrations hub",
@@ -131,9 +131,9 @@ SERVICES: list[ServiceSpec] = [
 
     # ── TIER 3: AI Agents ─────────────────────────────────────────────────
     ServiceSpec(
-        name="agent-x", container="hyper-agent-x", tier=Tier.AGENTS,
+        name="agent-x", container="agent-x", tier=Tier.AGENTS,
         port=8080, health_path="/health",
-        depends_on=["crew-orchestrator", "healer"],
+        depends_on=["crew-orchestrator", "healer-agent"],
         description="Agent X — Meta-Architect, spawns + evolves all agents",
         startup_timeout=90,
     ),
@@ -159,32 +159,32 @@ SERVICES: list[ServiceSpec] = [
         startup_timeout=60,
     ),
     ServiceSpec(
-        name="devops-engineer", container="hyper-devops-engineer", tier=Tier.AGENTS,
+        name="devops-engineer", container="devops-engineer", tier=Tier.AGENTS,
         port=8085, health_path="/health",
-        depends_on=["agent-x", "hyper-core"],
+        depends_on=["agent-x", "hypercode-core"],
         description="DevOps Engineer Agent — CI/CD + autonomous evolution",
         startup_timeout=60,
     ),
 
     # ── TIER 4: UI / Dashboards ────────────────────────────────────────────
     ServiceSpec(
-        name="mission-control", container="hyper-mission-control", tier=Tier.UI,
+        name="hypercode-dashboard", container="hypercode-dashboard", tier=Tier.UI,
         port=8088, health_path="/",
-        depends_on=["hyper-core", "agent-x"],
+        depends_on=["hypercode-core", "agent-x"],
         description="Mission Control Dashboard — Next.js real-time UI",
         critical=False,
         startup_timeout=90,
     ),
     ServiceSpec(
-        name="broski-terminal", container="hyper-broski-terminal", tier=Tier.UI,
+        name="broski-bot", container="broski-bot", tier=Tier.UI,
         port=3000, health_path="/",
-        depends_on=["hyper-core"],
+        depends_on=["hypercode-core"],
         description="BROski Terminal — custom CLI + web UI",
         critical=False,
         startup_timeout=60,
     ),
     ServiceSpec(
-        name="grafana", container="hypercode-grafana", tier=Tier.UI,
+        name="grafana", container="grafana", tier=Tier.UI,
         port=3001, health_path="/api/health",
         depends_on=["hyper-observer"],
         description="Grafana — observability dashboards",
