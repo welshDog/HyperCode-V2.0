@@ -136,7 +136,9 @@
       "Bash(wc -l \"/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/models\"/*.py)",
       "Bash(wc:*)",
       "Bash(timeout 25 docker logs -f broski-bot)",
-      "Bash(2>&1)"
+      "Bash(2>&1)",
+      "Bash(docker container:*)",
+      "Bash(xargs -r docker rm -f)"
     ]
   },
   "enableAllProjectMcpServers": true,
