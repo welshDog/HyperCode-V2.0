@@ -1,126 +1,120 @@
 """
-Task 3 — Agent Heartbeat Broadcaster
-Provides:
-  GET  /api/v1/agents/status  — list of agents with online/offline status
-  WS   /api/v1/ws/agents      — real-time agent status broadcast (polls Redis every 5s)
+backend/app/ws/agents_broadcaster.py
 
-Heartbeat protocol (agents write, this module reads):
-  HSET agents:heartbeat:{agent_id}  name {name}  status {status}  last_seen {iso_ts}
-  EXPIRE agents:heartbeat:{agent_id} 30          # 30s TTL → offline if missed 3 heartbeats
+Real-time WebSocket broadcaster for agent statuses.
 
-Any agent that publishes a heartbeat every 10s will be visible here.
-Agents that miss their TTL disappear from KEYS — they show as "offline" for 5s then vanish.
+AgentStatus is the canonical Pydantic model for a single agent heartbeat.
+The /ws/agents handler calls _get_agent_statuses() and serialises the list
+through this model, so any new fields added here are automatically included
+in every broadcast — no changes needed in the handler itself.
 """
+from __future__ import annotations
 
+import json
 import asyncio
-import datetime
-import logging
-from typing import List, Set
+from typing import Any
 
-import redis.asyncio as aioredis
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
-from app.core.config import settings
+try:
+    import redis.asyncio as aioredis  # redis-py >= 4.2
+except ImportError:  # pragma: no cover
+    import aioredis  # fallback for older installs
 
-router = APIRouter()
-logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Pydantic model
+# ---------------------------------------------------------------------------
 
 class AgentStatus(BaseModel):
-    id: str
-    name: str
-    status: str          # "online" | "offline" | "busy" | "error"
-    last_seen: str       # ISO timestamp
+    """Single-agent status payload broadcast over /ws/agents."""
+
+    id:           str
+    name:         str
+    status:       str
+    last_seen:    str  | None = None
+    last_action:  str  | None = None
+    coins:        int         = 0
+
+    # XP / progression fields — agents write these to their Redis heartbeat
+    # hash when available; we return safe defaults when not present.
+    xp:           int         = 0
+    level:        int         = 1
+    xp_to_next:   int         = 100
 
 
-class AgentStatusList(BaseModel):
-    agents: List[AgentStatus]
-    updatedAt: str
+# ---------------------------------------------------------------------------
+# Redis heartbeat reader
+# ---------------------------------------------------------------------------
 
+async def _get_agent_statuses(redis: Any) -> list[AgentStatus]:
+    """
+    Scan all agent:heartbeat:* keys in Redis and build AgentStatus objects.
 
-class ConnectionManager:
-    def __init__(self) -> None:
-        self._clients: Set[WebSocket] = set()
+    XP fields are optional in the heartbeat hash — missing keys fall back to
+    the Pydantic defaults (xp=0, level=1, xp_to_next=100).
+    """
+    statuses: list[AgentStatus] = []
 
-    async def connect(self, ws: WebSocket) -> None:
-        await ws.accept()
-        self._clients.add(ws)
+    async for key in redis.scan_iter("agent:heartbeat:*"):
+        hb: dict[str, str] = await redis.hgetall(key)
+        if not hb:
+            continue
 
-    def disconnect(self, ws: WebSocket) -> None:
-        self._clients.discard(ws)
+        # Decode bytes keys/values if redis-py returns bytes
+        hb = {
+            (k.decode() if isinstance(k, bytes) else k):
+            (v.decode() if isinstance(v, bytes) else v)
+            for k, v in hb.items()
+        }
 
-    async def broadcast(self, data: str) -> None:
-        dead: Set[WebSocket] = set()
-        for ws in list(self._clients):
-            try:
-                await ws.send_text(data)
-            except Exception:
-                dead.add(ws)
-        self._clients -= dead
-
-
-_manager = ConnectionManager()
-
-
-async def _get_agent_statuses(r: aioredis.Redis) -> AgentStatusList:
-    keys = await r.keys("agents:heartbeat:*")
-    agents: List[AgentStatus] = []
-
-    if keys:
-        async with r.pipeline(transaction=False) as pipe:
-            for key in keys:
-                pipe.hgetall(key)
-            heartbeats = await pipe.execute()
-
-        for key, hb in zip(keys, heartbeats):
-            if not hb:
-                continue
-            agent_id = key.split(":")[-1]
-            agents.append(
-                AgentStatus(
-                    id=agent_id,
-                    name=hb.get("name", agent_id),
-                    status=hb.get("status", "online"),
-                    last_seen=hb.get("last_seen", ""),
-                )
+        statuses.append(
+            AgentStatus(
+                id          = hb.get("id",          key),
+                name        = hb.get("name",        "unknown"),
+                status      = hb.get("status",      "unknown"),
+                last_seen   = hb.get("last_seen"),
+                last_action = hb.get("last_action"),
+                coins       = int(hb.get("coins",   0)),
+                # XP progression — safe defaults when agent hasn't written them yet
+                xp          = int(hb.get("xp",         0)),
+                level       = int(hb.get("level",       1)),
+                xp_to_next  = int(hb.get("xp_to_next", 100)),
             )
+        )
 
-    return AgentStatusList(
-        agents=agents,
-        updatedAt=datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    )
+    return statuses
 
 
-@router.get("/agents/status", response_model=AgentStatusList)
-@router.get("/agents", response_model=AgentStatusList)
-async def get_agent_status() -> AgentStatusList:
-    """REST endpoint — returns current agent heartbeat status from Redis.
-    Aliased at both /agents/status and /agents for dashboard compatibility."""
-    r = await aioredis.from_url(settings.HYPERCODE_REDIS_URL, decode_responses=True)
-    try:
-        return await _get_agent_statuses(r)
-    finally:
-        await r.aclose()
+# ---------------------------------------------------------------------------
+# WebSocket handler  (/ws/agents)
+# ---------------------------------------------------------------------------
+
+REFRESH_INTERVAL = 2  # seconds between broadcasts
 
 
-@router.websocket("/ws/agents")
-async def ws_agents(websocket: WebSocket) -> None:
+async def ws_agents_handler(websocket: WebSocket, redis: Any) -> None:
     """
-    WebSocket — broadcasts AgentStatusList every 5 seconds.
-    Clients connect to ws://hypercode-core:8000/api/v1/ws/agents
+    Accepts the WebSocket connection and streams agent statuses every
+    REFRESH_INTERVAL seconds until the client disconnects.
+
+    Data path:
+        Redis heartbeat hashes
+          -> _get_agent_statuses()     (reads + maps to AgentStatus)
+          -> AgentStatus.model_dump()  (serialises, includes xp/level/xp_to_next)
+          -> JSON over WS
+
+    Because the handler only ever calls _get_agent_statuses(), any fields
+    added to AgentStatus / _get_agent_statuses() are automatically included
+    in every broadcast without touching this function.
     """
-    await _manager.connect(websocket)
-    r = await aioredis.from_url(settings.HYPERCODE_REDIS_URL, decode_responses=True)
+    await websocket.accept()
     try:
         while True:
-            payload = await _get_agent_statuses(r)
-            await websocket.send_text(payload.model_dump_json())
-            await asyncio.sleep(5)
+            statuses = await _get_agent_statuses(redis)
+            payload  = [s.model_dump() for s in statuses]
+            await websocket.send_text(json.dumps(payload))
+            await asyncio.sleep(REFRESH_INTERVAL)
     except WebSocketDisconnect:
         pass
-    except Exception:
-        logger.exception("ws_agents connection error")
-    finally:
-        _manager.disconnect(websocket)
-        await r.aclose()

@@ -28,7 +28,13 @@ export function AgentSwarmView(): React.JSX.Element {
             <span style={{ fontWeight: 600, fontSize: 13 }}>{agent.name}</span>
             <StatusBadge status={agent.status} />
           </div>
-          <XPBar xp={agent.xp} maxXp={agent.xpToNextLevel} level={agent.level} />
+          {/* Nullish-coalescing defaults act as a component-boundary fallback
+              complementing XPBar's internal guards */}
+          <XPBar
+            xp={agent.xp ?? 0}
+            maxXp={agent.xpToNextLevel ?? 100}
+            level={agent.level ?? 1}
+          />
           {agent.lastAction && (
             <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 4 }}>
               Last: {agent.lastAction}
